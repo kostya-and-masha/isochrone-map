@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Isochrone map</string>
+    <string name="menu_button">menu button</string>
+    <string name="search_hint">Search place</string>
+    <string name="set_distance">SET TRAVEL DISTANCE</string>
+    <string name="time_0">0</string>
+    <string name="time_3h">3h</string>
+    <string name="set_transport">SET TRANSPORT</string>
+    <string name="content_bike_button">set bike as transport</string>
+    <string name="content_walking_button">set walking as transport</string>
+    <string name="content_car_button">set car as transport</string>
 </resources>

@@ -1,11 +1,36 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColor">@color/colorDarkGrey</item>
+    </style>
+
+    <style name="GeoButton" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="backgroundTint">@color/colorLightGrey</item>
+        <item name="android:tint">@color/colorDarkGrey</item>
+        <item name="rippleColor">@color/colorPrimary</item>
+    </style>
+
+    <style name="BuildIsochroneButton" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="backgroundTint">@color/colorPrimaryDark</item>
+        <item name="android:tint">@color/colorDarkGrey</item>
+    </style>
+
+    <style name="CardStyle" parent="Widget.MaterialComponents.CardView">
+        <item name="android:backgroundTint">@color/colorLightGrey</item>
+    </style>
+
+    <style name="ProgressBar" parent="Widget.AppCompat.SeekBar">
+        <item name="android:progressDrawable">@drawable/custom_progress_bar</item>
+        <item name="android:maxHeight">3dp</item>
+        <item name="android:thumbTint">@color/colorDarkGrey</item>
+    </style>
+
+    <style name="ImageButton" parent="Widget.AppCompat.ImageButton">
+        <item name="android:tint">@color/colorPrimaryDark</item>
     </style>
 
 </resources>
