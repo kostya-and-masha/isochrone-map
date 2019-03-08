@@ -28,10 +28,14 @@ class MapStructureManagerTest {
                 6,
                 TransportType.FOOT
         );
-        MapStructureManager.getMapStructure(request);
+        MapStructure result = MapStructureManager.getMapStructure(request);
+        System.out.println("6 km foot nodes: " + result.getNodes().size());
+        System.out.println("50 m foot start nodes: " + result.getStartNodes().size());
 
         request.setTransportType(TransportType.CAR);
-        MapStructureManager.getMapStructure(request);
+        result = MapStructureManager.getMapStructure(request);
+        System.out.println("6 km car nodes: " + result.getNodes().size());
+        System.out.println("50 m car start nodes: " + result.getStartNodes().size());
     }
 
     @Test
@@ -47,6 +51,9 @@ class MapStructureManagerTest {
         out.close();
 
         InputStream in = new FileInputStream(testFile);
-        MapStructureManager.getMapStructure(request, in);
+        MapStructure result = MapStructureManager.getMapStructure(request, in);
+
+        System.out.println("6 km foot nodes: " + result.getNodes().size());
+        System.out.println("50 m foot start nodes: " + result.getStartNodes().size());
     }
 }

@@ -17,25 +17,27 @@ public class MapStructureManager {
             "https://overpass.kumi.systems/api/interpreter";
 
     /**
-     * Fills {@code request.nodes} and {@code request.startNodes} representing map structure.
+     * Returns map structure.
      * @param request map request parameters
+     * @return map structure
      */
     // TODO 180 meridian handling
     // TODO poles handling
     // TODO normal exception handling
-    public static void getMapStructure(MapStructureRequest request) throws IOException {
+    public static MapStructure getMapStructure(MapStructureRequest request) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         downloadMap(request, out);
-        getMapStructure(request, new ByteArrayInputStream(out.toByteArray()));
+        return getMapStructure(request, new ByteArrayInputStream(out.toByteArray()));
     }
 
     /**
-     * Fills {@code request.nodes} and {@code request.startNodes} representing map structure.
+     * Returns map structure.
      * @param request request parameters
      * @param in stream with result of Overpass request
+     * @return map structure
      */
-    public static void getMapStructure(MapStructureRequest request, InputStream in) {
-        OSMDataParser.parse(request, in);
+    public static MapStructure getMapStructure(MapStructureRequest request, InputStream in) {
+        return OSMDataParser.parse(request, in);
     }
 
     /**

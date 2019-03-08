@@ -22,7 +22,7 @@ class OSMDataParser {
 
     // TODO distance calculation optimization
     // TODO json -> csv
-    static void parse(@NotNull MapStructureRequest request,
+    static MapStructure parse(@NotNull MapStructureRequest request,
                       @NotNull InputStream osmJsonData) {
         Coordinate startCoordinate = request.getStartCoordinate();
         double unconditionalAccessDistance = request.getUnconditionalAccessDistance();
@@ -90,7 +90,6 @@ class OSMDataParser {
                 }
             }
         }
-        request.setNodes(nodes);
-        request.setStartNodes(startNodes);
+        return new MapStructure(nodes, startNodes);
     }
 }
