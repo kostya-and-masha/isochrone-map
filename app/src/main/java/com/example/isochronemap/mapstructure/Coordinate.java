@@ -5,8 +5,8 @@ import org.locationtech.spatial4j.distance.DistanceUtils;
 
 /** Geographical coordinate. **/
 public class Coordinate {
-    final double latitudeDeg;
-    final double longitudeDeg;
+    public final double latitudeDeg;
+    public final double longitudeDeg;
 
     private final double latitudeRad;
     private final double longitudeRad;
