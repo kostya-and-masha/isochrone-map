@@ -7,7 +7,7 @@ import com.example.isochronemap.mapstructure.Node;
 import com.example.isochronemap.mapstructure.TransportType;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,17 +25,22 @@ public class IsochroneBuilder {
 
     /** Builds polygon which represents reachable area **/
     public static @NonNull List<Coordinate> getIsochronePolygon(
-            @NonNull MapStructure map, double time, @NonNull TransportType transportType) {
+            @NonNull MapStructure map, double time, @NonNull TransportType transportType)
+            throws NotEnoughNodesException, UnsupportedParameterException {
         List<Node> reachableNodes = getReachableNodes(map, time, transportType);
+        if (reachableNodes.size() < 2) {
+            throw new NotEnoughNodesException();
+        }
         List<Coordinate> reachablePoints = getCoordinates(reachableNodes);
         return getNodesConvexHull(reachablePoints);
     }
 
     /** Dijkstra algorithm */
-    private static @NonNull List<Node> getReachableNodes(@NonNull MapStructure map, double time,
-                                                         TransportType transportType){
+    private static @NonNull List<Node> getReachableNodes(
+            @NonNull MapStructure map, double time, TransportType transportType)
+            throws UnsupportedParameterException {
         if (transportType != TransportType.FOOT) {
-            throw new UnsupportedOperationException("the support of this transport " +
+            throw new UnsupportedParameterException("the support of this transport " +
                     "type is not implemented yet :(");
         }
 
@@ -96,8 +101,8 @@ public class IsochroneBuilder {
 
         for (Node node : map.getStartNodes()) {
             nodesReachTime.put(node, 0.0);
-            nodesQueue.add(new TimeAndNode(0.0, node));
             nodesIndex.put(node, currentIndex++);
+            nodesQueue.add(new TimeAndNode(0.0, node));
         }
 
         while (!nodesQueue.isEmpty()) {
@@ -116,8 +121,8 @@ public class IsochroneBuilder {
 
                 if (!nodesReachTime.containsKey(destination)) {
                     nodesReachTime.put(destination, destinationTime);
-                    nodesQueue.add(new TimeAndNode(destinationTime, destination));
                     nodesIndex.put(destination, currentIndex++);
+                    nodesQueue.add(new TimeAndNode(destinationTime, destination));
                 } else if (nodesReachTime.get(destination) > destinationTime) {
                     nodesQueue.remove(
                             new TimeAndNode(nodesReachTime.get(destination), destination));
@@ -138,13 +143,55 @@ public class IsochroneBuilder {
 
     private static @NonNull List<Coordinate> getCoordinates(@NonNull List<Node> nodes) {
         ArrayList<Coordinate> coordinates = new ArrayList<>();
-        for (Node node : nodes) {
-            coordinates.add(node.coordinate);
+        for (Node currentNode : nodes) {
+            coordinates.add(currentNode.coordinate);
         }
         return coordinates;
     }
+
+    /** Andrew's monotone chain algorithm */
     private static @NonNull List<Coordinate> getNodesConvexHull(
             @NonNull List<Coordinate> coordinates) {
-        
+        Collections.sort(coordinates, (o1, o2) -> {
+            if (o1.longitudeDeg == o2.longitudeDeg) {
+                return Double.compare(o1.latitudeDeg, o2.latitudeDeg);
+            }
+            return Double.compare(o1.longitudeDeg, o2.longitudeDeg);
+        });
+
+        List<Coordinate> bottomHull = buildConvexHullGraham(coordinates);
+        Collections.reverse(coordinates);
+        List<Coordinate> topHull = buildConvexHullGraham(coordinates);
+        for (int i = 1; i < bottomHull.size() - 1; ++i) {
+            topHull.add(bottomHull.get(i));
+        }
+
+        return topHull;
+    }
+
+    /** Graham's algorithm for one half of the plane*/
+    private static @NonNull List<Coordinate> buildConvexHullGraham(
+            @NonNull List<Coordinate> sortedCoordinates) {
+        ArrayList<Coordinate> resultArray = new ArrayList<>();
+        resultArray.add(sortedCoordinates.get(0));
+        resultArray.add(sortedCoordinates.get(1));
+
+        for (int i = 2; i < sortedCoordinates.size(); i++) {
+            Coordinate topCoordinate = resultArray.get(resultArray.size() - 1);
+            Coordinate nexToTopCoordinate = resultArray.get(resultArray.size() - 2);
+            while (resultArray.size() >= 2 &&
+                    !isLeftTurn(nexToTopCoordinate, topCoordinate, sortedCoordinates.get(i))) {
+                resultArray.remove(resultArray.size() - 1);
+            }
+            resultArray.add(sortedCoordinates.get(i));
+        }
+
+        return resultArray;
+    }
+
+    private static boolean isLeftTurn(Coordinate p1, Coordinate p2, Coordinate p3) {
+        // x1y2 - y1x2
+        return (p2.longitudeDeg - p1.longitudeDeg)*(p3.latitudeDeg - p1.latitudeDeg) -
+                (p2.latitudeDeg - p1.latitudeDeg)*(p3.longitudeDeg - p1.longitudeDeg) > 0;
     }
 }
