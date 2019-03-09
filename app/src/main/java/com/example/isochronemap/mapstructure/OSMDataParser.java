@@ -23,9 +23,10 @@ class OSMDataParser {
     // TODO distance calculation optimization
     // TODO json -> csv
     static MapStructure parse(@NotNull MapStructureRequest request,
-                      @NotNull InputStream osmJsonData) {
+                              @NotNull InputStream osmJsonData) {
         Coordinate startCoordinate = request.getStartCoordinate();
         double unconditionalAccessDistance = request.getUnconditionalAccessDistance();
+        double maximumDistance = request.getMaximumDistance();
         List<Node> nodes = new ArrayList<>();
         List<Node> startNodes = new ArrayList<>();
 
@@ -40,19 +41,20 @@ class OSMDataParser {
             JsonObject o = e.getAsJsonObject();
             String type = o.get("type").getAsString();
             if (type.equals("node")) {
+                Coordinate coordinate = new Coordinate(
+                        o.get("lat").getAsDouble(),
+                        o.get("lon").getAsDouble()
+                );
+                double distanceFromStart = startCoordinate.distanceTo(coordinate);
+                if (distanceFromStart > maximumDistance) {
+                    continue;
+                }
+
                 boolean isCrossing = o.has("tags") &&
                         o.get("tags").getAsJsonObject().has("crossing");
-                Node node = new Node(
-                        new Coordinate(
-                                o.get("lat").getAsDouble(),
-                                o.get("lon").getAsDouble()
-                        ),
-                        isCrossing
-                );
+                Node node = new Node(coordinate, isCrossing);
                 nodes.add(node);
                 nodeMap.put(o.get("id").getAsLong(), node);
-
-                double distanceFromStart = startCoordinate.distanceTo(node.coordinate);
                 if (distanceFromStart < unconditionalAccessDistance) {
                     startNodes.add(node);
                 }
@@ -76,11 +78,13 @@ class OSMDataParser {
                 boolean isCrossing = o.has("tags") &&
                         o.get("tags").getAsJsonObject().has("crossing");
                 Node from;
-                Node to = Objects.requireNonNull(nodeMap.get(nodeIds.get(0).getAsLong()));
+                Node to = nodeMap.get(nodeIds.get(0).getAsLong());
                 for (int i = 1; i < nodeIds.size(); i++) {
                     from = to;
-                    to = Objects.requireNonNull(nodeMap.get(nodeIds.get(i).getAsLong()));
-
+                    to = nodeMap.get(nodeIds.get(i).getAsLong());
+                    if (from == null || to == null) {
+                        continue;
+                    }
                     if (forward) {
                         from.edges.add(new Edge(from.coordinate, to, isCrossing));
                     }
