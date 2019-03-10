@@ -6,6 +6,8 @@ import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.Node;
 import com.example.isochronemap.mapstructure.TransportType;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeSet;
 
-import androidx.annotation.NonNull;
 
 /** This class contains methods for building isochrones. */
 public class IsochroneBuilder {
@@ -24,8 +25,8 @@ public class IsochroneBuilder {
     private static final double EXPECTED_CROSSWALK_FOOT_WAITING = 0.005;
 
     /** Builds polygon which represents reachable area **/
-    public static @NonNull List<Coordinate> getIsochronePolygon(
-            @NonNull MapStructure map, double time, @NonNull TransportType transportType)
+    public static @NotNull List<Coordinate> getIsochronePolygon(
+            @NotNull MapStructure map, double time, @NotNull TransportType transportType)
             throws NotEnoughNodesException, UnsupportedParameterException {
         List<Node> reachableNodes = getReachableNodes(map, time, transportType);
         if (reachableNodes.size() < 2) {
@@ -36,8 +37,8 @@ public class IsochroneBuilder {
     }
 
     /** Dijkstra algorithm */
-    private static @NonNull List<Node> getReachableNodes(
-            @NonNull MapStructure map, double time, TransportType transportType)
+    private static @NotNull List<Node> getReachableNodes(
+            @NotNull MapStructure map, double time, TransportType transportType)
             throws UnsupportedParameterException {
         if (transportType != TransportType.FOOT) {
             throw new UnsupportedParameterException("the support of this transport " +
@@ -141,7 +142,7 @@ public class IsochroneBuilder {
         return reachableNodes;
     }
 
-    private static @NonNull List<Coordinate> getCoordinates(@NonNull List<Node> nodes) {
+    private static @NotNull List<Coordinate> getCoordinates(@NotNull List<Node> nodes) {
         ArrayList<Coordinate> coordinates = new ArrayList<>();
         for (Node currentNode : nodes) {
             coordinates.add(currentNode.coordinate);
@@ -150,8 +151,8 @@ public class IsochroneBuilder {
     }
 
     /** Andrew's monotone chain algorithm */
-    private static @NonNull List<Coordinate> getNodesConvexHull(
-            @NonNull List<Coordinate> coordinates) {
+    private static @NotNull List<Coordinate> getNodesConvexHull(
+            @NotNull List<Coordinate> coordinates) {
         Collections.sort(coordinates, (o1, o2) -> {
             if (o1.longitudeDeg == o2.longitudeDeg) {
                 return Double.compare(o1.latitudeDeg, o2.latitudeDeg);
@@ -170,8 +171,8 @@ public class IsochroneBuilder {
     }
 
     /** Graham's algorithm for one half of the plane*/
-    private static @NonNull List<Coordinate> buildConvexHullGraham(
-            @NonNull List<Coordinate> sortedCoordinates) {
+    private static @NotNull List<Coordinate> buildConvexHullGraham(
+            @NotNull List<Coordinate> sortedCoordinates) {
         ArrayList<Coordinate> resultArray = new ArrayList<>();
         resultArray.add(sortedCoordinates.get(0));
         resultArray.add(sortedCoordinates.get(1));
