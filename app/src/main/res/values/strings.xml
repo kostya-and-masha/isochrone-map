@@ -9,4 +9,5 @@
     <string name="content_bike_button">set bike as transport</string>
     <string name="content_walking_button">set walking as transport</string>
     <string name="content_car_button">set car as transport</string>
+    <string name="title_activity_maps">Isochrone map</string>
 </resources>
