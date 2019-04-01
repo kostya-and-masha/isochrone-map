@@ -125,7 +125,7 @@
 
     <androidx.cardview.widget.CardView
         style="@style/CardStyle"
-        android:id="@+id/menu_bar_main"
+        android:id="@+id/menu_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardCornerRadius="3dp"
@@ -162,6 +162,6 @@
         android:id="@+id/space"
         android:layout_width="match_parent"
         android:layout_height="4dp"
-        app:layout_constraintBottom_toBottomOf="@id/menu_bar_main" />
+        app:layout_constraintBottom_toBottomOf="@id/menu_bar" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

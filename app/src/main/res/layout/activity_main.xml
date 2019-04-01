@@ -50,7 +50,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" >
 
-        <include layout="@layout/menu_bar"/>
+        <include layout="@layout/menu_section"/>
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

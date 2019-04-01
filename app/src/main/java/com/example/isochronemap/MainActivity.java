@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean menuButtonIsActivated = false;
     private SearchView searchField;
     private ConstraintLayout menuSection;
+    private ImageButton menuButton;
     private ImageButton walkingButton;
     private ImageButton bikeButton;
     private ImageButton carButton;
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         walkingButton = findViewById(R.id.walking_button);
         bikeButton = findViewById(R.id.bike_button);
         carButton = findViewById(R.id.car_button);
+        menuButton = findViewById(R.id.menu_button);
         TransportButton(walkingButton);
         closeSettings();
 
@@ -133,5 +135,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void buildIsochroneButton(View view) {
         Toast toast = Toast.makeText(this, "i am build isochrone button", Toast.LENGTH_LONG);
         toast.show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (menuButtonIsActivated) {
+            toggleMenu(menuButton);
+            return;
+        }
+        super.onBackPressed();
     }
 }
