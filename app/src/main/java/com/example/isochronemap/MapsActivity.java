@@ -10,6 +10,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolygonOptions;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -19,7 +20,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -38,9 +38,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in AM and move the camera
         LatLng am = new LatLng(59.980547, 30.324066);
         mMap.addMarker(new MarkerOptions().position(am).title("Marker in AM"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(am));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(am, 10));
+
+        PolygonOptions rectOptions = new PolygonOptions()
+                .strokeWidth(1)
+                .strokeColor(0xffbb0000)
+                .fillColor(0x66ff0000)
+                .add(
+                        new LatLng(59.9, 30.3),
+                        new LatLng(60, 30.3),
+                        new LatLng(60, 30.4)
+                );
+        mMap.addPolygon(rectOptions);
     }
 }
