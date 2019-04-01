@@ -5,6 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true"
     tools:context=".MainActivity">
 
     <fragment
@@ -41,16 +43,58 @@
         app:srcCompat="@drawable/ic_my_location_black_24dp"
         android:onClick="positionButton"/>
 
+
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" >
+        android:layout_height="310dp"
+        app:layout_constraintTop_toTopOf="parent"
+        android:id="@+id/menu_bar_layout">
 
-        <include layout="@layout/menu_section"/>
+        <androidx.cardview.widget.CardView
+            style="@style/CardStyle"
+            android:id="@+id/menu_bar_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="3dp"
+            app:cardElevation="5dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <SearchView
+                    android:id="@+id/search_field"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="5dp"
+                    android:layout_weight="1"
+                    android:iconifiedByDefault="false" />
+
+                <ImageButton
+                    android:id="@+id/menu_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@android:color/transparent"
+                    android:contentDescription="@string/menu_button"
+                    android:onClick="toggleMenu"
+                    android:tint="@color/colorDarkGrey"
+                    app:srcCompat="@drawable/ic_menu_black_24dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
     </FrameLayout>
+
+    <Space
+        android:id="@+id/space_for_bar"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        app:layout_constraintTop_toTopOf="@id/menu_bar_layout" />
+
+    <include
+        layout="@layout/settings_layout"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        app:layout_constraintTop_toBottomOf="@id/space_for_bar"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

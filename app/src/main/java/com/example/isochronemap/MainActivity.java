@@ -1,7 +1,9 @@
 package com.example.isochronemap;
 
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.transition.TransitionManager;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -25,7 +27,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private boolean menuButtonIsActivated = false;
     private SearchView searchField;
-    private ConstraintLayout menuSection;
+    private ConstraintLayout settingsLayout;
     private ImageButton menuButton;
     private ImageButton walkingButton;
     private ImageButton bikeButton;
@@ -36,18 +38,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         searchField = findViewById(R.id.search_field);
-        menuSection = findViewById(R.id.menu_section);
+        settingsLayout = findViewById(R.id.settings_layout);
+        menuButton = findViewById(R.id.menu_button);
         walkingButton = findViewById(R.id.walking_button);
         bikeButton = findViewById(R.id.bike_button);
         carButton = findViewById(R.id.car_button);
-        menuButton = findViewById(R.id.menu_button);
+
         TransportButton(walkingButton);
         closeSettings();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        Rect rect = new Rect();
+        findViewById(R.id.menu_bar_layout).getHitRect(rect);
+        if (!rect.contains((int) event.getX(), (int) event.getY())
+                && menuButtonIsActivated) {
+            toggleMenu(menuButton);
+        }
+        return super.dispatchTouchEvent(event);
     }
 
     /**
@@ -101,31 +116,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ((ImageView)view).setImageTintList(getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
             searchField.setVisibility(View.INVISIBLE);
 
-            TransitionManager.beginDelayedTransition(menuSection);
+            TransitionManager.beginDelayedTransition(settingsLayout);
             openSettings();
         } else {
             ((ImageView)view).setImageTintList(getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
             searchField.setVisibility(View.VISIBLE);
 
-            TransitionManager.beginDelayedTransition(menuSection);
+            TransitionManager.beginDelayedTransition(settingsLayout);
             closeSettings();
         }
     }
 
     private void openSettings() {
         ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(menuSection);
-        constraintSet.clear(R.id.settings, ConstraintSet.BOTTOM);
-        constraintSet.connect(R.id.settings, ConstraintSet.TOP, R.id.space, ConstraintSet.TOP);
-        constraintSet.applyTo(menuSection);
+        constraintSet.clone(settingsLayout);
+        constraintSet.clear(R.id.settings_card, ConstraintSet.BOTTOM);
+        constraintSet.connect(R.id.settings_card, ConstraintSet.TOP, R.id.space_for_settings, ConstraintSet.TOP);
+        constraintSet.applyTo(settingsLayout);
     }
 
     private void closeSettings() {
         ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(menuSection);
-        constraintSet.clear(R.id.settings, ConstraintSet.TOP);
-        constraintSet.connect(R.id.settings, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.TOP);
-        constraintSet.applyTo(menuSection);
+        constraintSet.clone(settingsLayout);
+        constraintSet.clear(R.id.settings_card, ConstraintSet.TOP);
+        constraintSet.connect(R.id.settings_card, ConstraintSet.BOTTOM, R.id.space_for_settings, ConstraintSet.TOP);
+        constraintSet.applyTo(settingsLayout);
     }
     public void positionButton(View view) {
         Toast toast = Toast.makeText(this, "i am geoposition button", Toast.LENGTH_LONG);
