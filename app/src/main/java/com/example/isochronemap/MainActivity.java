@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
+import com.example.isochronemap.mapstructure.TransportType;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -28,9 +29,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton walkingButton;
     private ImageButton bikeButton;
     private ImageButton carButton;
-    Transport currentTransport = Transport.WALKING;
-
-    private enum Transport {WALKING, BIKE, CAR}
+    TransportType currentTransport = TransportType.FOOT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,11 +83,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         carButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
 
         if (walkingButton.equals(view)) {
-            currentTransport = Transport.WALKING;
+            currentTransport = TransportType.FOOT;
         } else if (bikeButton.equals(view)) {
-            currentTransport = Transport.BIKE;
+            currentTransport = TransportType.BIKE;
         } else if (carButton.equals(view)) {
-            currentTransport = Transport.CAR;
+            currentTransport = TransportType.CAR;
         }
 
         ((ImageButton)view).setImageTintList(getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
