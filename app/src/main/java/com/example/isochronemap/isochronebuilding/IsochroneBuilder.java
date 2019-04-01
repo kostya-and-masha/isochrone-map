@@ -1,15 +1,16 @@
 package com.example.isochronemap.isochronebuilding;
 
-import android.util.Log;
-
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.Edge;
 import com.example.isochronemap.mapstructure.MapStructure;
+import com.example.isochronemap.mapstructure.MapStructureManager;
+import com.example.isochronemap.mapstructure.MapStructureRequest;
 import com.example.isochronemap.mapstructure.Node;
 import com.example.isochronemap.mapstructure.TransportType;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,11 +23,41 @@ import java.util.TreeSet;
 /** This class contains methods for building isochrones. */
 public class IsochroneBuilder {
     private static final double AVERAGE_FOOT_SPEED = 5; // in km/h
+    private static final double AVERAGE_CAR_SPEED = 35;
+    private static final double AVERAGE_BIKE_SPEED = 18;
 
     // TODO calculate more realistic value
-    private static final double EXPECTED_CROSSWALK_FOOT_WAITING = 0.005;
+    private static final double EXPECTED_CROSSWALK_WAITING = 0.005;
 
-    /** Builds polygon which represents reachable area **/
+    /**
+     * Builds polygon which represents reachable area. This method calls {@link MapStructureManager}
+     * to download the map segment which is needed to calculate reachable area.
+     */
+    public static @NotNull List<Coordinate> getIsochronePolygon(
+            @NotNull Coordinate coordinate, double time, @NotNull TransportType transportType)
+            throws IOException, UnsupportedParameterException, NotEnoughNodesException {
+        double distance = 0;
+        switch (transportType) {
+            case FOOT:
+                distance = time * AVERAGE_FOOT_SPEED + 0.2;
+                break;
+            case CAR:
+                distance = time * AVERAGE_CAR_SPEED + 0.2;
+                break;
+            case BIKE:
+                distance = time * AVERAGE_BIKE_SPEED + 0.2;
+                break;
+        }
+        MapStructureRequest request = new MapStructureRequest(
+                coordinate, 0.1, distance, transportType);
+        return getIsochronePolygon(
+                MapStructureManager.getMapStructure(request), time, transportType);
+    }
+
+    /**
+     * Builds polygon which represents reachable area.
+     * This method uses pre-downloaded MapStructure.
+     */
     public static @NotNull List<Coordinate> getIsochronePolygon(
             @NotNull MapStructure map, double time, @NotNull TransportType transportType)
             throws NotEnoughNodesException, UnsupportedParameterException {
@@ -119,7 +150,7 @@ public class IsochroneBuilder {
 
                 // TODO another transport type support
                 if (edge.isCrossing) {
-                    destinationTime += EXPECTED_CROSSWALK_FOOT_WAITING;
+                    destinationTime += EXPECTED_CROSSWALK_WAITING;
                 }
 
                 if (!nodesReachTime.containsKey(destination)) {
