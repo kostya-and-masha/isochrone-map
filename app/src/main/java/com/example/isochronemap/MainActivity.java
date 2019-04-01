@@ -1,5 +1,6 @@
 package com.example.isochronemap;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.transition.TransitionManager;
 import android.view.View;
@@ -8,20 +9,37 @@ import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
+import com.example.isochronemap.isochronebuilding.IsochroneBuilder;
+import com.example.isochronemap.isochronebuilding.NotEnoughNodesException;
+import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
+import com.example.isochronemap.mapstructure.Coordinate;
+import com.example.isochronemap.mapstructure.MapStructure;
+import com.example.isochronemap.mapstructure.MapStructureManager;
+import com.example.isochronemap.mapstructure.MapStructureRequest;
+import com.example.isochronemap.mapstructure.TransportType;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+
+import java.io.IOException;
+import java.util.IllegalFormatConversionException;
+import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
-    private GoogleMap mMap;
+    private GoogleMap map;
+    private Marker currentPosition;
+    private Polygon currentPolygon;
+
     private boolean menuButtonIsActivated = false;
     private SearchView searchField;
     private ConstraintLayout menuSection;
@@ -49,33 +67,53 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
+        map = googleMap;
 
-        LatLng am = new LatLng(59.980547, 30.324066);
-        mMap.addMarker(new MarkerOptions().position(am).title("Marker in AM"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(am, 10));
+        // FIXME magic constants
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                new LatLng(59.980547, 30.324066), 10
+        ));
+        map.setOnMapLongClickListener(latLng ->
+            setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude))
+        );
+    }
 
-        PolygonOptions rectOptions = new PolygonOptions()
+    private LatLng toLatLng(Coordinate coordinate) {
+        return new LatLng(coordinate.latitudeDeg, coordinate.longitudeDeg);
+    }
+
+    private void setCurrentPosition(Coordinate coordinate) {
+        if (currentPosition == null) {
+            currentPosition = map.addMarker(new MarkerOptions().position(toLatLng(coordinate)));
+        } else {
+            currentPosition.setPosition(toLatLng(coordinate));
+        }
+
+        // test
+        MapStructureRequest request = new MapStructureRequest(
+                coordinate,
+                0.100,
+                2.5,
+                TransportType.FOOT
+        );
+        new AsyncMapRequest().execute(request);
+    }
+
+    private void setCurrentPolygon(List<Coordinate> coordinates) {
+        if (currentPolygon != null) {
+            currentPolygon.remove();
+        }
+        // FIXME magic constants
+        PolygonOptions options = new PolygonOptions()
                 .strokeWidth(1)
                 .strokeColor(0xffbb0000)
-                .fillColor(0x66ff0000)
-                .add(
-                        new LatLng(59.9, 30.3),
-                        new LatLng(60, 30.3),
-                        new LatLng(60, 30.4)
-                );
-        mMap.addPolygon(rectOptions);
+                .fillColor(0x66ff0000);
+        for (Coordinate coordinate : coordinates) {
+            options.add(toLatLng(coordinate));
+        }
+        currentPolygon = map.addPolygon(options);
     }
 
     public void TransportButton(View view) {
@@ -134,5 +172,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void buildIsochroneButton(View view) {
         Toast toast = Toast.makeText(this, "i am build isochrone button", Toast.LENGTH_LONG);
         toast.show();
+    }
+
+    private class AsyncMapRequest extends AsyncTask<MapStructureRequest, Integer, List<Coordinate>> {
+        @Override
+        protected List<Coordinate> doInBackground(MapStructureRequest ... request) {
+            try {
+                MapStructure structure = MapStructureManager.getMapStructure(request[0]);
+                return IsochroneBuilder.getIsochronePolygon(structure, 0.2, TransportType.FOOT);
+            } catch (UnsupportedParameterException e) {
+                throw new IllegalStateException("Unsupported parameter");
+            } catch (IOException e) {
+                throw new IllegalStateException("IO exception");
+            } catch (NotEnoughNodesException e) {
+                throw new IllegalStateException("Not enough nodes");
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Coordinate> coordinates) {
+            setCurrentPolygon(coordinates);
+        }
     }
 }
