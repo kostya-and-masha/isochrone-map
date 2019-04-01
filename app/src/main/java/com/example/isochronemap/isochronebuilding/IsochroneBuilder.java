@@ -1,5 +1,7 @@
 package com.example.isochronemap.isochronebuilding;
 
+import android.util.Log;
+
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.Edge;
 import com.example.isochronemap.mapstructure.MapStructure;
@@ -178,10 +180,10 @@ public class IsochroneBuilder {
         resultArray.add(sortedCoordinates.get(1));
 
         for (int i = 2; i < sortedCoordinates.size(); i++) {
-            Coordinate topCoordinate = resultArray.get(resultArray.size() - 1);
-            Coordinate nexToTopCoordinate = resultArray.get(resultArray.size() - 2);
-            while (resultArray.size() >= 2 &&
-                    !isLeftTurn(nexToTopCoordinate, topCoordinate, sortedCoordinates.get(i))) {
+            while (resultArray.size() >= 2 && !isLeftTurn(
+                            resultArray.get(resultArray.size() - 2),
+                            resultArray.get(resultArray.size() - 1),
+                            sortedCoordinates.get(i))) {
                 resultArray.remove(resultArray.size() - 1);
             }
             resultArray.add(sortedCoordinates.get(i));
