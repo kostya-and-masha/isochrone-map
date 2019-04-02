@@ -112,8 +112,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     toast.show();
                     return false;
                 }
-                setCurrentPosition(new Coordinate(latitude, longitude));
-                moveCameraToCurrentPosition();
+                setCurrentPositionAndMoveCamera(new Coordinate(latitude, longitude));
                 return true;
             }
 
@@ -191,6 +190,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.moveCamera(CameraUpdateFactory.newLatLng(currentPosition.getPosition()));
     }
 
+    private void setCurrentPositionAndMoveCamera(Coordinate coordinate) {
+        setCurrentPosition(coordinate);
+        moveCameraToCurrentPosition();
+    }
+
     private void setCurrentPolygon(List<Coordinate> coordinates) {
         removeCurrentPolygon();
         // FIXME magic constants
@@ -252,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
             return;
         }
-        OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+        OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
     }
 
     @Override
@@ -263,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 18) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+                OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
             } else {
                 Toast toast = Toast.makeText(this, "give permissions please :(",
                         Toast.LENGTH_LONG);
