@@ -46,13 +46,29 @@ public enum TransportType implements Serializable {
             ),
             RoadRestriction.PUBLIC_ACCESS
     ),
-    BIKE {
-        // TODO implementation
-        @Override
-        public List<RoadRestriction> getRestrictions() {
-            throw new UnsupportedOperationException();
-        }
-    };
+    // FIXME duplicating code
+    BIKE(
+            new RoadRestriction(
+                    "highway",
+                    RoadRestriction.Type.TAG_MATCHES,
+                    RoadType.PEDESTRIAN,
+                    RoadType.FOOTWAY,
+                    RoadType.PATH,
+                    RoadType.ROAD,
+                    RoadType.TRACK,
+                    RoadType.RESIDENTIAL,
+                    RoadType.LIVING_STREET,
+                    RoadType.SERVICE,
+                    RoadType.UNCLASSIFIED,
+                    RoadType.PRIMARY,
+                    RoadType.SECONDARY,
+                    RoadType.TERTIARY,
+                    RoadType.PRIMARY_LINK,
+                    RoadType.SECONDARY_LINK,
+                    RoadType.TERTIARY_LINK
+            ),
+            RoadRestriction.PUBLIC_ACCESS
+    );
 
     private List<RoadRestriction> restrictions;
 

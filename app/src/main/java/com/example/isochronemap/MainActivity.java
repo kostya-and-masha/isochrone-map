@@ -339,10 +339,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected IsochroneResponse doInBackground(IsochroneRequest ... isochroneRequest) {
             IsochroneRequest request = isochroneRequest[0];
-            // TODO remove it
-            if (request.transportType != TransportType.FOOT) {
-                return new IsochroneResponse("this transport is not supported yet");
-            }
             try {
                 return new IsochroneResponse(
                         IsochroneBuilder.getIsochronePolygon(
@@ -405,15 +401,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case CAR:
                 transportButton = carButton;
-                seekBar.setMin(10);
-                seekBar.setMax(30);
-                seekBar.setTickCount(5);
+                seekBar.setMin(5);
+                seekBar.setMax(15);
+                seekBar.setTickCount(3);
                 break;
             case BIKE:
                 transportButton = bikeButton;
-                seekBar.setMin(10);
-                seekBar.setMax(30);
-                seekBar.setTickCount(5);
+                seekBar.setMin(5);
+                seekBar.setMax(15);
+                seekBar.setTickCount(3);
                 break;
             default:
                 throw new RuntimeException();
