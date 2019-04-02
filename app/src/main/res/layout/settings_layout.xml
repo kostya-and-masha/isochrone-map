@@ -50,6 +50,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="10dp"
                 android:layout_marginEnd="16dp"
+                android:max="19"
                 app:layout_constraintTop_toBottomOf="@id/set_dist" />
 
             <TextView

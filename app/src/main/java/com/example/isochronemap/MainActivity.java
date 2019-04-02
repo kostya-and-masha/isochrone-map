@@ -73,9 +73,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        Rect rect = new Rect();
-        findViewById(R.id.menu_bar_layout).getHitRect(rect);
-        if (!rect.contains((int) event.getX(), (int) event.getY())
+        Rect rectMenuBar = new Rect();
+        Rect rectSettings = new Rect();
+        findViewById(R.id.menu_bar_card).getGlobalVisibleRect(rectMenuBar);
+        findViewById(R.id.settings_card).getGlobalVisibleRect(rectSettings);
+        if (!rectMenuBar.contains((int) event.getX(), (int) event.getY())
+                && !rectSettings.contains((int) event.getX(), (int) event.getY())
                 && menuButtonIsActivated) {
             toggleMenu(menuButton);
         }
