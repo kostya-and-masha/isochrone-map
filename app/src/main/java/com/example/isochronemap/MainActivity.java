@@ -1,5 +1,7 @@
 package com.example.isochronemap;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -7,13 +9,13 @@ import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.example.isochronemap.isochronebuilding.IsochroneBuilder;
 import com.example.isochronemap.isochronebuilding.NotEnoughNodesException;
 import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
+import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.MapStructureManager;
@@ -34,10 +36,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Scanner;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private GoogleMap map;
@@ -71,6 +78,46 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        //FIXME code duplication
+        searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                String queryWithoutCommas = query.replace(',', '.');
+                Scanner scanner = new Scanner(queryWithoutCommas).useLocale(Locale.US);
+                //scanner.useDelimiter("(\\s|;|,)+"); does not work with russian locale
+
+                if (!scanner.hasNextDouble()) {
+                    Toast toast = Toast.makeText(
+                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
+                    toast.show();
+                    return false;
+                }
+                double latitude = scanner.nextDouble();
+
+                if (!scanner.hasNextDouble()) {
+                    Toast toast = Toast.makeText(
+                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
+                    toast.show();
+                    return false;
+                }
+                double longitude = scanner.nextDouble();
+
+                if (scanner.hasNext()) {
+                    Toast toast = Toast.makeText(
+                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
+                    toast.show();
+                    return false;
+                }
+                setCurrentPosition(new Coordinate(latitude, longitude));
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
     }
 
     @Override
@@ -168,9 +215,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         constraintSet.connect(R.id.settings_card, ConstraintSet.BOTTOM, R.id.space_for_settings, ConstraintSet.TOP);
         constraintSet.applyTo(settingsLayout);
     }
+
     public void positionButton(View view) {
-        Toast toast = Toast.makeText(this, "i am geoposition button", Toast.LENGTH_LONG);
-        toast.show();
+        //FIXME magic constant
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
+            return;
+        }
+        OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        //FIXME magic constant
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 18) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+            } else {
+                Toast toast = Toast.makeText(this, "give permissions please :(",
+                        Toast.LENGTH_LONG);
+                toast.show();
+            }
+        }
     }
 
     public void buildIsochroneButton(View view) {
