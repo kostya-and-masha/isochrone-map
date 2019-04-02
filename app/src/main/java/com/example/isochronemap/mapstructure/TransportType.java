@@ -19,7 +19,13 @@ public enum TransportType implements Serializable {
                     RoadType.RESIDENTIAL,
                     RoadType.LIVING_STREET,
                     RoadType.SERVICE,
-                    RoadType.UNCLASSIFIED
+                    RoadType.UNCLASSIFIED,
+                    RoadType.PRIMARY,
+                    RoadType.SECONDARY,
+                    RoadType.TERTIARY,
+                    RoadType.PRIMARY_LINK,
+                    RoadType.SECONDARY_LINK,
+                    RoadType.TERTIARY_LINK
             ),
             new RoadRestriction(
                     "foot",

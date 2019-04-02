@@ -17,9 +17,6 @@ import com.example.isochronemap.isochronebuilding.NotEnoughNodesException;
 import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
 import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
-import com.example.isochronemap.mapstructure.MapStructure;
-import com.example.isochronemap.mapstructure.MapStructureManager;
-import com.example.isochronemap.mapstructure.MapStructureRequest;
 import com.example.isochronemap.mapstructure.TransportType;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -37,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Scanner;
 
 import androidx.annotation.NonNull;
@@ -47,6 +45,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+    private static final float DEFAULT_ZOOM_LEVEL = 10;
+    private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
+
     private GoogleMap map;
     private Marker currentPosition;
     private Polygon currentPolygon;
@@ -58,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton walkingButton;
     private ImageButton bikeButton;
     private ImageButton carButton;
+    private IndicatorSeekBar seekBar;
     TransportType currentTransport = TransportType.FOOT;
 
     @Override
@@ -71,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         walkingButton = findViewById(R.id.walking_button);
         bikeButton = findViewById(R.id.bike_button);
         carButton = findViewById(R.id.car_button);
+        seekBar = findViewById(R.id.seekBar);
 
         updateTransportDependingUI();
         updateSettingsStateUI();
@@ -109,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     toast.show();
                     return false;
                 }
-                setCurrentPosition(new Coordinate(latitude, longitude));
+                setCurrentPositionAndMoveCamera(new Coordinate(latitude, longitude));
                 return true;
             }
 
@@ -138,9 +141,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
 
-        // FIXME magic constants
+        map.setPadding(0, 180, 0, 0);
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                new LatLng(59.980547, 30.324066), 10
+                START_POSITION, DEFAULT_ZOOM_LEVEL
         ));
         map.setOnMapLongClickListener(latLng ->
             setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude))
@@ -151,27 +154,50 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return new LatLng(coordinate.latitudeDeg, coordinate.longitudeDeg);
     }
 
+    private Coordinate toCoordinate(LatLng latLng) {
+        return new Coordinate(latLng.latitude, latLng.longitude);
+    }
+
+    private void buildIsochrone() {
+        removeCurrentPolygon();
+        if (currentPosition == null) {
+            Toast toast = Toast.makeText(
+                    this,
+                    "please choose location",
+                    Toast.LENGTH_LONG);
+            toast.show();
+            return;
+        }
+
+        new AsyncMapRequest().execute(
+                new IsochroneRequest(
+                        toCoordinate(currentPosition.getPosition()),
+                        getTravelTime(),
+                        currentTransport
+                )
+        );
+    }
+
     private void setCurrentPosition(Coordinate coordinate) {
         if (currentPosition == null) {
             currentPosition = map.addMarker(new MarkerOptions().position(toLatLng(coordinate)));
         } else {
             currentPosition.setPosition(toLatLng(coordinate));
         }
+        buildIsochrone();
+    }
 
-        // test
-        MapStructureRequest request = new MapStructureRequest(
-                coordinate,
-                0.100,
-                2.5,
-                TransportType.FOOT
-        );
-        new AsyncMapRequest().execute(request);
+    private void moveCameraToCurrentPosition() {
+        map.moveCamera(CameraUpdateFactory.newLatLng(currentPosition.getPosition()));
+    }
+
+    private void setCurrentPositionAndMoveCamera(Coordinate coordinate) {
+        setCurrentPosition(coordinate);
+        moveCameraToCurrentPosition();
     }
 
     private void setCurrentPolygon(List<Coordinate> coordinates) {
-        if (currentPolygon != null) {
-            currentPolygon.remove();
-        }
+        removeCurrentPolygon();
         // FIXME magic constants
         PolygonOptions options = new PolygonOptions()
                 .strokeWidth(1)
@@ -181,6 +207,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             options.add(toLatLng(coordinate));
         }
         currentPolygon = map.addPolygon(options);
+    }
+
+    private void removeCurrentPolygon() {
+        if (currentPolygon != null) {
+            currentPolygon.remove();
+            currentPolygon = null;
+        }
     }
 
     public void TransportButton(View view) {
@@ -224,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
             return;
         }
-        OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+        OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
     }
 
     @Override
@@ -235,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 18) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+                OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
             } else {
                 Toast toast = Toast.makeText(this, "give permissions please :(",
                         Toast.LENGTH_LONG);
@@ -245,8 +278,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void buildIsochroneButton(View view) {
-        Toast toast = Toast.makeText(this, "i am build isochrone button", Toast.LENGTH_LONG);
-        toast.show();
+        buildIsochrone();
     }
 
     @Override
@@ -258,24 +290,85 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onBackPressed();
     }
 
-    private class AsyncMapRequest extends AsyncTask<MapStructureRequest, Integer, List<Coordinate>> {
+    private double getTravelTime() {
+        return seekBar.getProgress() / 60.0;
+    }
+
+    private static class IsochroneRequest {
+        private final Coordinate coordinate;
+        private final double travelTime;
+        private final TransportType transportType;
+
+        private IsochroneRequest(Coordinate coordinate, double travelTime,
+                                TransportType transportType) {
+            this.coordinate = coordinate;
+            this.travelTime = travelTime;
+            this.transportType = transportType;
+        }
+    }
+
+    private static class IsochroneResponse {
+        private final boolean isSuccessful;
+        private final List<Coordinate> result;
+        private final String errorMessage;
+
+        private IsochroneResponse(List<Coordinate> coordinates) {
+            isSuccessful = true;
+            result = coordinates;
+            errorMessage = null;
+        }
+
+        private IsochroneResponse(String message) {
+            isSuccessful = false;
+            result = null;
+            errorMessage = message;
+        }
+
+        private @NotNull List<Coordinate> getResult() {
+            return Objects.requireNonNull(result);
+        }
+
+        private @NotNull String getErrorMessage() {
+            return Objects.requireNonNull(errorMessage);
+        }
+    }
+
+    private class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
         @Override
-        protected List<Coordinate> doInBackground(MapStructureRequest ... request) {
+        protected IsochroneResponse doInBackground(IsochroneRequest ... isochroneRequest) {
+            IsochroneRequest request = isochroneRequest[0];
+            // TODO remove it
+            if (request.transportType != TransportType.FOOT) {
+                return new IsochroneResponse("this transport is not supported yet");
+            }
             try {
-                MapStructure structure = MapStructureManager.getMapStructure(request[0]);
-                return IsochroneBuilder.getIsochronePolygon(structure, 0.2, TransportType.FOOT);
+                return new IsochroneResponse(
+                        IsochroneBuilder.getIsochronePolygon(
+                                request.coordinate,
+                                request.travelTime,
+                                request.transportType
+                        )
+                );
             } catch (UnsupportedParameterException e) {
-                throw new IllegalStateException("Unsupported parameter");
+                return new IsochroneResponse(e.getMessage());
             } catch (IOException e) {
-                throw new IllegalStateException("IO exception");
+                return new IsochroneResponse("failed to download map");
             } catch (NotEnoughNodesException e) {
-                throw new IllegalStateException("Not enough nodes");
+                return new IsochroneResponse("cannot build isochrone in this area");
             }
         }
 
         @Override
-        protected void onPostExecute(List<Coordinate> coordinates) {
-            setCurrentPolygon(coordinates);
+        protected void onPostExecute(IsochroneResponse response) {
+            if (response.isSuccessful) {
+                setCurrentPolygon(response.getResult());
+            } else {
+                Toast toast = Toast.makeText(
+                        MainActivity.this,
+                        response.getErrorMessage(),
+                        Toast.LENGTH_LONG);
+                toast.show();
+            }
         }
     }
 
@@ -305,20 +398,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case FOOT:
                 transportButton = walkingButton;
                 seekBar.setMin(10);
-                seekBar.setMax(90);
-                seekBar.setTickCount(9);
+                seekBar.setMax(40);
+                seekBar.setTickCount(7);
                 break;
             case CAR:
                 transportButton = carButton;
                 seekBar.setMin(10);
-                seekBar.setMax(60);
-                seekBar.setTickCount(6);
+                seekBar.setMax(30);
+                seekBar.setTickCount(5);
                 break;
             case BIKE:
                 transportButton = bikeButton;
                 seekBar.setMin(10);
-                seekBar.setMax(60);
-                seekBar.setTickCount(6);
+                seekBar.setMax(30);
+                seekBar.setTickCount(5);
                 break;
             default:
                 throw new RuntimeException();
@@ -345,5 +438,4 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             closeSettings();
         }
     }
-
 }
