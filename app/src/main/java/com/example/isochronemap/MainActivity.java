@@ -4,7 +4,6 @@ import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.transition.TransitionManager;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
@@ -29,6 +28,9 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+import com.warkiz.widget.IndicatorSeekBar;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
@@ -63,8 +65,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bikeButton = findViewById(R.id.bike_button);
         carButton = findViewById(R.id.car_button);
 
-        TransportButton(walkingButton);
-        closeSettings();
+        updateTransportDependingUI();
+        updateSettingsStateUI();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -135,10 +137,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void TransportButton(View view) {
-        walkingButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        bikeButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        carButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-
         if (walkingButton.equals(view)) {
             currentTransport = TransportType.FOOT;
         } else if (bikeButton.equals(view)) {
@@ -146,25 +144,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (carButton.equals(view)) {
             currentTransport = TransportType.CAR;
         }
-
-        ((ImageButton)view).setImageTintList(getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+        updateTransportDependingUI();
     }
 
     public void toggleMenu(View view) {
         menuButtonIsActivated ^= true;
-        if (menuButtonIsActivated) {
-            ((ImageView)view).setImageTintList(getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
-            searchField.setVisibility(View.INVISIBLE);
-
-            TransitionManager.beginDelayedTransition(settingsLayout);
-            openSettings();
-        } else {
-            ((ImageView)view).setImageTintList(getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
-            searchField.setVisibility(View.VISIBLE);
-
-            TransitionManager.beginDelayedTransition(settingsLayout);
-            closeSettings();
-        }
+        TransitionManager.beginDelayedTransition(settingsLayout);
+        updateSettingsStateUI();
     }
 
     private void openSettings() {
@@ -221,4 +207,72 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             setCurrentPolygon(coordinates);
         }
     }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        //FIXME magic string literals
+        menuButtonIsActivated = savedInstanceState.getBoolean("menuButton");
+        currentTransport = (TransportType)savedInstanceState
+                .getSerializable("currentTransport");
+        updateSettingsStateUI();
+        updateTransportDependingUI();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NotNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putBoolean("menuButton", menuButtonIsActivated);
+        outState.putSerializable("currentTransport", currentTransport);
+    }
+
+    private void updateTransportDependingUI() {
+        ImageButton transportButton;
+        IndicatorSeekBar seekBar = findViewById(R.id.seekBar);
+        switch (currentTransport) {
+            case FOOT:
+                transportButton = walkingButton;
+                seekBar.setMin(10);
+                seekBar.setMax(90);
+                seekBar.setTickCount(9);
+                break;
+            case CAR:
+                transportButton = carButton;
+                seekBar.setMin(10);
+                seekBar.setMax(60);
+                seekBar.setTickCount(6);
+                break;
+            case BIKE:
+                transportButton = bikeButton;
+                seekBar.setMin(10);
+                seekBar.setMax(60);
+                seekBar.setTickCount(6);
+                break;
+            default:
+                throw new RuntimeException();
+        }
+
+        walkingButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+        bikeButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+        carButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+
+        transportButton.setImageTintList(
+                getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+    }
+
+    private void updateSettingsStateUI() {
+        if (menuButtonIsActivated) {
+            menuButton.setImageTintList(
+                    getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
+            searchField.setVisibility(View.INVISIBLE);
+            openSettings();
+        } else {
+            menuButton.setImageTintList(
+                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+            searchField.setVisibility(View.VISIBLE);
+            closeSettings();
+        }
+    }
+
 }
