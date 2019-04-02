@@ -2,6 +2,7 @@ package com.example.isochronemap.isochronebuilding;
 
 import com.example.isochronemap.mapstructure.Coordinate;
 
+import com.example.isochronemap.mapstructure.Edge;
 import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.MapStructureManager;
 import com.example.isochronemap.mapstructure.MapStructureRequest;
@@ -12,6 +13,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -23,31 +26,38 @@ public class IsochroneBuilder {
     static final double AVERAGE_BIKE_SPEED = 18;
 
     // TODO calculate more realistic value
-    static final double EXPECTED_CROSSWALK_WAITING = 0.005;
+    static final double EXPECTED_CROSSROADS_WAITING = 0.005;
 
     /**
      * Builds polygon which represents reachable area. This method calls {@link MapStructureManager}
      * to download the map segment which is needed to calculate reachable area.
      */
     public static @NotNull List<Coordinate> getIsochronePolygon(
-            @NotNull Coordinate coordinate, double time, @NotNull TransportType transportType)
+            @NotNull Coordinate startCoordinate, double time, @NotNull TransportType transportType)
             throws IOException, UnsupportedParameterException, NotEnoughNodesException {
-        double distance = 0;
+        double maxDistance = 0;
         switch (transportType) {
             case FOOT:
-                distance = time * AVERAGE_FOOT_SPEED + 0.2;
+                maxDistance = time * AVERAGE_FOOT_SPEED + 0.2;
                 break;
             case CAR:
-                distance = time * AVERAGE_CAR_SPEED + 0.2;
+                maxDistance = time * AVERAGE_CAR_SPEED + 0.2;
                 break;
             case BIKE:
-                distance = time * AVERAGE_BIKE_SPEED + 0.2;
+                maxDistance = time * AVERAGE_BIKE_SPEED + 0.2;
                 break;
         }
         MapStructureRequest request = new MapStructureRequest(
-                coordinate, 0.1, distance, transportType);
-        return getIsochronePolygon(
-                MapStructureManager.getMapStructure(request), time, transportType);
+                startCoordinate, 0.1, maxDistance, transportType);
+        MapStructure mapStructure = MapStructureManager.getMapStructure(request);
+
+        Node startNode = new Node(startCoordinate, false);
+        for (Node destinationNode: mapStructure.getStartNodes()) {
+            startNode.edges.add(new Edge(startCoordinate, destinationNode, false));
+        }
+        mapStructure = new MapStructure(mapStructure.getNodes(),
+                Collections.singletonList(startNode));
+        return getIsochronePolygon(mapStructure, time, transportType);
     }
 
     /**

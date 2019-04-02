@@ -19,15 +19,17 @@ class ReachableNodesFinder {
     static @NotNull List<Node> getReachableNodes(
             @NotNull MapStructure map, double time, TransportType transportType)
             throws UnsupportedParameterException {
-        if (transportType != TransportType.FOOT) {
-            throw new UnsupportedParameterException("the support of this transport " +
-                    "type is not implemented yet :(");
-        }
-
+        //FIXME move constants to the enum itself
         double speed;
         switch (transportType) {
             case FOOT:
                 speed = IsochroneBuilder.AVERAGE_FOOT_SPEED;
+                break;
+            case CAR:
+                speed = IsochroneBuilder.AVERAGE_CAR_SPEED;
+                break;
+            case BIKE:
+                speed = IsochroneBuilder.AVERAGE_BIKE_SPEED;
                 break;
             default:
                 throw new UnsupportedOperationException();
@@ -66,9 +68,8 @@ class ReachableNodesFinder {
                 Node destination = edge.destination;
                 double destinationTime = currentReachTime + edge.length / speed;
 
-                // TODO another transport type support
-                if (edge.isCrossing) {
-                    destinationTime += IsochroneBuilder.EXPECTED_CROSSWALK_WAITING;
+                if (currentNode.isCrossing) {
+                    destinationTime += IsochroneBuilder.EXPECTED_CROSSROADS_WAITING;
                 }
 
                 if (!nodesReachTime.containsKey(destination)) {
