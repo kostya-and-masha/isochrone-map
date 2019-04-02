@@ -30,7 +30,7 @@ class IsochroneBuilderTest {
         Node hullNode3 = new Node(hullNode3Coordinate, false);
 
         for (Node destination : Arrays.asList(hullNode1, hullNode2, hullNode3)) {
-            Edge e = new Edge(startNodeCoordinate, destination, false);
+            Edge e = new Edge(startNodeCoordinate, destination);
             startNode.edges.add(e);
         }
 

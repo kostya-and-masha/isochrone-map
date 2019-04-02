@@ -5,10 +5,8 @@ import java.net.URLEncoder;
 import java.util.Iterator;
 
 class OverpassRequestBuilder {
-    // TODO json -> csv
     private static final String HEADING = "[out: json]";
-    //private static final String HEADING = "[out:csv(::id, ::type, ::lat, ::lon, oneway, crossing)]";
-    private static final String ENDING = "(._;>;);out body;";
+    private static final String ENDING = "(._;>;);out body qt;";
 
     static String buildRequest(BoundingBox box, TransportType type) {
         String result = null;
