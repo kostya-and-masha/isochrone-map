@@ -9,7 +9,6 @@ import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.Toast;
 
@@ -34,8 +33,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Scanner;
 
 import androidx.annotation.NonNull;
@@ -114,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return false;
                 }
                 setCurrentPosition(new Coordinate(latitude, longitude));
+                moveCameraToCurrentPosition();
                 return true;
             }
 
@@ -154,21 +154,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return new LatLng(coordinate.latitudeDeg, coordinate.longitudeDeg);
     }
 
+    private Coordinate toCoordinate(LatLng latLng) {
+        return new Coordinate(latLng.latitude, latLng.longitude);
+    }
+
+    private void buildIsochrone() {
+        removeCurrentPolygon();
+        if (currentPosition == null) {
+            Toast toast = Toast.makeText(
+                    this,
+                    "please choose location",
+                    Toast.LENGTH_LONG);
+            toast.show();
+            return;
+        }
+
+        new AsyncMapRequest().execute(
+                new IsochroneRequest(
+                        toCoordinate(currentPosition.getPosition()),
+                        getTravelTime(),
+                        currentTransport
+                )
+        );
+    }
+
     private void setCurrentPosition(Coordinate coordinate) {
         if (currentPosition == null) {
             currentPosition = map.addMarker(new MarkerOptions().position(toLatLng(coordinate)));
         } else {
             currentPosition.setPosition(toLatLng(coordinate));
         }
-        removeCurrentPolygon();
+        buildIsochrone();
+    }
 
-        new AsyncMapRequest().execute(
-                new IsochroneRequest(
-                        coordinate,
-                        getTravelTime(),
-                        currentTransport
-                )
-        );
+    private void moveCameraToCurrentPosition() {
+        map.moveCamera(CameraUpdateFactory.newLatLng(currentPosition.getPosition()));
     }
 
     private void setCurrentPolygon(List<Coordinate> coordinates) {
@@ -253,8 +273,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void buildIsochroneButton(View view) {
-        Toast toast = Toast.makeText(this, "i am build isochrone button", Toast.LENGTH_LONG);
-        toast.show();
+        buildIsochrone();
     }
 
     @Override
@@ -315,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             IsochroneRequest request = isochroneRequest[0];
             // TODO remove it
             if (request.transportType != TransportType.FOOT) {
-                return new IsochroneResponse("This transport is not supported yet");
+                return new IsochroneResponse("this transport is not supported yet");
             }
             try {
                 return new IsochroneResponse(
@@ -328,9 +347,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             } catch (UnsupportedParameterException e) {
                 return new IsochroneResponse(e.getMessage());
             } catch (IOException e) {
-                return new IsochroneResponse("Failed to download map");
+                return new IsochroneResponse("failed to download map");
             } catch (NotEnoughNodesException e) {
-                return new IsochroneResponse("Cannot build isochrone in this area");
+                return new IsochroneResponse("cannot build isochrone in this area");
             }
         }
 
@@ -414,5 +433,4 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             closeSettings();
         }
     }
-
 }
