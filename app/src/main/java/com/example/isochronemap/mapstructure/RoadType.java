@@ -12,7 +12,13 @@ enum RoadType {
     RESIDENTIAL("residential"),
     LIVING_STREET("living_street"),
     SERVICE("service"),
-    UNCLASSIFIED("unclassified");
+    UNCLASSIFIED("unclassified"),
+    PRIMARY("primary"),
+    SECONDARY("secondary"),
+    TERTIARY("tertiary"),
+    PRIMARY_LINK("primary_link"),
+    SECONDARY_LINK("secondary_link"),
+    TERTIARY_LINK("tertiary_link");
 
     private String stringName;
 
