@@ -2,11 +2,9 @@ package com.example.isochronemap.mapstructure;
 
 import com.google.android.gms.common.util.IOUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -25,7 +23,7 @@ public class MapStructureManager {
     public static MapStructure getMapStructure(MapStructureRequest request) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         downloadMap(request, out);
-        return OSMDataParser.parse(request, new ByteArrayInputStream(out.toByteArray()));
+        return OSMDataParser.parse(request, out.toByteArray());
     }
 
     /**
