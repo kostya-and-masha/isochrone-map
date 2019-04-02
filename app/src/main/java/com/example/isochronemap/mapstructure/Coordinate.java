@@ -3,6 +3,8 @@ package com.example.isochronemap.mapstructure;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
+import java.util.Objects;
+
 /** Geographical coordinate. **/
 public class Coordinate {
     public final double latitudeDeg;
@@ -33,5 +35,23 @@ public class Coordinate {
                 latitudeRad, longitudeRad,
                 other.latitudeRad, other.longitudeRad
         ) * DistanceUtils.EARTH_MEAN_RADIUS_KM;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Coordinate that = (Coordinate) o;
+        return Math.abs(that.latitudeDeg - latitudeDeg) < 1e-8
+                && Math.abs(that.longitudeDeg - longitudeDeg) < 1e-8;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(latitudeDeg, longitudeDeg);
     }
 }

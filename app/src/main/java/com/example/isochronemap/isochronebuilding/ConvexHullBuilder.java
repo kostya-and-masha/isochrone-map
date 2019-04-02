@@ -49,7 +49,7 @@ class ConvexHullBuilder {
         return resultArray;
     }
 
-    private static boolean isLeftTurn(Coordinate p1, Coordinate p2, Coordinate p3) {
+    static boolean isLeftTurn(Coordinate p1, Coordinate p2, Coordinate p3) {
         // x1y2 - y1x2
         return (p2.longitudeDeg - p1.longitudeDeg)*(p3.latitudeDeg - p1.latitudeDeg) -
                 (p2.latitudeDeg - p1.latitudeDeg)*(p3.longitudeDeg - p1.longitudeDeg) > 0;
