@@ -201,8 +201,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // FIXME magic constants
         PolygonOptions options = new PolygonOptions()
                 .strokeWidth(1)
-                .strokeColor(0xffbb0000)
-                .fillColor(0x66ff0000);
+                .strokeColor(ContextCompat
+                        .getColor(this, R.color.colorPrimaryDarkTransparent))
+                .fillColor(ContextCompat
+                        .getColor(this, R.color.colorPrimaryDarkTransparent));
         for (Coordinate coordinate : coordinates) {
             options.add(toLatLng(coordinate));
         }
