@@ -23,10 +23,16 @@
         <item name="android:backgroundTint">@color/colorLightGrey</item>
     </style>
 
-    <style name="ProgressBar" parent="Widget.AppCompat.SeekBar">
-        <item name="android:progressDrawable">@drawable/custom_progress_bar</item>
-        <item name="android:maxHeight">3dp</item>
-        <item name="android:thumbTint">@color/colorDarkGrey</item>
+    <style name="ProgressBar" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="isb_seek_smoothly">false</item>
+        <item name="isb_show_tick_marks_type">divider</item>
+        <item name="isb_show_tick_texts">true</item>
+        <item name="isb_show_indicator">none</item>
+        <item name="isb_thumb_color">@color/colorDarkGrey</item>
+        <item name="isb_tick_texts_color">@color/colorDarkGrey</item>
+        <item name="isb_tick_marks_color">@color/colorPrimaryDark</item>
+        <item name="isb_track_background_color">@color/colorPrimary</item>
+        <item name="isb_track_progress_color">@color/colorDarkGrey</item>
     </style>
 
     <style name="ImageButton" parent="Widget.AppCompat.ImageButton">

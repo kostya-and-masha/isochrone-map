@@ -1,5 +1,7 @@
 package com.example.isochronemap;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -7,7 +9,6 @@ import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.Toast;
@@ -15,6 +16,7 @@ import android.widget.Toast;
 import com.example.isochronemap.isochronebuilding.IsochroneBuilder;
 import com.example.isochronemap.isochronebuilding.NotEnoughNodesException;
 import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
+import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -26,16 +28,22 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+import com.warkiz.widget.IndicatorSeekBar;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Locale;
+import java.util.Scanner;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private static final float DEFAULT_ZOOM_LEVEL = 10;
@@ -52,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton walkingButton;
     private ImageButton bikeButton;
     private ImageButton carButton;
-    private ProgressBar seekBar;
+    private IndicatorSeekBar seekBar;
     TransportType currentTransport = TransportType.FOOT;
 
     @Override
@@ -68,19 +76,62 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         carButton = findViewById(R.id.car_button);
         seekBar = findViewById(R.id.seekBar);
 
-        TransportButton(walkingButton);
-        closeSettings();
+        updateTransportDependingUI();
+        updateSettingsStateUI();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        //FIXME code duplication
+        searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                String queryWithoutCommas = query.replace(',', '.');
+                Scanner scanner = new Scanner(queryWithoutCommas).useLocale(Locale.US);
+                //scanner.useDelimiter("(\\s|;|,)+"); does not work with russian locale
+
+                if (!scanner.hasNextDouble()) {
+                    Toast toast = Toast.makeText(
+                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
+                    toast.show();
+                    return false;
+                }
+                double latitude = scanner.nextDouble();
+
+                if (!scanner.hasNextDouble()) {
+                    Toast toast = Toast.makeText(
+                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
+                    toast.show();
+                    return false;
+                }
+                double longitude = scanner.nextDouble();
+
+                if (scanner.hasNext()) {
+                    Toast toast = Toast.makeText(
+                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
+                    toast.show();
+                    return false;
+                }
+                setCurrentPosition(new Coordinate(latitude, longitude));
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        Rect rect = new Rect();
-        findViewById(R.id.menu_bar_layout).getHitRect(rect);
-        if (!rect.contains((int) event.getX(), (int) event.getY())
+        Rect rectMenuBar = new Rect();
+        Rect rectSettings = new Rect();
+        findViewById(R.id.menu_bar_card).getGlobalVisibleRect(rectMenuBar);
+        findViewById(R.id.settings_card).getGlobalVisibleRect(rectSettings);
+        if (!rectMenuBar.contains((int) event.getX(), (int) event.getY())
+                && !rectSettings.contains((int) event.getX(), (int) event.getY())
                 && menuButtonIsActivated) {
             toggleMenu(menuButton);
         }
@@ -141,10 +192,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void TransportButton(View view) {
-        walkingButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        bikeButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        carButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-
         if (walkingButton.equals(view)) {
             currentTransport = TransportType.FOOT;
         } else if (bikeButton.equals(view)) {
@@ -152,25 +199,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (carButton.equals(view)) {
             currentTransport = TransportType.CAR;
         }
-
-        ((ImageButton)view).setImageTintList(getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+        updateTransportDependingUI();
     }
 
     public void toggleMenu(View view) {
         menuButtonIsActivated ^= true;
-        if (menuButtonIsActivated) {
-            ((ImageView)view).setImageTintList(getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
-            searchField.setVisibility(View.INVISIBLE);
-
-            TransitionManager.beginDelayedTransition(settingsLayout);
-            openSettings();
-        } else {
-            ((ImageView)view).setImageTintList(getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
-            searchField.setVisibility(View.VISIBLE);
-
-            TransitionManager.beginDelayedTransition(settingsLayout);
-            closeSettings();
-        }
+        TransitionManager.beginDelayedTransition(settingsLayout);
+        updateSettingsStateUI();
     }
 
     private void openSettings() {
@@ -188,9 +223,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         constraintSet.connect(R.id.settings_card, ConstraintSet.BOTTOM, R.id.space_for_settings, ConstraintSet.TOP);
         constraintSet.applyTo(settingsLayout);
     }
+
     public void positionButton(View view) {
-        Toast toast = Toast.makeText(this, "i am geoposition button", Toast.LENGTH_LONG);
-        toast.show();
+        //FIXME magic constant
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
+            return;
+        }
+        OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        //FIXME magic constant
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 18) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+            } else {
+                Toast toast = Toast.makeText(this, "give permissions please :(",
+                        Toast.LENGTH_LONG);
+                toast.show();
+            }
+        }
     }
 
     public void buildIsochroneButton(View view) {
@@ -208,8 +267,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private double getTravelTime() {
-        // FIXME
-        return 15.0 / 60.0;
+        return seekBar.getProgress() / 60.0;
     }
 
     private static class IsochroneRequest {
@@ -289,4 +347,72 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        //FIXME magic string literals
+        menuButtonIsActivated = savedInstanceState.getBoolean("menuButton");
+        currentTransport = (TransportType)savedInstanceState
+                .getSerializable("currentTransport");
+        updateSettingsStateUI();
+        updateTransportDependingUI();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NotNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putBoolean("menuButton", menuButtonIsActivated);
+        outState.putSerializable("currentTransport", currentTransport);
+    }
+
+    private void updateTransportDependingUI() {
+        ImageButton transportButton;
+        IndicatorSeekBar seekBar = findViewById(R.id.seekBar);
+        switch (currentTransport) {
+            case FOOT:
+                transportButton = walkingButton;
+                seekBar.setMin(10);
+                seekBar.setMax(90);
+                seekBar.setTickCount(9);
+                break;
+            case CAR:
+                transportButton = carButton;
+                seekBar.setMin(10);
+                seekBar.setMax(60);
+                seekBar.setTickCount(6);
+                break;
+            case BIKE:
+                transportButton = bikeButton;
+                seekBar.setMin(10);
+                seekBar.setMax(60);
+                seekBar.setTickCount(6);
+                break;
+            default:
+                throw new RuntimeException();
+        }
+
+        walkingButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+        bikeButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+        carButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+
+        transportButton.setImageTintList(
+                getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+    }
+
+    private void updateSettingsStateUI() {
+        if (menuButtonIsActivated) {
+            menuButton.setImageTintList(
+                    getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
+            searchField.setVisibility(View.INVISIBLE);
+            openSettings();
+        } else {
+            menuButton.setImageTintList(
+                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+            searchField.setVisibility(View.VISIBLE);
+            closeSettings();
+        }
+    }
+
 }

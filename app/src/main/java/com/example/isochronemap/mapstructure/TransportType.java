@@ -1,10 +1,11 @@
 package com.example.isochronemap.mapstructure;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
 /** Class represents list of available transport types. **/
-public enum TransportType {
+public enum TransportType implements Serializable {
     FOOT(
             new RoadRestriction(
                     "highway",
