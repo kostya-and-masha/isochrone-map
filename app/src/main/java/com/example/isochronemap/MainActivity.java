@@ -393,20 +393,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case FOOT:
                 transportButton = walkingButton;
                 seekBar.setMin(10);
-                seekBar.setMax(90);
-                seekBar.setTickCount(9);
+                seekBar.setMax(40);
+                seekBar.setTickCount(7);
                 break;
             case CAR:
                 transportButton = carButton;
                 seekBar.setMin(10);
-                seekBar.setMax(60);
-                seekBar.setTickCount(6);
+                seekBar.setMax(30);
+                seekBar.setTickCount(5);
                 break;
             case BIKE:
                 transportButton = bikeButton;
                 seekBar.setMin(10);
-                seekBar.setMax(60);
-                seekBar.setTickCount(6);
+                seekBar.setMax(30);
+                seekBar.setTickCount(5);
                 break;
             default:
                 throw new RuntimeException();
