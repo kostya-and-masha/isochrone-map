@@ -319,11 +319,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             errorMessage = message;
         }
 
-        public @NotNull List<Coordinate> getResult() {
+        private @NotNull List<Coordinate> getResult() {
             return Objects.requireNonNull(result);
         }
 
-        public @NotNull String getErrorMessage() {
+        private @NotNull String getErrorMessage() {
             return Objects.requireNonNull(errorMessage);
         }
     }
