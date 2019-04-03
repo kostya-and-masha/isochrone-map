@@ -53,7 +53,7 @@ public class IsochroneBuilder {
 
         Node startNode = new Node(startCoordinate, false);
         for (Node destinationNode: mapStructure.getStartNodes()) {
-            startNode.edges.add(new Edge(startCoordinate, destinationNode, false));
+            startNode.edges.add(new Edge(startCoordinate, destinationNode));
         }
         mapStructure = new MapStructure(mapStructure.getNodes(),
                 Collections.singletonList(startNode));
