@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
 
-        map.setPadding(0, 180, 0, 0);
+        map.setPadding(14, 180, 0, 0);
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                 START_POSITION, DEFAULT_ZOOM_LEVEL
         ));
