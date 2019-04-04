@@ -20,7 +20,8 @@ class ReachableNodesFinder {
             @NotNull MapStructure map, double time, TransportType transportType)
             throws UnsupportedParameterException {
         //FIXME move constants to the enum itself
-        double speed;
+        //FIXME fix bug related to primitive double value
+        Double speed;
         switch (transportType) {
             case FOOT:
                 speed = IsochroneBuilder.AVERAGE_FOOT_SPEED;

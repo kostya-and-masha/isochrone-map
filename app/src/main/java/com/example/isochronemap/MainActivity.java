@@ -13,6 +13,8 @@ import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.example.isochronemap.isochronebuilding.IsochroneBuilder;
+import com.example.isochronemap.isochronebuilding.IsochronePolygon;
+import com.example.isochronemap.isochronebuilding.IsochroneRequestType;
 import com.example.isochronemap.isochronebuilding.NotEnoughNodesException;
 import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
 import com.example.isochronemap.location.OneTimeLocationProvider;
@@ -32,10 +34,12 @@ import com.warkiz.widget.IndicatorSeekBar;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -50,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private GoogleMap map;
     private Marker currentPosition;
-    private Polygon currentPolygon;
+    private List<Polygon> currentPolygons = new ArrayList<>();
 
     private boolean menuButtonIsActivated = false;
     private SearchView searchField;
@@ -61,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton carButton;
     private IndicatorSeekBar seekBar;
     TransportType currentTransport = TransportType.FOOT;
+    IsochroneRequestType currentRequestType = IsochroneRequestType.CONVEX_HULL;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void buildIsochrone() {
-        removeCurrentPolygon();
+        removeCurrentPolygons();
         if (currentPosition == null) {
             Toast toast = Toast.makeText(
                     this,
@@ -173,7 +178,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 new IsochroneRequest(
                         toCoordinate(currentPosition.getPosition()),
                         getTravelTime(),
-                        currentTransport
+                        currentTransport,
+                        currentRequestType
                 )
         );
     }
@@ -196,29 +202,54 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         moveCameraToCurrentPosition();
     }
 
-    private void setCurrentPolygon(List<Coordinate> coordinates) {
-        removeCurrentPolygon();
+    private void setCurrentPolygons(List<IsochronePolygon> isochronePolygons) {
+        removeCurrentPolygons();
         // FIXME magic constants
-        PolygonOptions options = new PolygonOptions()
-                .strokeWidth(1)
-                .strokeColor(ContextCompat
-                        .getColor(this, R.color.colorPrimaryDarkTransparent))
-                .fillColor(ContextCompat
-                        .getColor(this, R.color.colorPrimaryDarkTransparent));
-        for (Coordinate coordinate : coordinates) {
-            options.add(toLatLng(coordinate));
+        for (IsochronePolygon currentPolygon : isochronePolygons) {
+            PolygonOptions options = new PolygonOptions()
+                    .strokeWidth(1)
+                    .strokeColor(ContextCompat
+                            .getColor(this, R.color.colorPolygonBorder))
+                    .fillColor(ContextCompat
+                            .getColor(this, R.color.colorPolygonFill));
+
+            for (Coordinate coordinate : currentPolygon.getExteriorRing()) {
+                options.add(toLatLng(coordinate));
+            }
+
+            for (List<Coordinate> coordinates : currentPolygon.getInteriorRings()) {
+                List<LatLng> hole = new ArrayList<>();
+                for (Coordinate point : coordinates) {
+                    hole.add(toLatLng(point));
+                }
+                options.addHole(hole);
+            }
+            currentPolygons.add(map.addPolygon(options));
         }
-        currentPolygon = map.addPolygon(options);
     }
 
-    private void removeCurrentPolygon() {
-        if (currentPolygon != null) {
-            currentPolygon.remove();
-            currentPolygon = null;
+    private void removeCurrentPolygons() {
+        for (Polygon polygon : currentPolygons) {
+            polygon.remove();
+        }
+        currentPolygons.clear();
+    }
+
+    public void requestTypeButton(View view) {
+        if (currentRequestType == IsochroneRequestType.CONVEX_HULL) {
+            currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
+            Toast toast = Toast.makeText(
+                    MainActivity.this, "SET TO HEXAGONAL MODE", Toast.LENGTH_LONG);
+            toast.show();
+        } else {
+            currentRequestType = IsochroneRequestType.CONVEX_HULL;
+            Toast toast = Toast.makeText(
+                    MainActivity.this, "SET TO CONVEX HULL MODE", Toast.LENGTH_LONG);
+            toast.show();
         }
     }
 
-    public void TransportButton(View view) {
+    public void transportButtonsClick(View view) {
         if (walkingButton.equals(view)) {
             currentTransport = TransportType.FOOT;
         } else if (bikeButton.equals(view)) {
@@ -300,23 +331,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         private final Coordinate coordinate;
         private final double travelTime;
         private final TransportType transportType;
+        private final IsochroneRequestType isochroneType;
 
         private IsochroneRequest(Coordinate coordinate, double travelTime,
-                                TransportType transportType) {
+                                TransportType transportType, IsochroneRequestType isochroneType) {
             this.coordinate = coordinate;
             this.travelTime = travelTime;
             this.transportType = transportType;
+            this.isochroneType = isochroneType;
         }
     }
 
     private static class IsochroneResponse {
         private final boolean isSuccessful;
-        private final List<Coordinate> result;
+        private final List<IsochronePolygon> result;
         private final String errorMessage;
 
-        private IsochroneResponse(List<Coordinate> coordinates) {
+        private IsochroneResponse(List<IsochronePolygon> polygons) {
             isSuccessful = true;
-            result = coordinates;
+            result = polygons;
             errorMessage = null;
         }
 
@@ -326,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             errorMessage = message;
         }
 
-        private @NotNull List<Coordinate> getResult() {
+        private @NotNull List<IsochronePolygon> getResult() {
             return Objects.requireNonNull(result);
         }
 
@@ -341,10 +374,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             IsochroneRequest request = isochroneRequest[0];
             try {
                 return new IsochroneResponse(
-                        IsochroneBuilder.getIsochronePolygon(
+                        IsochroneBuilder.getIsochronePolygons(
                                 request.coordinate,
                                 request.travelTime,
-                                request.transportType
+                                request.transportType,
+                                request.isochroneType
                         )
                 );
             } catch (UnsupportedParameterException e) {
@@ -359,7 +393,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPostExecute(IsochroneResponse response) {
             if (response.isSuccessful) {
-                setCurrentPolygon(response.getResult());
+                setCurrentPolygons(response.getResult());
             } else {
                 Toast toast = Toast.makeText(
                         MainActivity.this,
@@ -377,6 +411,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         menuButtonIsActivated = savedInstanceState.getBoolean("menuButton");
         currentTransport = (TransportType)savedInstanceState
                 .getSerializable("currentTransport");
+        currentRequestType = (IsochroneRequestType)savedInstanceState
+                .getSerializable("currentRequest");
         updateSettingsStateUI();
         updateTransportDependingUI();
     }
@@ -387,6 +423,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         outState.putBoolean("menuButton", menuButtonIsActivated);
         outState.putSerializable("currentTransport", currentTransport);
+        outState.putSerializable("currentRequest", currentRequestType);
     }
 
     private void updateTransportDependingUI() {

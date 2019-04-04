@@ -43,6 +43,30 @@
         app:srcCompat="@drawable/ic_my_location_black_24dp"
         android:onClick="positionButton"/>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fixmeButton"
+        style="@style/GeoButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintBottom_toTopOf="@+id/geoposition_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/ic_smoking_rooms_black_24dp"
+        android:onClick="requestTypeButton"/>
+
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="FIX ME !!"
+        app:layout_constraintBottom_toTopOf="@id/fixmeButton"
+        app:layout_constraintEnd_toEndOf="@+id/fixmeButton"
+        app:layout_constraintStart_toStartOf="@+id/fixmeButton" />
 
     <FrameLayout
         android:layout_width="match_parent"

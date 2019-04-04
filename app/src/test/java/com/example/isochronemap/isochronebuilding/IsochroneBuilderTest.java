@@ -42,7 +42,7 @@ class IsochroneBuilderTest {
 
         MapStructure map = new MapStructure(nodes, startNodes);
         List<Coordinate> Hull =
-                IsochroneBuilder.getIsochronePolygon(map, 0.16, TransportType.FOOT);
+                IsochroneBuilder.getIsochronePolygons(map, 0.16, TransportType.FOOT);
 
         assertEquals(3, Hull.size());
         assertSame(hullNode1Coordinate, Hull.get(0));
