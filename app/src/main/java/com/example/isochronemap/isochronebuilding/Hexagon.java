@@ -3,11 +3,8 @@ package com.example.isochronemap.isochronebuilding;
 import com.example.isochronemap.mapstructure.Coordinate;
 
 import org.jetbrains.annotations.NotNull;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Polygon;
-
-import java.util.Arrays;
 
 //TODO add javadocs
 class Hexagon {
@@ -31,23 +28,6 @@ class Hexagon {
             }
         }
         return true;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Hexagon hexagon = (Hexagon) o;
-        return Arrays.equals(coordinates, hexagon.coordinates);
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(coordinates);
     }
 
     @NotNull Polygon toJTSPolygon() {

@@ -30,15 +30,15 @@ public class Coordinate {
      * Calculates distance from other coordinate.
      * @return distance in kilometers
      */
-    double distanceTo(@NotNull Coordinate other) {
+    public double distanceTo(@NotNull Coordinate other) {
         return DistanceUtils.distHaversineRAD(
                 latitudeRad, longitudeRad,
                 other.latitudeRad, other.longitudeRad
         ) * DistanceUtils.EARTH_MEAN_RADIUS_KM;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    /** Equals method with precision. Does not obey all equals laws */
+    public boolean equalsWithPrecision(Object o) {
         if (this == o) {
             return true;
         }
@@ -48,10 +48,5 @@ public class Coordinate {
         Coordinate that = (Coordinate) o;
         return Math.abs(that.latitudeDeg - latitudeDeg) < 1e-8
                 && Math.abs(that.longitudeDeg - longitudeDeg) < 1e-8;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(latitudeDeg, longitudeDeg);
     }
 }

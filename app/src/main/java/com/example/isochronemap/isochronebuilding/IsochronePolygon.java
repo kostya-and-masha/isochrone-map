@@ -3,6 +3,7 @@ package com.example.isochronemap.isochronebuilding;
 import com.example.isochronemap.mapstructure.Coordinate;
 
 import org.jetbrains.annotations.NotNull;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.ArrayList;
@@ -17,13 +18,17 @@ public class IsochronePolygon {
     }
 
     //TODO check whether such parameter names are acceptable
-    public IsochronePolygon(Polygon JTSPolygon) {
+    public IsochronePolygon(Polygon JTSPolygon, double ignoredHolesArea) {
         for (org.locationtech.jts.geom.Coordinate JTSCoordinate :
                 JTSPolygon.getExteriorRing().getCoordinates()) {
             exteriorRing.add(new Coordinate(JTSCoordinate.y, JTSCoordinate.x));
         }
-
+        GeometryFactory geometryFactory = new GeometryFactory();
         for (int i = 0; i < JTSPolygon.getNumInteriorRing(); i++) {
+            if (geometryFactory.createPolygon(JTSPolygon.getInteriorRingN(i).getCoordinates())
+                    .getArea() < ignoredHolesArea) {
+                continue;
+            }
             List<Coordinate> coordinateList = new ArrayList<>();
             for (org.locationtech.jts.geom.Coordinate JTSCoordinate :
                     JTSPolygon.getInteriorRingN(i).getCoordinates()) {

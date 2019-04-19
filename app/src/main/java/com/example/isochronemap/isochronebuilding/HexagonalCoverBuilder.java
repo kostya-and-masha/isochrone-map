@@ -1,51 +1,66 @@
 package com.example.isochronemap.isochronebuilding;
 
+import android.util.Log;
+
 import com.example.isochronemap.mapstructure.Coordinate;
 
+import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 class HexagonalCoverBuilder {
     static final double HEXAGON_RADIUS = 0.05; // 50 meters
+    private static final double HEXAGONS_HORIZONTAL_DISTANCE =
+            2 * HEXAGON_RADIUS * Math.cos(Math.PI/6);
+    private static final double HEXAGONS_VERTICAL_DISTANCE = 1.5 * HEXAGON_RADIUS;
 
-    static Set<Hexagon> getHexagonalCover(List<Coordinate> coordinates) {
-        //FIXME magic constants
-        double leftmostX = 1000;
-        double lowermostY = 1000;
-
-        for (Coordinate point : coordinates) {
-            leftmostX = Math.min(leftmostX, point.longitudeDeg);
-            lowermostY = Math.min(lowermostY, point.latitudeDeg);
-        }
-
-        Coordinate leftCornerHexagonCenter = new Coordinate(lowermostY, leftmostX);
-        Set<Hexagon> hexagons = new HashSet<>();
+    static List<Hexagon> getHexagonalCover(List<Coordinate> coordinates, Coordinate startPoint) {
+        List<Coordinate> resultingHexagonCenters = new ArrayList<>();
 
         for (Coordinate point: coordinates) {
-            List<Coordinate> hexagonCenters =
-                    getClosestHexagonCenters(leftCornerHexagonCenter, point);
-            for (Coordinate center : hexagonCenters) {
-                Hexagon currentHexagon = getHexagonFromCenter(center);
+            List<Coordinate> potentialHexagonCenters =
+                    getClosestHexagonCenters(startPoint, point);
+            for (Coordinate center : potentialHexagonCenters) {
+                Hexagon currentHexagon = getOneHexagonFromCenter(center);
                 if (currentHexagon.contains(point)) {
-                    hexagons.add(currentHexagon);
+                    resultingHexagonCenters.add(center);
                     break;
                 }
+            }
+        }
+
+        return getHexagonsFromCenters(resultingHexagonCenters);
+    }
+
+    private static @NotNull List<Hexagon> getHexagonsFromCenters(
+            @NotNull List<Coordinate> resultingHexagonCenters) {
+        List<Hexagon> hexagons = new ArrayList<>();
+        Collections.sort(resultingHexagonCenters,
+                (c1, c2) -> Math.round((float) Math.signum((c1.longitudeDeg + c1.latitudeDeg) -
+                        (c2.longitudeDeg + c2.latitudeDeg))));
+
+        hexagons.add(getOneHexagonFromCenter(resultingHexagonCenters.get(0)));
+        for (int i = 1; i < resultingHexagonCenters.size(); i++) {
+            Coordinate currentCoordinate = resultingHexagonCenters.get(i);
+            Coordinate previousCoordinate = resultingHexagonCenters.get(i-1);
+            if (!currentCoordinate.equalsWithPrecision(previousCoordinate)) {
+                hexagons.add(getOneHexagonFromCenter(currentCoordinate));
             }
         }
         return hexagons;
     }
 
-    static private Hexagon getHexagonFromCenter(Coordinate center) {
+    static private Hexagon getOneHexagonFromCenter(Coordinate center) {
         List<Coordinate> points = new ArrayList<>();
         for (double angle = Math.PI/6; angle < 2*Math.PI; angle += Math.PI/3) {
             points.add(new Coordinate(
-                    center.latitudeDeg + latitudeFromKm(HEXAGON_RADIUS * 1.0001 * Math.sin(angle)),
-                    center.longitudeDeg + longitudeFromkm(
-                            HEXAGON_RADIUS * 1.0001 * Math.cos(angle), center.latitudeDeg))
+                    center.latitudeDeg + latitudeFromKm(
+                            HEXAGON_RADIUS * 1.02 * Math.sin(angle)),
+                    center.longitudeDeg + longitudeFromKm(
+                            HEXAGON_RADIUS * 1.02 * Math.cos(angle), center.latitudeDeg))
             );
         }
         try {
@@ -56,26 +71,31 @@ class HexagonalCoverBuilder {
         }
     }
 
-    //FIXME this method is disgusting
-    static private List<Coordinate> getClosestHexagonCenters(Coordinate cornerHexagonCenter,
-                                                             Coordinate point) {
-        double horizontalStepLength = longitudeFromkm(
-                2 * HEXAGON_RADIUS * Math.cos(Math.PI/6), cornerHexagonCenter.latitudeDeg);
-        double verticalStepLength = latitudeFromKm(1.5 * HEXAGON_RADIUS);
+    /** Area of hexagon with coordinates (latitude and longitude) interpreted as points on plane */
+    static double getHexagonArea(Coordinate center) {
+        return getOneHexagonFromCenter(center).toJTSPolygon().getArea();
+    }
 
-        double verticalDistance = point.latitudeDeg - cornerHexagonCenter.latitudeDeg;
+    //FIXME this method is disgusting
+    static private List<Coordinate> getClosestHexagonCenters(Coordinate startPoint,
+                                                             Coordinate point) {
+        double horizontalStepLength = longitudeFromKm(HEXAGONS_HORIZONTAL_DISTANCE,
+                startPoint.latitudeDeg);
+        double verticalStepLength = latitudeFromKm(HEXAGONS_VERTICAL_DISTANCE);
+
+        double verticalDistance = point.latitudeDeg - startPoint.latitudeDeg;
         long verticalStepNumberSmaller = Math.round(Math.floor(verticalDistance/verticalStepLength));
 
-        double LowerPointsY = cornerHexagonCenter.latitudeDeg
+        double LowerPointsY = startPoint.latitudeDeg
                 + verticalStepLength * verticalStepNumberSmaller;
         double UpperPointsY = LowerPointsY + verticalStepLength;
 
         List<Coordinate> result = new ArrayList<>();
 
         double[] evenStepsPointsXs = getTwoClosestValuesWithStep(
-                cornerHexagonCenter.longitudeDeg, horizontalStepLength, point.longitudeDeg);
+                startPoint.longitudeDeg, horizontalStepLength, point.longitudeDeg);
         double[] oddStepsPointsXs = getTwoClosestValuesWithStep(
-                cornerHexagonCenter.longitudeDeg - horizontalStepLength / 2,
+                startPoint.longitudeDeg - horizontalStepLength / 2,
                 horizontalStepLength, point.longitudeDeg);
 
         double evenStepsPointsY;
@@ -109,7 +129,7 @@ class HexagonalCoverBuilder {
         return km / 111;
     }
 
-    static private double longitudeFromkm(double km, double latitude) {
+    static private double longitudeFromKm(double km, double latitude) {
         return km / (111 * Math.cos(latitude * DistanceUtils.DEGREES_TO_RADIANS));
     }
 }

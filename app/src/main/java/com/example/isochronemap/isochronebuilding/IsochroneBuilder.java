@@ -64,16 +64,17 @@ public class IsochroneBuilder {
         }
         mapStructure = new MapStructure(mapStructure.getNodes(),
                 Collections.singletonList(startNode));
-        return getIsochronePolygons(mapStructure, time, transportType, requestType);
+        return getIsochronePolygons(startCoordinate, time, transportType, requestType, mapStructure);
     }
 
     /**
      * Builds polygon which represents reachable area.
      * This method uses pre-downloaded MapStructure.
      */
-    public static @NotNull List<IsochronePolygon> getIsochronePolygons(
-            @NotNull MapStructure map, double time,
-            @NotNull TransportType transportType, @NotNull IsochroneRequestType requestType)
+    public static List<IsochronePolygon> getIsochronePolygons(
+            @NotNull Coordinate startCoordinate, double time,
+            @NotNull TransportType transportType, @NotNull IsochroneRequestType requestType,
+            @NotNull MapStructure map)
             throws NotEnoughNodesException, UnsupportedParameterException {
         List<Node> reachableNodes = ReachableNodesFinder.getReachableNodes(map, time, transportType);
         if (reachableNodes.size() < 2) {
@@ -109,7 +110,8 @@ public class IsochroneBuilder {
                     }
                 }
 
-                Set<Hexagon> hexagons = HexagonalCoverBuilder.getHexagonalCover(reachablePoints);
+                List<Hexagon> hexagons = HexagonalCoverBuilder.getHexagonalCover(reachablePoints,
+                        startCoordinate);
                 return turnHexagonsToPolygons(hexagons);
                 //FIXME
             default:
@@ -126,7 +128,7 @@ public class IsochroneBuilder {
     }
 
     private static @NotNull List<IsochronePolygon> turnHexagonsToPolygons(
-            Collection<Hexagon> hexagons) {
+            @NotNull Collection<Hexagon> hexagons) {
         List<Polygon> polygons = new ArrayList<>();
         for (Hexagon hexagon : hexagons) {
             polygons.add(hexagon.toJTSPolygon());
@@ -135,10 +137,15 @@ public class IsochroneBuilder {
         Geometry geometry = UnaryUnionOp.union(polygons);
         polygons.clear();
         PolygonExtracter.getPolygons(geometry, polygons);
+        double smallHoleArea = HexagonalCoverBuilder.getHexagonArea(new Coordinate(
+                polygons.get(0).getCoordinates()[0].getY(),
+                polygons.get(0).getCoordinates()[0].getX())
+        ) * 1.01;
         List<IsochronePolygon> isochronePolygonList = new ArrayList<>();
         for (Polygon JTSPolygon : polygons) {
-            isochronePolygonList.add(new IsochronePolygon(JTSPolygon));
+            isochronePolygonList.add(new IsochronePolygon(JTSPolygon, smallHoleArea));
         }
+
         return isochronePolygonList;
     }
 }
