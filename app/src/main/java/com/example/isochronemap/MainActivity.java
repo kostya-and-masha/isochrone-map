@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
         seekBar = findViewById(R.id.seekBar);
 
-        updateIsochroneTypeUI();
+        updateIsochroneTypeDependingUI();
         updateTransportDependingUI();
         updateAdditionalSettingsUI();
         updateMenuStateUI();
@@ -265,13 +265,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (hexagonalCoverButton.equals(view)) {
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
         }
-        updateIsochroneTypeUI();
+        updateIsochroneTypeDependingUI();
     }
 
     public void toggleSettings(View view) {
         settingsButtonIsActivated ^= true;
         updateAdditionalSettingsUI();
-        updateMenuStateUI();
     }
 
     public void toggleMenu(View view) {
@@ -467,7 +466,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
     }
 
-    private void updateIsochroneTypeUI() {
+    private void updateIsochroneTypeDependingUI() {
         ImageButton currentButton;
         ImageView currentBorder;
         ImageButton otherButton;
@@ -479,7 +478,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 otherButton = hexagonalCoverButton;
                 otherBorder = findViewById(R.id.hexagonal_cover_border);
                 ((ImageButton)findViewById(R.id.update_isochrone_button)).setImageResource(
-                        R.drawable.ic_convex_hull_fill_120dp);
+                        R.drawable.ic_convex_hull_button_24dp);
                 break;
             case HEXAGONAL_COVER:
                 currentButton = hexagonalCoverButton;
@@ -487,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 otherButton = convexHullButton;
                 otherBorder = findViewById(R.id.convex_hull_border);
                 ((ImageButton)findViewById(R.id.update_isochrone_button)).setImageResource(
-                        R.drawable.ic_hexagonal_fill_120dp);
+                        R.drawable.ic_hexagonal_button_24dp);
                 break;
             default:
                 throw new RuntimeException();
@@ -505,12 +504,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void updateAdditionalSettingsUI() {
         if (settingsButtonIsActivated) {
             settingsButton.setImageTintList(
-                    getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
+                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
             mainSettings.setVisibility(View.INVISIBLE);
             additionalSettings.setVisibility(View.VISIBLE);
         } else {
             settingsButton.setImageTintList(
-                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+                    getResources().getColorStateList(R.color.colorPrimary, getTheme()));
             additionalSettings.setVisibility(View.INVISIBLE);
             mainSettings.setVisibility(View.VISIBLE);
         }
@@ -520,13 +519,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (menuButtonIsActivated) {
             settingsButton.setVisibility(View.VISIBLE);
             searchField.setVisibility(View.INVISIBLE);
-            menuButton.setImageTintList(
-                    getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
             openSettings();
         } else {
             settingsButton.setVisibility(View.GONE);
-            menuButton.setImageTintList(
-                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
             searchField.setVisibility(View.VISIBLE);
             closeSettings();
         }
