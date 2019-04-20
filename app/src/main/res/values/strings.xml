@@ -10,4 +10,10 @@
     <string name="content_walking_button">set walking as transport</string>
     <string name="content_car_button">set car as transport</string>
     <string name="title_activity_maps">Isochrone map</string>
+    <string name="set_isochrone_type">SET ISOCHRONE TYPE</string>
+    <string name="settings_button">settings_button</string>
+    <string name="hexagonal_cover_button_border">hexagonal cover button border</string>
+    <string name="convex_hull_button_botder">convex hull button botder</string>
+    <string name="hexagonal_cover_button">hexagonal cover button</string>
+    <string name="convex_hull_button_border">convex hull button border</string>
 </resources>

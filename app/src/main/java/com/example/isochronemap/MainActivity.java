@@ -9,6 +9,7 @@ import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
@@ -39,7 +40,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -57,15 +57,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private List<Polygon> currentPolygons = new ArrayList<>();
 
     private boolean menuButtonIsActivated = false;
+    private boolean settingsButtonIsActivated = false;
     private SearchView searchField;
+    private ConstraintLayout mainSettings;
+    private ConstraintLayout additionalSettings;
     private ConstraintLayout settingsLayout;
+    private ImageButton settingsButton;
     private ImageButton menuButton;
     private ImageButton walkingButton;
     private ImageButton bikeButton;
     private ImageButton carButton;
+    private ImageButton convexHullButton;
+    private ImageButton hexagonalCoverButton;
     private IndicatorSeekBar seekBar;
     TransportType currentTransport = TransportType.FOOT;
-    IsochroneRequestType currentRequestType = IsochroneRequestType.CONVEX_HULL;
+    IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,15 +79,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
 
         searchField = findViewById(R.id.search_field);
+        mainSettings = findViewById(R.id.main_settings);
+        additionalSettings = findViewById(R.id.additional_settings);
         settingsLayout = findViewById(R.id.settings_layout);
+        settingsButton = findViewById(R.id.settings_button);
         menuButton = findViewById(R.id.menu_button);
         walkingButton = findViewById(R.id.walking_button);
         bikeButton = findViewById(R.id.bike_button);
         carButton = findViewById(R.id.car_button);
+        convexHullButton = findViewById(R.id.convex_hull_button);
+        hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
         seekBar = findViewById(R.id.seekBar);
 
+        updateIsochroneTypeUI();
         updateTransportDependingUI();
-        updateSettingsStateUI();
+        updateAdditionalSettingsUI();
+        updateMenuStateUI();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -235,20 +248,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         currentPolygons.clear();
     }
 
-    public void requestTypeButton(View view) {
-        if (currentRequestType == IsochroneRequestType.CONVEX_HULL) {
-            currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
-            Toast toast = Toast.makeText(
-                    MainActivity.this, "SET TO HEXAGONAL MODE", Toast.LENGTH_LONG);
-            toast.show();
-        } else {
-            currentRequestType = IsochroneRequestType.CONVEX_HULL;
-            Toast toast = Toast.makeText(
-                    MainActivity.this, "SET TO CONVEX HULL MODE", Toast.LENGTH_LONG);
-            toast.show();
-        }
-    }
-
     public void transportButtonsClick(View view) {
         if (walkingButton.equals(view)) {
             currentTransport = TransportType.FOOT;
@@ -260,27 +259,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updateTransportDependingUI();
     }
 
+    public void isochroneTypeButtonClick(View view) {
+        if (convexHullButton.equals(view)) {
+            currentRequestType = IsochroneRequestType.CONVEX_HULL;
+        } else if (hexagonalCoverButton.equals(view)) {
+            currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
+        }
+        updateIsochroneTypeUI();
+    }
+
+    public void toggleSettings(View view) {
+        settingsButtonIsActivated ^= true;
+        updateAdditionalSettingsUI();
+        updateMenuStateUI();
+    }
+
     public void toggleMenu(View view) {
         menuButtonIsActivated ^= true;
+        if (menuButtonIsActivated) {
+            settingsButtonIsActivated = false;
+            updateAdditionalSettingsUI();
+        }
         TransitionManager.beginDelayedTransition(settingsLayout);
-        updateSettingsStateUI();
+        updateMenuStateUI();
     }
 
-    private void openSettings() {
-        ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(settingsLayout);
-        constraintSet.clear(R.id.settings_card, ConstraintSet.BOTTOM);
-        constraintSet.connect(R.id.settings_card, ConstraintSet.TOP, R.id.space_for_settings, ConstraintSet.TOP);
-        constraintSet.applyTo(settingsLayout);
-    }
 
-    private void closeSettings() {
-        ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(settingsLayout);
-        constraintSet.clear(R.id.settings_card, ConstraintSet.TOP);
-        constraintSet.connect(R.id.settings_card, ConstraintSet.BOTTOM, R.id.space_for_settings, ConstraintSet.TOP);
-        constraintSet.applyTo(settingsLayout);
-    }
 
     public void positionButton(View view) {
         //FIXME magic constant
@@ -413,7 +417,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .getSerializable("currentTransport");
         currentRequestType = (IsochroneRequestType)savedInstanceState
                 .getSerializable("currentRequest");
-        updateSettingsStateUI();
+        updateMenuStateUI();
         updateTransportDependingUI();
     }
 
@@ -452,25 +456,97 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 throw new RuntimeException();
         }
 
-        walkingButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        bikeButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        carButton.setImageTintList(getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+        walkingButton.setImageTintList(getResources().getColorStateList(
+                R.color.colorPrimary, getTheme()));
+        bikeButton.setImageTintList(getResources().getColorStateList(
+                R.color.colorPrimary, getTheme()));
+        carButton.setImageTintList(getResources().getColorStateList(
+                R.color.colorPrimary, getTheme()));
 
         transportButton.setImageTintList(
                 getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
     }
 
-    private void updateSettingsStateUI() {
+    private void updateIsochroneTypeUI() {
+        ImageButton currentButton;
+        ImageView currentBorder;
+        ImageButton otherButton;
+        ImageView otherBorder;
+        switch (currentRequestType) {
+            case CONVEX_HULL:
+                currentButton = convexHullButton;
+                currentBorder = findViewById(R.id.convex_hull_border);
+                otherButton = hexagonalCoverButton;
+                otherBorder = findViewById(R.id.hexagonal_cover_border);
+                ((ImageButton)findViewById(R.id.update_isochrone_button)).setImageResource(
+                        R.drawable.ic_convex_hull_fill_120dp);
+                break;
+            case HEXAGONAL_COVER:
+                currentButton = hexagonalCoverButton;
+                currentBorder = findViewById(R.id.hexagonal_cover_border);
+                otherButton = convexHullButton;
+                otherBorder = findViewById(R.id.convex_hull_border);
+                ((ImageButton)findViewById(R.id.update_isochrone_button)).setImageResource(
+                        R.drawable.ic_hexagonal_fill_120dp);
+                break;
+            default:
+                throw new RuntimeException();
+        }
+        currentButton.setImageTintList(
+                getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+        currentBorder.setImageTintList(
+                getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
+        otherButton.setImageTintList(
+                getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+        otherBorder.setImageTintList(
+                getResources().getColorStateList(R.color.colorPrimary, getTheme()));
+    }
+
+    private void updateAdditionalSettingsUI() {
+        if (settingsButtonIsActivated) {
+            settingsButton.setImageTintList(
+                    getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
+            mainSettings.setVisibility(View.INVISIBLE);
+            additionalSettings.setVisibility(View.VISIBLE);
+        } else {
+            settingsButton.setImageTintList(
+                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
+            additionalSettings.setVisibility(View.INVISIBLE);
+            mainSettings.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void updateMenuStateUI() {
         if (menuButtonIsActivated) {
+            settingsButton.setVisibility(View.VISIBLE);
+            searchField.setVisibility(View.INVISIBLE);
             menuButton.setImageTintList(
                     getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
-            searchField.setVisibility(View.INVISIBLE);
             openSettings();
         } else {
+            settingsButton.setVisibility(View.GONE);
             menuButton.setImageTintList(
                     getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
             searchField.setVisibility(View.VISIBLE);
             closeSettings();
         }
+    }
+
+    private void openSettings() {
+        ConstraintSet constraintSet = new ConstraintSet();
+        constraintSet.clone(settingsLayout);
+        constraintSet.clear(R.id.settings_card, ConstraintSet.BOTTOM);
+        constraintSet.connect(R.id.settings_card, ConstraintSet.TOP,
+                R.id.space_for_settings, ConstraintSet.TOP);
+        constraintSet.applyTo(settingsLayout);
+    }
+
+    private void closeSettings() {
+        ConstraintSet constraintSet = new ConstraintSet();
+        constraintSet.clone(settingsLayout);
+        constraintSet.clear(R.id.settings_card, ConstraintSet.TOP);
+        constraintSet.connect(R.id.settings_card, ConstraintSet.BOTTOM,
+                R.id.space_for_settings, ConstraintSet.TOP);
+        constraintSet.applyTo(settingsLayout);
     }
 }
