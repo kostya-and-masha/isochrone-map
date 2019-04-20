@@ -17,6 +17,7 @@ import org.locationtech.jts.operation.union.UnaryUnionOp;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -109,10 +110,10 @@ public class IsochroneBuilder {
                         }
                     }
                 }
-
                 List<Hexagon> hexagons = HexagonalCoverBuilder.getHexagonalCover(reachablePoints,
                         startCoordinate);
-                return turnHexagonsToPolygons(hexagons);
+                return turnHexagonsToPolygons(hexagons,
+                        hexagons.get(0).toJTSPolygon().getArea() * 1.2);
                 //FIXME
             default:
                 throw new RuntimeException();
@@ -128,24 +129,44 @@ public class IsochroneBuilder {
     }
 
     private static @NotNull List<IsochronePolygon> turnHexagonsToPolygons(
-            @NotNull Collection<Hexagon> hexagons) {
+            @NotNull Collection<Hexagon> hexagons, double ignoredHolesArea) {
         List<Polygon> polygons = new ArrayList<>();
         for (Hexagon hexagon : hexagons) {
             polygons.add(hexagon.toJTSPolygon());
         }
 
-        Geometry geometry = UnaryUnionOp.union(polygons);
+        Geometry geometry = UnaryUnionOp.union(getGeometriesMultithreading(polygons));
         polygons.clear();
         PolygonExtracter.getPolygons(geometry, polygons);
-        double smallHoleArea = HexagonalCoverBuilder.getHexagonArea(new Coordinate(
-                polygons.get(0).getCoordinates()[0].getY(),
-                polygons.get(0).getCoordinates()[0].getX())
-        ) * 1.01;
         List<IsochronePolygon> isochronePolygonList = new ArrayList<>();
         for (Polygon JTSPolygon : polygons) {
-            isochronePolygonList.add(new IsochronePolygon(JTSPolygon, smallHoleArea));
+            isochronePolygonList.add(new IsochronePolygon(JTSPolygon, ignoredHolesArea));
         }
 
         return isochronePolygonList;
+    }
+
+    private static @NotNull List<Geometry> getGeometriesMultithreading(List<Polygon> polygons) {
+        int numberOfCores = Runtime.getRuntime().availableProcessors();
+        Thread[] threads = new Thread[numberOfCores];
+        Geometry[] geometries = new Geometry[numberOfCores];
+        int chunkSize = (polygons.size() + numberOfCores - 1) / numberOfCores;
+        for (int i = 0; i < numberOfCores; ++i) {
+            int k = i;
+            threads[i] = new Thread(() -> geometries[k] = UnaryUnionOp.union(
+                    polygons.subList(k * chunkSize, Math.min((k+1) * chunkSize, polygons.size())))
+            );
+            threads[i].start();
+        }
+
+        for (int i = 0; i < numberOfCores; ++i) {
+            try {
+                threads[i].join();
+            } catch (InterruptedException e) {
+                return new ArrayList<>(polygons);
+            }
+        }
+
+        return Arrays.asList(geometries);
     }
 }

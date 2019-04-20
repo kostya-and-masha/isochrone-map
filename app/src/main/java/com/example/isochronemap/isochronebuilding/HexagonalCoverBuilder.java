@@ -1,7 +1,5 @@
 package com.example.isochronemap.isochronebuilding;
 
-import android.util.Log;
-
 import com.example.isochronemap.mapstructure.Coordinate;
 
 import org.jetbrains.annotations.NotNull;
@@ -22,7 +20,7 @@ class HexagonalCoverBuilder {
 
         for (Coordinate point: coordinates) {
             List<Coordinate> potentialHexagonCenters =
-                    getClosestHexagonCenters(startPoint, point);
+                    getClosestHexagonCenters(point, startPoint);
             for (Coordinate center : potentialHexagonCenters) {
                 Hexagon currentHexagon = getOneHexagonFromCenter(center);
                 if (currentHexagon.contains(point)) {
@@ -66,25 +64,22 @@ class HexagonalCoverBuilder {
         try {
             return new Hexagon(points.toArray(new Coordinate[0]));
         } catch (UnsupportedParameterException e) {
+            //FIXME
             e.printStackTrace();
             throw new RuntimeException();
         }
     }
 
-    /** Area of hexagon with coordinates (latitude and longitude) interpreted as points on plane */
-    static double getHexagonArea(Coordinate center) {
-        return getOneHexagonFromCenter(center).toJTSPolygon().getArea();
-    }
-
     //FIXME this method is disgusting
-    static private List<Coordinate> getClosestHexagonCenters(Coordinate startPoint,
-                                                             Coordinate point) {
+    static private List<Coordinate> getClosestHexagonCenters(Coordinate point,
+                                                             Coordinate startPoint) {
         double horizontalStepLength = longitudeFromKm(HEXAGONS_HORIZONTAL_DISTANCE,
                 startPoint.latitudeDeg);
         double verticalStepLength = latitudeFromKm(HEXAGONS_VERTICAL_DISTANCE);
 
         double verticalDistance = point.latitudeDeg - startPoint.latitudeDeg;
-        long verticalStepNumberSmaller = Math.round(Math.floor(verticalDistance/verticalStepLength));
+        long verticalStepNumberSmaller =
+                Math.round(Math.floor(verticalDistance/verticalStepLength));
 
         double LowerPointsY = startPoint.latitudeDeg
                 + verticalStepLength * verticalStepNumberSmaller;
