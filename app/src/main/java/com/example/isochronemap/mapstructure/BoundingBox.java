@@ -12,6 +12,11 @@ class BoundingBox {
     final Coordinate minimum;
     final Coordinate maximum;
 
+    BoundingBox(@NotNull Coordinate minimum, @NotNull Coordinate maximum) {
+        this.minimum = minimum;
+        this.maximum = maximum;
+    }
+
     BoundingBox(@NotNull Coordinate center, double radiusInKilometers) {
         Circle circle = new CircleImpl(
                 new PointImpl(

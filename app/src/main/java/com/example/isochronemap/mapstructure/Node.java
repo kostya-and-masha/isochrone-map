@@ -16,4 +16,8 @@ public class Node {
         this.coordinate = coordinate;
         this.isCrossing = isCrossing;
     }
+
+    public void addEdge(Edge edge) {
+        edges.add(edge);
+    }
 }

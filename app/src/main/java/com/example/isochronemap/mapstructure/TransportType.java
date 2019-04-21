@@ -70,7 +70,7 @@ public enum TransportType implements Serializable {
             RoadRestriction.PUBLIC_ACCESS
     );
 
-    private List<RoadRestriction> restrictions;
+    private final List<RoadRestriction> restrictions;
 
     TransportType(RoadRestriction ... restrictions) {
         this.restrictions = Arrays.asList(restrictions);

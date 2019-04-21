@@ -5,21 +5,20 @@ import java.net.URLEncoder;
 import java.util.Iterator;
 
 class OverpassRequestBuilder {
-    private static final String HEADING = "[out: json]";
-    private static final String ENDING = "(._;>;);out body qt;";
-
-    static String buildRequest(BoundingBox box, TransportType type) {
+    static String buildRequest(BoundingBox box,
+                               TransportType transportType,
+                               OverpassRequestType requestType) {
         String result = null;
         try {
             StringBuilder builder = new StringBuilder();
-            builder.append(HEADING)
+            builder.append(requestType.HEADING)
                    .append(boundingBoxString(box)).append(";")
                    .append("way");
-            for (RoadRestriction restriction : type.getRestrictions()) {
+            for (RoadRestriction restriction : transportType.getRestrictions()) {
                 builder.append(restrictionString(restriction));
             }
             builder.append(";");
-            builder.append(ENDING);
+            builder.append(requestType.ENDING);
             result = builder.toString();
             result = URLEncoder.encode(result, "UTF-8");
         } catch (UnsupportedEncodingException ignored) {}
