@@ -1,13 +1,16 @@
 package com.example.isochronemap;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SearchView;
@@ -43,8 +46,8 @@ import java.util.Scanner;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -56,12 +59,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Marker currentPosition;
     private List<Polygon> currentPolygons = new ArrayList<>();
 
-    private boolean menuButtonIsActivated = false;
-    private boolean settingsButtonIsActivated = false;
     private SearchView searchField;
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
-    private ConstraintLayout settingsLayout;
     private ImageButton settingsButton;
     private ImageButton menuButton;
     private ImageButton walkingButton;
@@ -70,6 +70,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton convexHullButton;
     private ImageButton hexagonalCoverButton;
     private IndicatorSeekBar seekBar;
+
+    SharedPreferences sharedPreferences;
+    private boolean menuButtonIsActivated = false;
+    private boolean settingsButtonIsActivated = false;
     TransportType currentTransport = TransportType.FOOT;
     IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
@@ -81,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         searchField = findViewById(R.id.search_field);
         mainSettings = findViewById(R.id.main_settings);
         additionalSettings = findViewById(R.id.additional_settings);
-        settingsLayout = findViewById(R.id.settings_layout);
         settingsButton = findViewById(R.id.settings_button);
         menuButton = findViewById(R.id.menu_button);
         walkingButton = findViewById(R.id.walking_button);
@@ -91,10 +94,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
         seekBar = findViewById(R.id.seekBar);
 
+        if (savedInstanceState != null) {
+            menuButtonIsActivated = savedInstanceState.getBoolean("menuButtonState");
+            settingsButtonIsActivated = savedInstanceState.getBoolean("settingsButtonState");
+        }
+
+        sharedPreferences = getPreferences(Context.MODE_PRIVATE);
+        currentTransport = TransportType.valueOf(
+                sharedPreferences.getString("currentTransport", "FOOT"));
+        currentRequestType = IsochroneRequestType.valueOf(
+                sharedPreferences.getString("currentRequestType", "HEXAGONAL_COVER"));
+        seekBar.setProgress(
+                sharedPreferences.getFloat("seekBarProgress", 10));
+
         updateIsochroneTypeDependingUI();
         updateTransportDependingUI();
         updateAdditionalSettingsUI();
-        updateMenuStateUI();
+        findViewById(R.id.settings_card).getViewTreeObserver()
+                .addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                findViewById(R.id.settings_card).getViewTreeObserver()
+                        .removeOnPreDrawListener(this);
+                updateMenuStateUI(false);
+                return true;
+            }
+        });
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -279,13 +304,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             settingsButtonIsActivated = false;
             updateAdditionalSettingsUI();
         }
-        TransitionManager.beginDelayedTransition(settingsLayout);
-        updateMenuStateUI();
+        updateMenuStateUI(true);
     }
 
 
 
     public void positionButton(View view) {
+        if (menuButtonIsActivated) {
+            toggleMenu(menuButton);
+        }
         //FIXME magic constant
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -314,6 +341,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void buildIsochroneButton(View view) {
+        if (menuButtonIsActivated) {
+            toggleMenu(menuButton);
+        }
         buildIsochrone();
     }
 
@@ -408,30 +438,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        //FIXME magic string literals
-        menuButtonIsActivated = savedInstanceState.getBoolean("menuButton");
-        currentTransport = (TransportType)savedInstanceState
-                .getSerializable("currentTransport");
-        currentRequestType = (IsochroneRequestType)savedInstanceState
-                .getSerializable("currentRequest");
-        updateMenuStateUI();
-        updateTransportDependingUI();
+    protected void onPause() {
+        super.onPause();
+        //FIXME magic constant literals
+        sharedPreferences.edit()
+                .putString("currentTransport", currentTransport.toString())
+                .putString("currentRequestType", currentRequestType.toString())
+                .putFloat("seekBarProgress", seekBar.getProgressFloat())
+                .apply();
     }
 
     @Override
-    protected void onSaveInstanceState(@NotNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-
-        outState.putBoolean("menuButton", menuButtonIsActivated);
-        outState.putSerializable("currentTransport", currentTransport);
-        outState.putSerializable("currentRequest", currentRequestType);
+    protected void onSaveInstanceState(@NotNull Bundle bundle) {
+        super.onSaveInstanceState(bundle);
+        bundle.putBoolean("menuButtonState", menuButtonIsActivated);
+        bundle.putBoolean("settingsButtonState", settingsButtonIsActivated);
     }
 
     private void updateTransportDependingUI() {
         ImageButton transportButton;
-        IndicatorSeekBar seekBar = findViewById(R.id.seekBar);
+        float progress = seekBar.getProgressFloat();
         switch (currentTransport) {
             case FOOT:
                 transportButton = walkingButton;
@@ -454,6 +480,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             default:
                 throw new RuntimeException();
         }
+        seekBar.setProgress(progress);
 
         walkingButton.setImageTintList(getResources().getColorStateList(
                 R.color.colorPrimary, getTheme()));
@@ -515,33 +542,43 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void updateMenuStateUI() {
+    private void updateMenuStateUI(boolean animate) {
         if (menuButtonIsActivated) {
             settingsButton.setVisibility(View.VISIBLE);
             searchField.setVisibility(View.INVISIBLE);
-            openSettings();
+            openSettings(animate);
         } else {
             settingsButton.setVisibility(View.GONE);
             searchField.setVisibility(View.VISIBLE);
-            closeSettings();
+            closeSettings(animate);
         }
     }
 
-    private void openSettings() {
-        ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(settingsLayout);
-        constraintSet.clear(R.id.settings_card, ConstraintSet.BOTTOM);
-        constraintSet.connect(R.id.settings_card, ConstraintSet.TOP,
-                R.id.space_for_settings, ConstraintSet.TOP);
-        constraintSet.applyTo(settingsLayout);
+    private void openSettings(boolean animate) {
+        CardView settingsCard = findViewById(R.id.settings_card);
+        if (animate) {
+            ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
+                    "translationY", mainSettings.getHeight());
+            animation.setDuration(400);
+            animation.start();
+        } else {
+            settingsCard.setTranslationY(mainSettings.getHeight());
+        }
     }
 
-    private void closeSettings() {
-        ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(settingsLayout);
-        constraintSet.clear(R.id.settings_card, ConstraintSet.TOP);
-        constraintSet.connect(R.id.settings_card, ConstraintSet.BOTTOM,
-                R.id.space_for_settings, ConstraintSet.TOP);
-        constraintSet.applyTo(settingsLayout);
+    private void closeSettings(boolean animate) {
+        CardView settingsCard = findViewById(R.id.settings_card);
+        if (animate) {
+            ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
+                    "translationY", 0);
+            animation.setDuration(400);
+            animation.start();
+        } else {
+            settingsCard.setTranslationY(0);
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density);
     }
 }

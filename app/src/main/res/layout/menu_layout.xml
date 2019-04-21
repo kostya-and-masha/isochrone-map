@@ -23,7 +23,7 @@
     <include
         layout="@layout/settings_section"
         android:layout_width="match_parent"
-        android:layout_height="260dp"
+        android:layout_height="600dp"
         app:layout_constraintTop_toTopOf="@id/space_for_menu_layout"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

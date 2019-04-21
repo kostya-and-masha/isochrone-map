@@ -24,7 +24,7 @@
         android:layout_marginEnd="16dp"
         app:cardCornerRadius="3dp"
         app:cardElevation="5dp"
-        app:layout_constraintTop_toTopOf="@id/space_for_settings">
+        app:layout_constraintBottom_toTopOf="@id/space_for_settings">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/main_settings"
