@@ -16,21 +16,51 @@ class HexagonalCoverBuilder {
     private static final double HEXAGONS_VERTICAL_DISTANCE = 1.5 * HEXAGON_RADIUS;
 
     static List<Hexagon> getHexagonalCover(List<Coordinate> coordinates, Coordinate startPoint) {
-        List<Coordinate> resultingHexagonCenters = new ArrayList<>();
+        int numberOfCores = Runtime.getRuntime().availableProcessors();
+        List<List<Coordinate>> resultingHexagonCenters = new ArrayList<>(numberOfCores);
 
-        for (Coordinate point: coordinates) {
-            List<Coordinate> potentialHexagonCenters =
-                    getClosestHexagonCenters(point, startPoint);
-            for (Coordinate center : potentialHexagonCenters) {
-                Hexagon currentHexagon = getOneHexagonFromCenter(center);
-                if (currentHexagon.contains(point)) {
-                    resultingHexagonCenters.add(center);
-                    break;
+        for (int i = 0; i < numberOfCores; ++i) {
+            resultingHexagonCenters.add(new ArrayList<>());
+        }
+
+        Thread[] threads = new Thread[numberOfCores];
+        int chunkSize = (coordinates.size() + numberOfCores - 1) / numberOfCores;
+
+        for (int i = 0; i < numberOfCores; ++i) {
+            int k = i;
+            int leftIndex = Math.min(k * chunkSize, coordinates.size());
+            int rightIndex = Math.min((k+1) * chunkSize, coordinates.size());
+            List<Coordinate> currentThreadCoordinates =
+                    Collections.unmodifiableList(coordinates.subList(leftIndex, rightIndex));
+
+            threads[i] = new Thread(() -> {
+                for (Coordinate point: currentThreadCoordinates) {
+                    List<Coordinate> potentialHexagonCenters =
+                            getClosestHexagonCenters(point, startPoint);
+                    for (Coordinate center : potentialHexagonCenters) {
+                        Hexagon currentHexagon = getOneHexagonFromCenter(center);
+                        if (currentHexagon.contains(point)) {
+                            resultingHexagonCenters.get(k).add(center);
+                            break;
+                        }
+                    }
                 }
+            });
+            threads[i].start();
+        }
+
+        for (int i = 0; i < numberOfCores; i++) {
+            try {
+                threads[i].join();
+            } catch (InterruptedException ignored) {
             }
         }
 
-        return getHexagonsFromCenters(resultingHexagonCenters);
+        List<Coordinate> mergedCenters = new ArrayList<>();
+        for (int i = 0; i < numberOfCores; i++) {
+            mergedCenters.addAll(resultingHexagonCenters.get(i));
+        }
+        return getHexagonsFromCenters(mergedCenters);
     }
 
     private static @NotNull List<Hexagon> getHexagonsFromCenters(

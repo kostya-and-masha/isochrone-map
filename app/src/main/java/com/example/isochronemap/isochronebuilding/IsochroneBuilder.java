@@ -143,11 +143,15 @@ public class IsochroneBuilder {
         Thread[] threads = new Thread[numberOfCores];
         Geometry[] geometries = new Geometry[numberOfCores];
         int chunkSize = (polygons.size() + numberOfCores - 1) / numberOfCores;
+
         for (int i = 0; i < numberOfCores; ++i) {
             int k = i;
-            threads[i] = new Thread(() -> geometries[k] = UnaryUnionOp.union(
-                    polygons.subList(k * chunkSize, Math.min((k+1) * chunkSize, polygons.size())))
-            );
+            int leftIndex = Math.min(k * chunkSize, polygons.size());
+            int rightIndex = Math.min((k+1) * chunkSize, polygons.size());
+            List<Polygon> currentThreadSublist =
+                    Collections.unmodifiableList(polygons.subList(leftIndex, rightIndex));
+
+            threads[i] = new Thread(() -> geometries[k] = UnaryUnionOp.union(currentThreadSublist));
             threads[i].start();
         }
 
