@@ -10,7 +10,7 @@
     <Space
         android:id="@+id/space_for_settings"
         android:layout_width="match_parent"
-        android:layout_height="5dp"
+        android:layout_height="6dp"
         app:layout_constraintBottom_toTopOf="parent" />
 
     <androidx.cardview.widget.CardView
@@ -84,8 +84,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/set_transport"
-                app:srcCompat="@drawable/ic_directions_bike_black_100dp"
-                android:onClick="transportButtonsClick"/>
+                app:srcCompat="@drawable/ic_directions_bike_black_100dp" />
 
             <ImageButton
                 android:id="@+id/walking_button"
@@ -99,8 +98,7 @@
                 app:layout_constraintEnd_toStartOf="@+id/bike_button"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="@+id/bike_button"
-                app:srcCompat="@drawable/ic_directions_walk_black_100dp"
-                android:onClick="transportButtonsClick"/>
+                app:srcCompat="@drawable/ic_directions_walk_black_100dp" />
 
             <ImageButton
                 android:id="@+id/car_button"
@@ -114,8 +112,7 @@
                 app:layout_constraintStart_toEndOf="@+id/bike_button"
                 app:layout_constraintTop_toTopOf="@+id/bike_button"
                 app:srcCompat="@drawable/ic_directions_car_black_100dp"
-                android:contentDescription="@string/content_car_button"
-                android:onClick="transportButtonsClick"/>
+                android:contentDescription="@string/content_car_button" />
         </androidx.constraintlayout.widget.ConstraintLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/additional_settings"
@@ -147,8 +144,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/hexagonal_cover_button"
-                app:srcCompat="@drawable/ic_convex_hull_fill_120dp"
-                android:onClick="isochroneTypeButtonClick"/>
+                app:srcCompat="@drawable/ic_convex_hull_fill_120dp" />
 
             <ImageButton
                 android:id="@+id/hexagonal_cover_button"
@@ -163,8 +159,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/convex_hull_button"
-                app:srcCompat="@drawable/ic_hexagonal_fill_120dp"
-                android:onClick="isochroneTypeButtonClick"/>
+                app:srcCompat="@drawable/ic_hexagonal_fill_120dp" />
 
             <ImageView
                 android:id="@+id/convex_hull_border"

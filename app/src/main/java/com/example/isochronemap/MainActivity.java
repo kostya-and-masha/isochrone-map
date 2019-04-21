@@ -1,18 +1,14 @@
 package com.example.isochronemap;
 
 import android.Manifest;
-import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
@@ -24,6 +20,7 @@ import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
 import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
+import com.example.isochronemap.ui.IsochroneMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -33,7 +30,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
-import com.warkiz.widget.IndicatorSeekBar;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -46,8 +43,6 @@ import java.util.Scanner;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -59,74 +54,46 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Marker currentPosition;
     private List<Polygon> currentPolygons = new ArrayList<>();
 
-    private SearchView searchField;
-    private ConstraintLayout mainSettings;
-    private ConstraintLayout additionalSettings;
-    private ImageButton settingsButton;
-    private ImageButton menuButton;
-    private ImageButton walkingButton;
-    private ImageButton bikeButton;
-    private ImageButton carButton;
-    private ImageButton convexHullButton;
-    private ImageButton hexagonalCoverButton;
-    private IndicatorSeekBar seekBar;
+    private IsochroneMenu menu;
+    private FloatingActionButton buildIsochroneButton;
+    private FloatingActionButton geopositionButton;
 
     SharedPreferences sharedPreferences;
-    private boolean menuButtonIsActivated = false;
-    private boolean settingsButtonIsActivated = false;
-    TransportType currentTransport = TransportType.FOOT;
-    IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        searchField = findViewById(R.id.search_field);
-        mainSettings = findViewById(R.id.main_settings);
-        additionalSettings = findViewById(R.id.additional_settings);
-        settingsButton = findViewById(R.id.settings_button);
-        menuButton = findViewById(R.id.menu_button);
-        walkingButton = findViewById(R.id.walking_button);
-        bikeButton = findViewById(R.id.bike_button);
-        carButton = findViewById(R.id.car_button);
-        convexHullButton = findViewById(R.id.convex_hull_button);
-        hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
-        seekBar = findViewById(R.id.seekBar);
-
-        if (savedInstanceState != null) {
-            menuButtonIsActivated = savedInstanceState.getBoolean("menuButtonState");
-            settingsButtonIsActivated = savedInstanceState.getBoolean("settingsButtonState");
-        }
+        menu = findViewById(R.id.menu);
+        buildIsochroneButton = findViewById(R.id.build_isochrone_button);
+        geopositionButton = findViewById(R.id.geoposition_button);
 
         sharedPreferences = getPreferences(Context.MODE_PRIVATE);
-        currentTransport = TransportType.valueOf(
+        TransportType currentTransport = TransportType.valueOf(
                 sharedPreferences.getString("currentTransport", "FOOT"));
-        currentRequestType = IsochroneRequestType.valueOf(
+        IsochroneRequestType currentRequestType = IsochroneRequestType.valueOf(
                 sharedPreferences.getString("currentRequestType", "HEXAGONAL_COVER"));
-        seekBar.setProgress(
-                sharedPreferences.getFloat("seekBarProgress", 10));
+        float seekBarProgress =  sharedPreferences.getFloat("seekBarProgress", 10);
 
-        updateIsochroneTypeDependingUI();
-        updateTransportDependingUI();
-        updateAdditionalSettingsUI();
-        findViewById(R.id.settings_card).getViewTreeObserver()
-                .addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                findViewById(R.id.settings_card).getViewTreeObserver()
-                        .removeOnPreDrawListener(this);
-                updateMenuStateUI(false);
-                return true;
-            }
-        });
+        menu.setCurrentPreferencesWithoutAnimation(currentTransport,
+                currentRequestType, seekBarProgress);
+
+        menu.setOnHexagonalCoverButtonClickListener((a) ->
+                ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
+                R.drawable.ic_hexagonal_button_24dp)
+        );
+
+        menu.setOnConvexHullButtonClickListener((a) ->
+                ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
+                R.drawable.ic_convex_hull_button_24dp)
+        );
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        //FIXME code duplication
-        searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        menu.setOnSearchBarQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 String queryWithoutCommas = query.replace(',', '.');
@@ -164,20 +131,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false;
             }
         });
+
+        buildIsochroneButton.setOnClickListener((a) -> {
+            menu.closeMenu();
+            buildIsochrone();
+        });
+
+        geopositionButton.setOnClickListener((a) -> {
+            menu.closeMenu();
+            //FIXME magic constant
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
+                return;
+            }
+            OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
+        });
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        Rect rectMenuBar = new Rect();
-        Rect rectSettings = new Rect();
-        findViewById(R.id.menu_bar_card).getGlobalVisibleRect(rectMenuBar);
-        findViewById(R.id.settings_card).getGlobalVisibleRect(rectSettings);
-        if (!rectMenuBar.contains((int) event.getX(), (int) event.getY())
-                && !rectSettings.contains((int) event.getX(), (int) event.getY())
-                && menuButtonIsActivated) {
-            toggleMenu(menuButton);
-        }
+        menu.handleClickOutside(event);
         return super.dispatchTouchEvent(event);
+    }
+
+    @Override
+    public void onBackPressed() {
+        menu.closeMenu();
+        super.onBackPressed();
     }
 
     @Override
@@ -216,8 +199,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 new IsochroneRequest(
                         toCoordinate(currentPosition.getPosition()),
                         getTravelTime(),
-                        currentTransport,
-                        currentRequestType
+                        menu.getCurrentTransport(),
+                        menu.getCurrentRequestType()
                 )
         );
     }
@@ -273,56 +256,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         currentPolygons.clear();
     }
 
-    public void transportButtonsClick(View view) {
-        if (walkingButton.equals(view)) {
-            currentTransport = TransportType.FOOT;
-        } else if (bikeButton.equals(view)) {
-            currentTransport = TransportType.BIKE;
-        } else if (carButton.equals(view)) {
-            currentTransport = TransportType.CAR;
-        }
-        updateTransportDependingUI();
-    }
-
-    public void isochroneTypeButtonClick(View view) {
-        if (convexHullButton.equals(view)) {
-            currentRequestType = IsochroneRequestType.CONVEX_HULL;
-        } else if (hexagonalCoverButton.equals(view)) {
-            currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
-        }
-        updateIsochroneTypeDependingUI();
-    }
-
-    public void toggleSettings(View view) {
-        settingsButtonIsActivated ^= true;
-        updateAdditionalSettingsUI();
-    }
-
-    public void toggleMenu(View view) {
-        menuButtonIsActivated ^= true;
-        if (menuButtonIsActivated) {
-            settingsButtonIsActivated = false;
-            updateAdditionalSettingsUI();
-        }
-        updateMenuStateUI(true);
-    }
-
-
-
-    public void positionButton(View view) {
-        if (menuButtonIsActivated) {
-            toggleMenu(menuButton);
-        }
-        //FIXME magic constant
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
-            return;
-        }
-        OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,
@@ -340,24 +273,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    public void buildIsochroneButton(View view) {
-        if (menuButtonIsActivated) {
-            toggleMenu(menuButton);
-        }
-        buildIsochrone();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (menuButtonIsActivated) {
-            toggleMenu(menuButton);
-            return;
-        }
-        super.onBackPressed();
-    }
-
     private double getTravelTime() {
-        return seekBar.getProgress() / 60.0;
+        return menu.getCurrentSeekBarProgress() / 60.0;
     }
 
     private static class IsochroneRequest {
@@ -442,140 +359,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onPause();
         //FIXME magic constant literals
         sharedPreferences.edit()
-                .putString("currentTransport", currentTransport.toString())
-                .putString("currentRequestType", currentRequestType.toString())
-                .putFloat("seekBarProgress", seekBar.getProgressFloat())
+                .putString("currentTransport", menu.getCurrentTransport().toString())
+                .putString("currentRequestType", menu.getCurrentRequestType().toString())
+                .putFloat("seekBarProgress", menu.getCurrentSeekBarProgress())
                 .apply();
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NotNull Bundle bundle) {
-        super.onSaveInstanceState(bundle);
-        bundle.putBoolean("menuButtonState", menuButtonIsActivated);
-        bundle.putBoolean("settingsButtonState", settingsButtonIsActivated);
-    }
-
-    private void updateTransportDependingUI() {
-        ImageButton transportButton;
-        float progress = seekBar.getProgressFloat();
-        switch (currentTransport) {
-            case FOOT:
-                transportButton = walkingButton;
-                seekBar.setMin(10);
-                seekBar.setMax(40);
-                seekBar.setTickCount(7);
-                break;
-            case CAR:
-                transportButton = carButton;
-                seekBar.setMin(5);
-                seekBar.setMax(15);
-                seekBar.setTickCount(3);
-                break;
-            case BIKE:
-                transportButton = bikeButton;
-                seekBar.setMin(5);
-                seekBar.setMax(15);
-                seekBar.setTickCount(3);
-                break;
-            default:
-                throw new RuntimeException();
-        }
-        seekBar.setProgress(progress);
-
-        walkingButton.setImageTintList(getResources().getColorStateList(
-                R.color.colorPrimary, getTheme()));
-        bikeButton.setImageTintList(getResources().getColorStateList(
-                R.color.colorPrimary, getTheme()));
-        carButton.setImageTintList(getResources().getColorStateList(
-                R.color.colorPrimary, getTheme()));
-
-        transportButton.setImageTintList(
-                getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
-    }
-
-    private void updateIsochroneTypeDependingUI() {
-        ImageButton currentButton;
-        ImageView currentBorder;
-        ImageButton otherButton;
-        ImageView otherBorder;
-        switch (currentRequestType) {
-            case CONVEX_HULL:
-                currentButton = convexHullButton;
-                currentBorder = findViewById(R.id.convex_hull_border);
-                otherButton = hexagonalCoverButton;
-                otherBorder = findViewById(R.id.hexagonal_cover_border);
-                ((ImageButton)findViewById(R.id.update_isochrone_button)).setImageResource(
-                        R.drawable.ic_convex_hull_button_24dp);
-                break;
-            case HEXAGONAL_COVER:
-                currentButton = hexagonalCoverButton;
-                currentBorder = findViewById(R.id.hexagonal_cover_border);
-                otherButton = convexHullButton;
-                otherBorder = findViewById(R.id.convex_hull_border);
-                ((ImageButton)findViewById(R.id.update_isochrone_button)).setImageResource(
-                        R.drawable.ic_hexagonal_button_24dp);
-                break;
-            default:
-                throw new RuntimeException();
-        }
-        currentButton.setImageTintList(
-                getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
-        currentBorder.setImageTintList(
-                getResources().getColorStateList(R.color.colorPrimaryDark, getTheme()));
-        otherButton.setImageTintList(
-                getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-        otherBorder.setImageTintList(
-                getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-    }
-
-    private void updateAdditionalSettingsUI() {
-        if (settingsButtonIsActivated) {
-            settingsButton.setImageTintList(
-                    getResources().getColorStateList(R.color.colorDarkGrey, getTheme()));
-            mainSettings.setVisibility(View.INVISIBLE);
-            additionalSettings.setVisibility(View.VISIBLE);
-        } else {
-            settingsButton.setImageTintList(
-                    getResources().getColorStateList(R.color.colorPrimary, getTheme()));
-            additionalSettings.setVisibility(View.INVISIBLE);
-            mainSettings.setVisibility(View.VISIBLE);
-        }
-    }
-
-    private void updateMenuStateUI(boolean animate) {
-        if (menuButtonIsActivated) {
-            settingsButton.setVisibility(View.VISIBLE);
-            searchField.setVisibility(View.INVISIBLE);
-            openSettings(animate);
-        } else {
-            settingsButton.setVisibility(View.GONE);
-            searchField.setVisibility(View.VISIBLE);
-            closeSettings(animate);
-        }
-    }
-
-    private void openSettings(boolean animate) {
-        CardView settingsCard = findViewById(R.id.settings_card);
-        if (animate) {
-            ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
-                    "translationY", mainSettings.getHeight());
-            animation.setDuration(400);
-            animation.start();
-        } else {
-            settingsCard.setTranslationY(mainSettings.getHeight());
-        }
-    }
-
-    private void closeSettings(boolean animate) {
-        CardView settingsCard = findViewById(R.id.settings_card);
-        if (animate) {
-            ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
-                    "translationY", 0);
-            animation.setDuration(400);
-            animation.start();
-        } else {
-            settingsCard.setTranslationY(0);
-        }
     }
 
     private int dpToPx(int dp) {

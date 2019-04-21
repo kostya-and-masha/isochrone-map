@@ -17,7 +17,7 @@
     <Space
         android:id="@+id/space_for_menu_layout"
         android:layout_width="match_parent"
-        android:layout_height="21dp"
+        android:layout_height="22dp"
         app:layout_constraintBottom_toBottomOf="@id/menu_bar_section_in_layout" />
 
     <include
