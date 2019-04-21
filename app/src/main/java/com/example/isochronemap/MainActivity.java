@@ -26,6 +26,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
@@ -50,6 +51,7 @@ import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private static final float DEFAULT_ZOOM_LEVEL = 10;
+    private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
 
     private GoogleMap map;
@@ -159,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
 
-        map.setPadding(14, 180, 0, 0);
+        map.setPadding(14, 180, 14, 0);
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                 START_POSITION, DEFAULT_ZOOM_LEVEL
         ));
@@ -207,7 +209,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void moveCameraToCurrentPosition() {
-        map.moveCamera(CameraUpdateFactory.newLatLng(currentPosition.getPosition()));
+        map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(currentPosition.getPosition(), CLOSE_ZOOM_LEVEL),
+                2000,
+                null
+        );
     }
 
     private void setCurrentPositionAndMoveCamera(Coordinate coordinate) {
@@ -215,9 +221,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         moveCameraToCurrentPosition();
     }
 
+    private static class LatLngBox {
+        private double minLat = 1000;
+        private double minLng = 1000;
+        private double maxLat = -1000;
+        private double maxLng = -1000;
+
+        private void add(LatLng latLng) {
+            minLat = Math.min(minLat, latLng.latitude);
+            maxLat = Math.max(maxLat, latLng.latitude);
+            minLng = Math.min(minLng, latLng.longitude);
+            maxLng = Math.max(maxLng, latLng.longitude);
+        }
+
+        private LatLng getMin() {
+            return new LatLng(minLat, minLng);
+        }
+
+        private LatLng getMax() {
+            return new LatLng(maxLat, maxLng);
+        }
+    }
+
     private void setCurrentPolygons(List<IsochronePolygon> isochronePolygons) {
         removeCurrentPolygons();
-        // FIXME magic constants
+
+        LatLngBox bounds = new LatLngBox();
         for (IsochronePolygon currentPolygon : isochronePolygons) {
             PolygonOptions options = new PolygonOptions()
                     .strokeWidth(1)
@@ -227,7 +256,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             .getColor(this, R.color.colorPolygonFill));
 
             for (Coordinate coordinate : currentPolygon.getExteriorRing()) {
-                options.add(toLatLng(coordinate));
+                LatLng latLng = toLatLng(coordinate);
+                options.add(latLng);
+                bounds.add(latLng);
             }
 
             for (List<Coordinate> coordinates : currentPolygon.getInteriorRings()) {
@@ -239,6 +270,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             currentPolygons.add(map.addPolygon(options));
         }
+
+        map.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(
+                        new LatLngBounds(bounds.getMin(), bounds.getMax()), 0
+                ),
+                2000,
+                null
+        );
     }
 
     private void removeCurrentPolygons() {
