@@ -16,7 +16,7 @@
         android:layout_height="match_parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/update_isochrone_button"
+        android:id="@+id/build_isochrone_button"
         style="@style/BuildIsochroneButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -26,8 +26,7 @@
         android:focusable="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/ic_hexagonal_fill_120dp"
-        android:onClick="buildIsochroneButton"/>
+        app:srcCompat="@drawable/ic_hexagonal_fill_120dp" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/geoposition_button"
@@ -38,11 +37,13 @@
         android:layout_marginBottom="16dp"
         android:clickable="true"
         android:focusable="true"
-        app:layout_constraintBottom_toTopOf="@+id/update_isochrone_button"
+        app:layout_constraintBottom_toTopOf="@+id/build_isochrone_button"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/ic_my_location_black_24dp"
-        android:onClick="positionButton"/>
+        app:srcCompat="@drawable/ic_my_location_black_24dp" />
 
-    <include layout="@layout/menu_layout" />
+    <com.example.isochronemap.ui.IsochroneMenu
+        android:id="@+id/menu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
