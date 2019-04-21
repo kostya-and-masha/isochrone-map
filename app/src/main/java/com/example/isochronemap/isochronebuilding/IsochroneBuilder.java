@@ -3,7 +3,6 @@ package com.example.isochronemap.isochronebuilding;
 import com.example.isochronemap.mapstructure.Coordinate;
 
 import com.example.isochronemap.mapstructure.Edge;
-import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.MapStructureManager;
 import com.example.isochronemap.mapstructure.MapStructureRequest;
 import com.example.isochronemap.mapstructure.Node;
@@ -57,15 +56,8 @@ public class IsochroneBuilder {
         }
         MapStructureRequest request = new MapStructureRequest(
                 startCoordinate, 0.1, maxDistance, transportType);
-        MapStructure mapStructure = MapStructureManager.getMapStructure(request);
-
-        Node startNode = new Node(startCoordinate, false);
-        for (Node destinationNode: mapStructure.getStartNodes()) {
-            startNode.edges.add(new Edge(startCoordinate, destinationNode));
-        }
-        mapStructure = new MapStructure(mapStructure.getNodes(),
-                Collections.singletonList(startNode));
-        return getIsochronePolygons(startCoordinate, time, transportType, requestType, mapStructure);
+        Node startNode = MapStructureManager.getMapStructure(request);
+        return getIsochronePolygons(startNode, time, transportType, requestType);
     }
 
     /**
@@ -73,11 +65,10 @@ public class IsochroneBuilder {
      * This method uses pre-downloaded MapStructure.
      */
     public static List<IsochronePolygon> getIsochronePolygons(
-            @NotNull Coordinate startCoordinate, double time,
-            @NotNull TransportType transportType, @NotNull IsochroneRequestType requestType,
-            @NotNull MapStructure map)
+            @NotNull Node startNode, double time,
+            @NotNull TransportType transportType, @NotNull IsochroneRequestType requestType)
             throws NotEnoughNodesException, UnsupportedParameterException {
-        List<Node> reachableNodes = ReachableNodesFinder.getReachableNodes(map, time, transportType);
+        List<Node> reachableNodes = ReachableNodesFinder.getReachableNodes(startNode, time, transportType);
         if (reachableNodes.size() < 2) {
             throw new NotEnoughNodesException();
         }
@@ -111,7 +102,7 @@ public class IsochroneBuilder {
                     }
                 }
                 List<Hexagon> hexagons = HexagonalCoverBuilder.getHexagonalCover(reachablePoints,
-                        startCoordinate);
+                        startNode.coordinate);
                 return turnHexagonsToPolygons(hexagons,
                         hexagons.get(0).toJTSPolygon().getArea() * 1.2);
                 //FIXME

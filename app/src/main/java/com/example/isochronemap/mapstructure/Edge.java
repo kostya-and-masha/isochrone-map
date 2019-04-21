@@ -6,9 +6,18 @@ public class Edge {
     public final double length;
     /** Destination node. **/
     public final Node destination;
+    /** High-speed major highway flag **/
+    public final boolean majorHighway;
 
-    public Edge(Coordinate sourceCoordinate, Node destination) {
-        length = sourceCoordinate.distanceTo(destination.coordinate);
+    public Edge(double length, Node destination) {
+        this.length = length;
         this.destination = destination;
+        majorHighway = false;
+    }
+
+    public Edge(double length, Node destination, boolean majorHighway) {
+        this.length = length;
+        this.destination = destination;
+        this.majorHighway = majorHighway;
     }
 }

@@ -1,7 +1,6 @@
 package com.example.isochronemap.isochronebuilding;
 
 import com.example.isochronemap.mapstructure.Edge;
-import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.Node;
 import com.example.isochronemap.mapstructure.TransportType;
 
@@ -17,7 +16,7 @@ import java.util.TreeSet;
 /** Dijkstra algorithm */
 class ReachableNodesFinder {
     static @NotNull List<Node> getReachableNodes(
-            @NotNull MapStructure map, double time, TransportType transportType)
+            @NotNull Node startNode, double time, TransportType transportType)
             throws UnsupportedParameterException {
         //FIXME move constants to the enum itself
         //FIXME fix bug related to primitive double value
@@ -54,11 +53,9 @@ class ReachableNodesFinder {
             return comparisonResult;
         });
 
-        for (Node node : map.getStartNodes()) {
-            nodesReachTime.put(node, 0.0);
-            nodesIndex.put(node, currentIndex++);
-            nodesQueue.add(new TimeAndNode(0.0, node));
-        }
+        nodesReachTime.put(startNode, 0.0);
+        nodesIndex.put(startNode, currentIndex++);
+        nodesQueue.add(new TimeAndNode(0.0, startNode));
 
         while (!nodesQueue.isEmpty()) {
             Node currentNode = nodesQueue.first().node;

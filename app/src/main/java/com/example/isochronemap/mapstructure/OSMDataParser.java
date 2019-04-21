@@ -1,138 +1,135 @@
 package com.example.isochronemap.mapstructure;
 
-import android.annotation.SuppressLint;
-
 import com.jsoniter.JsonIterator;
-import com.jsoniter.spi.DecodingMode;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.InputStreamReader;
+
+import de.siegmar.fastcsv.reader.CsvParser;
+import de.siegmar.fastcsv.reader.CsvReader;
+import de.siegmar.fastcsv.reader.CsvRow;
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.list.TLongList;
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.map.TLongCharMap;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongCharHashMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 class OSMDataParser {
-    static {
-        JsonIterator.setMode(DecodingMode.REFLECTION_MODE);
+    static MapData parseCSV(@NotNull byte[] osmData, @NotNull TransportType transportType)
+            throws IOException {
+        boolean isBiDirectional = transportType == TransportType.FOOT;
+
+        TLongObjectMap<Node> nodesMap = new TLongObjectHashMap<>();
+        TLongCharMap waysMap = new TLongCharHashMap();
+
+        CsvReader csvReader = new CsvReader();
+        csvReader.setContainsHeader(false);
+        csvReader.setFieldSeparator('\t');
+
+        CsvParser csvParser =
+                csvReader.parse(new InputStreamReader(new ByteArrayInputStream(osmData)));
+        CsvRow row;
+        while ((row = csvParser.nextRow()) != null) {
+            // 0 - type, 1 - id, 2 - lat, 3 - lon, 4 - highway, 5 - oneway
+            String type = row.getField(0);
+            long id = Long.parseLong(row.getField(1));
+            String highway = row.getField(4);
+
+            if (type.equals("node")) {
+                double latitude = Double.parseDouble(row.getField(2));
+                double longitude = Double.parseDouble(row.getField(3));
+
+                Coordinate coordinate = new Coordinate(latitude, longitude);
+                boolean isCrossing =
+                        highway.equals("crossing") || highway.equals("traffic_signals");
+                Node node = new Node(coordinate, isCrossing);
+                nodesMap.put(id, node);
+            } else if (type.equals("way")) {
+                String oneway = row.getField(5);
+                boolean forward = isBiDirectional;
+                boolean backward = isBiDirectional;
+                if (!isBiDirectional) {
+                    if (!oneway.equals("-1") && !oneway.equals("reverse")) {
+                        forward = true;
+                    }
+                    if (!oneway.equals("yes") &&
+                            !oneway.equals("true") &&
+                            !oneway.equals("1")) {
+                        backward = true;
+                    }
+                }
+                waysMap.put(id,
+                        forward ? backward ? 'a' : 'f' : 'b');
+            }
+        }
+        return new MapData(nodesMap, waysMap);
     }
 
-    static MapStructure parse(@NotNull MapStructureRequest request,
-                              @NotNull byte[] osmData) throws IOException {
-        Coordinate startCoordinate = request.getStartCoordinate();
-        double unconditionalAccessDistance = request.getUnconditionalAccessDistance();
-        double maximumDistance = request.getMaximumDistance();
-        List<Node> nodes = new ArrayList<>();
-        List<Node> startNodes = new ArrayList<>();
-
-        @SuppressLint("UseSparseArrays")
-        Map<Long, Node> nodeMap = new HashMap<>();
+    static TLongObjectMap<TLongList> parseJSON(@NotNull byte[] osmData) throws IOException {
+        TLongObjectMap<TLongList> ways = new TLongObjectHashMap<>();
 
         JsonIterator iterator = JsonIterator.parse(osmData);
         for (String e = iterator.readObject(); e != null; e = iterator.readObject()) {
-            switch (e) {
-                case "elements":
-                    while (iterator.readArray()) {
-                        long id = 0;
-                        String type = "";
-                        double latitude = 0;
-                        double longitude = 0;
-                        String highway = "";
-                        String oneway = "";
-                        long[] nodeIds = new long[0];
-
-                        for (String f = iterator.readObject();
-                             f != null;
-                             f = iterator.readObject()) {
-                            switch (f) {
-                                case "id":
-                                    id = iterator.readLong();
-                                    continue;
-                                case "type":
-                                    type = iterator.readString();
-                                    continue;
-                                case "lat":
-                                    latitude = iterator.readDouble();
-                                    continue;
-                                case "lon":
-                                    longitude = iterator.readDouble();
-                                    continue;
-                                case "nodes":
-                                    nodeIds = iterator.read(long[].class);
-                                    continue;
-                                case "tags":
-                                    for (String t = iterator.readObject();
-                                         t != null;
-                                         t = iterator.readObject()) {
-                                        switch (t) {
-                                            case "highway":
-                                                highway = iterator.readString();
-                                                continue;
-                                            case "oneway":
-                                                oneway = iterator.readString();
-                                                continue;
-                                            default:
-                                                iterator.skip();
-                                        }
-                                    }
-                                    continue;
-                                default:
-                                    iterator.skip();
+            if (!e.equals("elements")) {
+                iterator.skip();
+                continue;
+            }
+            while (iterator.readArray()) {
+                long id = 0;
+                TLongList nodes = new TLongArrayList();
+                for (String f = iterator.readObject(); f != null; f = iterator.readObject()) {
+                    switch (f) {
+                        case "id":
+                            id = iterator.readLong();
+                            continue;
+                        case "nodes":
+                            while (iterator.readArray()) {
+                                nodes.add(iterator.readLong());
                             }
-                        }
-
-                        if (type.equals("node")) {
-                            Coordinate coordinate = new Coordinate(latitude, longitude);
-                            double distanceFromStart = startCoordinate.distanceTo(coordinate);
-                            if (distanceFromStart > maximumDistance) {
-                                continue;
-                            }
-
-                            boolean isCrossing = highway.equals("crossing");
-                            Node node = new Node(coordinate, isCrossing);
-                            nodes.add(node);
-                            nodeMap.put(id, node);
-                            if (distanceFromStart < unconditionalAccessDistance) {
-                                startNodes.add(node);
-                            }
-                        } else if (type.equals("way")) {
-                            boolean forward = false;
-                            boolean backward = false;
-                            if (request.getTransportType() == TransportType.FOOT) {
-                                forward = true;
-                                backward = true;
-                            } else {
-                                if (!oneway.matches("-1|reverse")) {
-                                    forward = true;
-                                }
-                                if (!oneway.matches("yes|true|1")) {
-                                    backward = true;
-                                }
-                            }
-                            Node from;
-                            Node to = nodeMap.get(nodeIds[0]);
-                            for (int i = 1; i < nodeIds.length; i++) {
-                                from = to;
-                                to = nodeMap.get(nodeIds[i]);
-                                if (from == null || to == null) {
-                                    continue;
-                                }
-                                if (forward) {
-                                    from.edges.add(new Edge(from.coordinate, to));
-                                }
-                                if (backward) {
-                                    to.edges.add(new Edge(to.coordinate, from));
-                                }
-                            }
-                        }
+                            continue;
+                        default:
+                            iterator.skip();
                     }
-                    continue;
-                default:
-                    iterator.skip();
+                }
+                ways.put(id, nodes);
             }
         }
+        return ways;
+    }
 
-        return new MapStructure(nodes, startNodes);
+    static void connectNodes(MapData map, TLongObjectMap<TLongList> ways) {
+        TLongObjectMap<Node> nodesMap = map.nodesMap;
+        TLongCharMap waysMap = map.waysMap;
+
+        for (long key : ways.keys()) {
+            char direction = waysMap.get(key);
+            boolean forward = direction != 'b';
+            boolean backward = direction != 'f';
+
+            TLongList nodes = ways.get(key);
+            TLongIterator it = nodes.iterator();
+
+            Node from;
+            Node to = nodesMap.get(it.next());
+            while (it.hasNext()) {
+                from = to;
+                to = nodesMap.get(it.next());
+                if (from == null || to == null) {
+                    continue;
+                }
+                double distance = from.coordinate.distanceTo(to.coordinate);
+                if (forward) {
+                    from.edges.add(new Edge(distance, to));
+                }
+                if (backward) {
+                    to.edges.add(new Edge(distance, from));
+                }
+            }
+        }
     }
 }

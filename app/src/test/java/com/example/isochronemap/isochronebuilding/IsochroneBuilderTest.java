@@ -2,7 +2,6 @@ package com.example.isochronemap.isochronebuilding;
 
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.Edge;
-import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.Node;
 import com.example.isochronemap.mapstructure.TransportType;
 
@@ -30,23 +29,25 @@ class IsochroneBuilderTest {
         Node hullNode3 = new Node(hullNode3Coordinate, false);
 
         for (Node destination : Arrays.asList(hullNode1, hullNode2, hullNode3)) {
-            Edge e = new Edge(startNodeCoordinate, destination);
+            Edge e = new Edge(startNodeCoordinate.distanceTo(destination.coordinate), destination);
             startNode.edges.add(e);
         }
 
-        ArrayList<Node> nodes = new ArrayList<>(
-                Arrays.asList(startNode, hullNode1, hullNode2, hullNode3));
+        List<IsochronePolygon> polygons = IsochroneBuilder.getIsochronePolygons(
+                startNode,
+                0.16,
+                TransportType.FOOT,
+                IsochroneRequestType.CONVEX_HULL
+        );
 
-        ArrayList<Node> startNodes = new ArrayList<>();
-        startNodes.add(startNode);
+        assertEquals(1, polygons.size());
 
-        MapStructure map = new MapStructure(nodes, startNodes);
-        List<Coordinate> Hull =
-                IsochroneBuilder.getIsochronePolygons(map, 0.16, TransportType.FOOT);
+        IsochronePolygon hull = polygons.get(0);
 
-        assertEquals(3, Hull.size());
-        assertSame(hullNode1Coordinate, Hull.get(0));
-        assertSame(hullNode2Coordinate, Hull.get(1));
-        assertSame(hullNode3Coordinate, Hull.get(2));
+        assertEquals(3, hull.getExteriorRing().size());
+        assertEquals(0, hull.getInteriorRings().size());
+        assertSame(hullNode1Coordinate, hull.getExteriorRing().get(0));
+        assertSame(hullNode2Coordinate, hull.getExteriorRing().get(1));
+        assertSame(hullNode3Coordinate, hull.getExteriorRing().get(2));
     }
 }
