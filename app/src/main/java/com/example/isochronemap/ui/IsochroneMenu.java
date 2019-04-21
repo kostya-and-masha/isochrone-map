@@ -166,6 +166,8 @@ public class IsochroneMenu extends ConstraintLayout {
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
             updateIsochroneTypeDependingUI();
         });
+
+        updateUIWithoutAnimation();
     }
 
     private void updateUIWithoutAnimation() {
