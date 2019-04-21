@@ -81,6 +81,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         menu.setCurrentPreferencesWithoutAnimation(currentTransport,
                 currentRequestType, seekBarProgress);
 
+        if (currentRequestType == IsochroneRequestType.HEXAGONAL_COVER) {
+            ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
+                    R.drawable.ic_hexagonal_button_24dp);
+        } else {
+            ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
+                    R.drawable.ic_convex_hull_button_24dp);
+        }
+
         menu.setOnHexagonalCoverButtonClickListener((a) ->
                 ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
                 R.drawable.ic_hexagonal_button_24dp)

@@ -55,8 +55,8 @@ public class IsochroneMenu extends ConstraintLayout {
                                                       float seekBarProgress) {
         currentTransport = transportType;
         currentRequestType = isochroneRequestType;
-        seekBar.setProgress(seekBarProgress);
         updateUIWithoutAnimation();
+        seekBar.setProgress(seekBarProgress);
     }
 
     public TransportType getCurrentTransport() {

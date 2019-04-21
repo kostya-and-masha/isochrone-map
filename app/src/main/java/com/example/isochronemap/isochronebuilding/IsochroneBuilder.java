@@ -126,7 +126,11 @@ public class IsochroneBuilder {
             polygons.add(hexagon.toJTSPolygon());
         }
 
-        Geometry geometry = UnaryUnionOp.union(getGeometriesMultithreading(polygons));
+        List<Geometry> unitedGeometries = getGeometriesMultithreading(polygons);
+        unitedGeometries = new ArrayList<>(unitedGeometries); // for remove operation
+        unitedGeometries.removeAll(Collections.singletonList(null));
+        Geometry geometry = UnaryUnionOp.union(unitedGeometries);
+
         polygons.clear();
         PolygonExtracter.getPolygons(geometry, polygons);
         List<IsochronePolygon> isochronePolygonList = new ArrayList<>();
