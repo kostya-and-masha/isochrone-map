@@ -1,7 +1,6 @@
 package com.example.isochronemap.isochronebuilding;
 
 import com.example.isochronemap.mapstructure.Edge;
-import com.example.isochronemap.mapstructure.MapStructure;
 import com.example.isochronemap.mapstructure.Node;
 import com.example.isochronemap.mapstructure.TransportType;
 
