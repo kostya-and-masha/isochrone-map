@@ -24,6 +24,7 @@
         android:layout_marginBottom="16dp"
         android:clickable="true"
         android:focusable="true"
+        app:elevation="@dimen/menu_elevation"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_hexagonal_fill_120dp" />
@@ -37,6 +38,7 @@
         android:layout_marginBottom="16dp"
         android:clickable="true"
         android:focusable="true"
+        app:elevation="@dimen/menu_elevation"
         app:layout_constraintBottom_toTopOf="@+id/build_isochrone_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_my_location_black_24dp" />
@@ -44,6 +46,7 @@
     <com.example.isochronemap.ui.IsochroneMenu
         android:id="@+id/menu"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:elevation="@dimen/menu_elevation"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
