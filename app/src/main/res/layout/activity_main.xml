@@ -24,7 +24,7 @@
         android:layout_marginBottom="16dp"
         android:clickable="true"
         android:focusable="true"
-        app:elevation="@dimen/menu_elevation"
+        app:elevation="@dimen/ui_elevation"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_hexagonal_fill_120dp" />
@@ -38,7 +38,7 @@
         android:layout_marginBottom="16dp"
         android:clickable="true"
         android:focusable="true"
-        app:elevation="@dimen/menu_elevation"
+        app:elevation="@dimen/ui_elevation"
         app:layout_constraintBottom_toTopOf="@+id/build_isochrone_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_my_location_black_24dp" />
@@ -47,6 +47,18 @@
         android:id="@+id/menu"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="@dimen/menu_elevation"/>
+        android:elevation="@dimen/ui_elevation"/>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:elevation="@dimen/ui_elevation"
+        android:indeterminateDrawable="@drawable/progress_bar_drawable"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:indeterminate="true"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"/>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

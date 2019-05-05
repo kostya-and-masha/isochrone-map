@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.Toast;
 
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private IsochroneMenu menu;
     private FloatingActionButton buildIsochroneButton;
     private FloatingActionButton geopositionButton;
+    private ProgressBar progressBar;
 
     SharedPreferences sharedPreferences;
 
@@ -71,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         menu = findViewById(R.id.menu);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geopositionButton = findViewById(R.id.geoposition_button);
+        progressBar = findViewById(R.id.progressBar);
 
         sharedPreferences = getPreferences(Context.MODE_PRIVATE);
         TransportType currentTransport = TransportType.valueOf(
@@ -90,12 +93,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     R.drawable.ic_convex_hull_button_24dp);
         }
 
-        menu.setOnHexagonalCoverButtonClickListener((a) ->
+        menu.setOnHexagonalCoverButtonClickListener(ignored ->
                 ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
                 R.drawable.ic_hexagonal_button_24dp)
         );
 
-        menu.setOnConvexHullButtonClickListener((a) ->
+        menu.setOnConvexHullButtonClickListener(ignored ->
                 ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
                 R.drawable.ic_convex_hull_button_24dp)
         );
@@ -143,12 +146,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        buildIsochroneButton.setOnClickListener((a) -> {
+        buildIsochroneButton.setOnClickListener(ignored -> {
+            showProgressBar();
             menu.closeMenu();
             buildIsochrone();
         });
 
-        geopositionButton.setOnClickListener((a) -> {
+        geopositionButton.setOnClickListener(ignored -> {
+            showProgressBar();
             menu.closeMenu();
             //FIXME magic constant
             if (ContextCompat.checkSelfPermission(this,
@@ -182,8 +187,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                 START_POSITION, DEFAULT_ZOOM_LEVEL
         ));
-        map.setOnMapLongClickListener(latLng ->
-            setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude))
+        map.setOnMapLongClickListener(latLng -> {
+                    showProgressBar();
+                    setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude));
+                }
         );
     }
 
@@ -390,6 +397,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         @Override
         protected void onPostExecute(IsochroneResponse response) {
+            hideProgressBar();
             if (response.isSuccessful) {
                 setCurrentPolygons(response.getResult());
             } else {
@@ -411,6 +419,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .putString("currentRequestType", menu.getCurrentRequestType().toString())
                 .putFloat("seekBarProgress", menu.getCurrentSeekBarProgress())
                 .apply();
+    }
+
+    private void showProgressBar() {
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
+    private void hideProgressBar() {
+        progressBar.setVisibility(View.GONE);
     }
 
     private int dpToPx(int dp) {

@@ -41,6 +41,7 @@ public class IsochroneMenu extends ConstraintLayout {
 
     TransportType currentTransport = TransportType.FOOT;
     IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
+
     public IsochroneMenu(Context context) {
         this(context, null);
     }
@@ -95,7 +96,7 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
     public void setOnConvexHullButtonClickListener(OnClickListener callerListener) {
-        convexHullButton.setOnClickListener((a) -> {
+        convexHullButton.setOnClickListener(a -> {
             callerListener.onClick(a);
             currentRequestType = IsochroneRequestType.CONVEX_HULL;
             updateIsochroneTypeDependingUI();
@@ -103,7 +104,7 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
     public void setOnHexagonalCoverButtonClickListener(OnClickListener callerListener) {
-        hexagonalCoverButton.setOnClickListener((a) -> {
+        hexagonalCoverButton.setOnClickListener(a -> {
             callerListener.onClick(a);
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
             updateIsochroneTypeDependingUI();
