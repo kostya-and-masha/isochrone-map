@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
@@ -107,54 +106,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        menu.setOnSearchBarQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                String queryWithoutCommas = query.replace(',', '.');
-                Scanner scanner = new Scanner(queryWithoutCommas).useLocale(Locale.US);
-                //scanner.useDelimiter("(\\s|;|,)+"); does not work with russian locale
-
-                if (!scanner.hasNextDouble()) {
-                    Toast toast = Toast.makeText(
-                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
-                    toast.show();
-                    return false;
-                }
-                double latitude = scanner.nextDouble();
-
-                if (!scanner.hasNextDouble()) {
-                    Toast toast = Toast.makeText(
-                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
-                    toast.show();
-                    return false;
-                }
-                double longitude = scanner.nextDouble();
-
-                if (scanner.hasNext()) {
-                    Toast toast = Toast.makeText(
-                            MainActivity.this, "wrong format", Toast.LENGTH_LONG);
-                    toast.show();
-                    return false;
-                }
-                setCurrentPositionAndMoveCamera(new Coordinate(latitude, longitude));
-                return true;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                return false;
-            }
-        });
+        menu.setOnPlaceQueryListener(this::setCurrentPositionAndMoveCamera);
 
         buildIsochroneButton.setOnClickListener(ignored -> {
-            showProgressBar();
-            menu.closeMenu();
+            menu.closeEverything();
             buildIsochrone();
         });
 
         geopositionButton.setOnClickListener(ignored -> {
             showProgressBar();
-            menu.closeMenu();
+            menu.closeEverything();
             //FIXME magic constant
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)
@@ -175,8 +136,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onBackPressed() {
-        menu.closeMenu();
-        super.onBackPressed();
+        if (!menu.closeEverything()) {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -187,10 +149,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                 START_POSITION, DEFAULT_ZOOM_LEVEL
         ));
-        map.setOnMapLongClickListener(latLng -> {
-                    showProgressBar();
-                    setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude));
-                }
+        map.setOnMapLongClickListener(latLng ->
+                setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude))
         );
     }
 
@@ -203,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void buildIsochrone() {
+        showProgressBar();
         removeCurrentPolygons();
         if (currentPosition == null) {
             Toast toast = Toast.makeText(

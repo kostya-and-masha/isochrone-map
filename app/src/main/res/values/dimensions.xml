@@ -2,4 +2,5 @@
 <resources>
     <dimen name="ui_elevation">5dp</dimen>
     <dimen name="progress_circle_thickness">6dp</dimen>
+    <dimen name="icons_size">48dp</dimen>
 </resources>

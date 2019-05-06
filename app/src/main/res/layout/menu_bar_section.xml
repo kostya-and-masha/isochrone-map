@@ -5,8 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:layout_constraintTop_toTopOf="parent"
-    android:id="@+id/menu_bar_layout"
-    tools:showIn="@layout/activity_main">
+    android:id="@+id/menu_bar_layout">
 
     <androidx.cardview.widget.CardView
         style="@style/CardStyle"
@@ -25,15 +24,15 @@
             <SearchView
                 android:id="@+id/search_field"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="@dimen/icons_size"
                 android:queryBackground="@color/transparent"
                 android:layout_weight="1"
                 android:iconifiedByDefault="false" />
 
             <ImageButton
                 android:id="@+id/settings_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="@dimen/icons_size"
+                android:layout_height="@dimen/icons_size"
                 android:backgroundTint="@android:color/transparent"
                 android:contentDescription="@string/settings_button"
                 android:onClick="toggleSettings"
@@ -42,8 +41,8 @@
 
             <ImageButton
                 android:id="@+id/menu_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="@dimen/icons_size"
+                android:layout_height="@dimen/icons_size"
                 android:backgroundTint="@android:color/transparent"
                 android:contentDescription="@string/menu_button"
                 android:onClick="toggleMenu"

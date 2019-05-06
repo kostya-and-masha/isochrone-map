@@ -15,15 +15,23 @@ import android.widget.SearchView;
 
 import com.example.isochronemap.R;
 import com.example.isochronemap.isochronebuilding.IsochroneRequestType;
+import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
+import com.example.isochronemap.util.CoordinateParser;
 import com.warkiz.widget.IndicatorSeekBar;
 
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 public class IsochroneMenu extends ConstraintLayout {
     private View menuMainLayout;
     private SearchView searchField;
+
+    private RecyclerView resultsRecycler;
+    private SearchResultsAdapter adapter;
+
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
     private ImageButton settingsButton;
@@ -35,12 +43,13 @@ public class IsochroneMenu extends ConstraintLayout {
     private ImageButton hexagonalCoverButton;
     private IndicatorSeekBar seekBar;
 
+    private OnPlaceQueryListener onPlaceQueryListener = null;
 
     private boolean menuButtonIsActivated = false;
     private boolean additionalSettingsButtonIsActivated = false;
 
-    TransportType currentTransport = TransportType.FOOT;
-    IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
+    private TransportType currentTransport = TransportType.FOOT;
+    private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
     public IsochroneMenu(Context context) {
         this(context, null);
@@ -72,16 +81,15 @@ public class IsochroneMenu extends ConstraintLayout {
         return seekBar.getProgressFloat();
     }
 
-    public void openMenu() {
-        if (!menuButtonIsActivated) {
-            menuButton.callOnClick();
-        }
-    }
-
-    public void closeMenu() {
+    public boolean closeEverything() {
         if (menuButtonIsActivated) {
             menuButton.callOnClick();
+            return true;
+        } else if (searchField.hasFocus()) {
+            searchField.clearFocus();
+            return true;
         }
+        return false;
     }
 
     public void handleClickOutside(MotionEvent event) {
@@ -91,7 +99,7 @@ public class IsochroneMenu extends ConstraintLayout {
         findViewById(R.id.settings_card).getGlobalVisibleRect(rectSettings);
         if (!rectMenuBar.contains((int) event.getX(), (int) event.getY())
                 && !rectSettings.contains((int) event.getX(), (int) event.getY())) {
-            closeMenu();
+            closeEverything();
         }
     }
 
@@ -111,6 +119,14 @@ public class IsochroneMenu extends ConstraintLayout {
         });
     }
 
+    public interface OnPlaceQueryListener {
+        void OnPlaceQuery(Coordinate coordinate);
+    }
+
+    public void setOnPlaceQueryListener(OnPlaceQueryListener listener) {
+        onPlaceQueryListener = listener;
+    }
+
     public void setOnSearchBarQueryTextListener(SearchView.OnQueryTextListener listener) {
         searchField.setOnQueryTextListener(listener);
     }
@@ -118,6 +134,10 @@ public class IsochroneMenu extends ConstraintLayout {
     private void init(AttributeSet attributes) {
         menuMainLayout = inflate(getContext(), R.layout.menu_main_layout, this);
         searchField = findViewById(R.id.search_field);
+
+        resultsRecycler = findViewById(R.id.results_list);
+        adapter = new SearchResultsAdapter();
+
         mainSettings = findViewById(R.id.main_settings);
         additionalSettings = findViewById(R.id.additional_settings);
         settingsButton = findViewById(R.id.settings_button);
@@ -129,7 +149,7 @@ public class IsochroneMenu extends ConstraintLayout {
         hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
         seekBar = findViewById(R.id.seekBar);
 
-        menuButton.setOnClickListener((a) -> {
+        menuButton.setOnClickListener(view -> {
             menuButtonIsActivated = !menuButtonIsActivated;
             if (menuButtonIsActivated & additionalSettingsButtonIsActivated) {
                 additionalSettingsButtonIsActivated = false;
@@ -138,35 +158,65 @@ public class IsochroneMenu extends ConstraintLayout {
             updateMenuStateUI(true);
         });
 
-        settingsButton.setOnClickListener((a) -> {
+        settingsButton.setOnClickListener(view -> {
             additionalSettingsButtonIsActivated = !additionalSettingsButtonIsActivated;
             updateAdditionalSettingsUI();
         });
 
-        walkingButton.setOnClickListener((a) -> {
+        walkingButton.setOnClickListener(view -> {
             currentTransport = TransportType.FOOT;
             updateTransportDependingUI();
         });
 
-        carButton.setOnClickListener((a) -> {
+        carButton.setOnClickListener(view -> {
             currentTransport = TransportType.CAR;
             updateTransportDependingUI();
         });
 
-        bikeButton.setOnClickListener((a) -> {
+        bikeButton.setOnClickListener(view -> {
             currentTransport = TransportType.BIKE;
             updateTransportDependingUI();
         });
 
-        convexHullButton.setOnClickListener((a) -> {
+        convexHullButton.setOnClickListener(view -> {
             currentRequestType = IsochroneRequestType.CONVEX_HULL;
             updateIsochroneTypeDependingUI();
         });
 
-        hexagonalCoverButton.setOnClickListener((a) -> {
+        hexagonalCoverButton.setOnClickListener(view -> {
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
             updateIsochroneTypeDependingUI();
         });
+
+        searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus) {
+                menuButton.setVisibility(GONE);
+            } else {
+                menuButton.setVisibility(VISIBLE);
+            }
+        });
+
+        searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Coordinate coordinate = CoordinateParser.parseCoordinate(query);
+                if (coordinate == null) {
+                    return false;
+                }
+                if (onPlaceQueryListener != null) {
+                    onPlaceQueryListener.OnPlaceQuery(coordinate);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+
+        resultsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+        resultsRecycler.setAdapter(adapter);
 
         updateUIWithoutAnimation();
     }
@@ -176,13 +226,12 @@ public class IsochroneMenu extends ConstraintLayout {
         updateTransportDependingUI();
         updateAdditionalSettingsUI();
         findViewById(R.id.settings_card).getViewTreeObserver()
-                .addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
-                    public boolean onPreDraw() {
+                    public void onGlobalLayout() {
                         findViewById(R.id.settings_card).getViewTreeObserver()
-                                .removeOnPreDrawListener(this);
+                                .removeOnGlobalLayoutListener(this);
                         updateMenuStateUI(false);
-                        return true;
                     }
                 });
     }
@@ -265,11 +314,11 @@ public class IsochroneMenu extends ConstraintLayout {
         if (menuButtonIsActivated) {
             settingsButton.setVisibility(View.VISIBLE);
             searchField.setVisibility(View.INVISIBLE);
-            showSettingsCard(animate);
+            adjustSettingsCardHeight(animate, findViewById(R.id.main_settings).getHeight());
         } else {
             settingsButton.setVisibility(View.GONE);
             searchField.setVisibility(View.VISIBLE);
-            hideSettingsCard(animate);
+            adjustSettingsCardHeight(animate, 0);
         }
     }
 
@@ -333,28 +382,17 @@ public class IsochroneMenu extends ConstraintLayout {
         updateUIWithoutAnimation();
     }
 
-    private void showSettingsCard(boolean animate) {
+    private void adjustSettingsCardHeight(boolean animate, float contentHeight) {
         CardView settingsCard = findViewById(R.id.settings_card);
+        float translation = -settingsCard.getHeight() + contentHeight;
+
         if (animate) {
             ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
-                    "translationY", mainSettings.getHeight());
-            animation.setDuration(300);
+                    "translationY", translation);
+            animation.setDuration(200);
             animation.start();
         } else {
-            settingsCard.setTranslationY(mainSettings.getHeight());
+            settingsCard.setTranslationY(translation);
         }
     }
-
-    private void hideSettingsCard(boolean animate) {
-        CardView settingsCard = findViewById(R.id.settings_card);
-        if (animate) {
-            ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
-                    "translationY", 0);
-            animation.setDuration(300);
-            animation.start();
-        } else {
-            settingsCard.setTranslationY(0);
-        }
-    }
-
 }
