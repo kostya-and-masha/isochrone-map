@@ -380,8 +380,4 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void hideProgressBar() {
         progressBar.setVisibility(View.GONE);
     }
-
-    private int dpToPx(int dp) {
-        return (int) (dp * getResources().getDisplayMetrics().density);
-    }
 }

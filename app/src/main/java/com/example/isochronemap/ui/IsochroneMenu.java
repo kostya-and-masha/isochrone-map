@@ -16,7 +16,10 @@ import com.example.isochronemap.isochronebuilding.IsochroneRequestType;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
 import com.example.isochronemap.util.CoordinateParser;
+import com.example.isochronemap.util.TEMP_DummyResult;
 import com.warkiz.widget.IndicatorSeekBar;
+
+import java.util.List;
 
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -193,18 +196,26 @@ public class IsochroneMenu extends ConstraintLayout {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 Coordinate coordinate = CoordinateParser.parseCoordinate(query);
-                if (coordinate == null) {
-                    return false;
+                if (coordinate != null) {
+                    if (onPlaceQueryListener != null) {
+                        onPlaceQueryListener.OnPlaceQuery(coordinate);
+                    }
+                    currentMode = Mode.CLOSED;
+                    updateModeUI(true);
+                } else {
+                    List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(30);
+                    adapter.setItems(list);
+                    updateModeUI(true);
                 }
-                if (onPlaceQueryListener != null) {
-                    onPlaceQueryListener.OnPlaceQuery(coordinate);
-                }
-                return true;
+                return false;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                return false;
+                List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(10);
+                adapter.setItems(list);
+                updateModeUI(true);
+                return true;
             }
         });
 
@@ -215,6 +226,12 @@ public class IsochroneMenu extends ConstraintLayout {
 
         resultsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
         resultsRecycler.setAdapter(adapter);
+
+        adapter.setOnResultClickListener(result -> {
+            onPlaceQueryListener.OnPlaceQuery(result.coordinate);
+            currentMode = Mode.CLOSED;
+            updateModeUI(true);
+        });
 
         updateUIWithoutAnimation();
     }
@@ -353,9 +370,20 @@ public class IsochroneMenu extends ConstraintLayout {
                 resultsRecycler.setVisibility(VISIBLE);
                 menuButton.setVisibility(GONE);
                 additionalSettings.setVisibility(GONE);
-                adjustSettingsCardHeight(true, resultsRecycler.getHeight());
+                adjustSettingsCardHeight(true, computeResultsRecyclerHeight());
                 break;
         }
+    }
+
+    private float computeResultsRecyclerHeight() {
+        int itemCount = adapter.getItemCount();
+        if (itemCount == 0) {
+            return 0;
+        }
+
+        float padding = getResources().getDimension(R.dimen.card_hidden_part);
+        float itemSize = getResources().getDimension(R.dimen.icons_size);
+        return padding + itemCount * itemSize + padding;
     }
 
     static class SavedState extends BaseSavedState {
@@ -415,6 +443,7 @@ public class IsochroneMenu extends ConstraintLayout {
     private void adjustSettingsCardHeight(boolean animate, float contentHeight) {
         CardView settingsCard = findViewById(R.id.settings_card);
         float translation = -settingsCard.getHeight() + contentHeight;
+        if (translation > 0) translation = 0;
 
         if (animate) {
             ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,

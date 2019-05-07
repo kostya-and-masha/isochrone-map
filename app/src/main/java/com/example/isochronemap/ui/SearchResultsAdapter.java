@@ -7,6 +7,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.isochronemap.R;
+import com.example.isochronemap.util.TEMP_DummyResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,9 +19,19 @@ import androidx.recyclerview.widget.RecyclerView;
 public class SearchResultsAdapter extends
         RecyclerView.Adapter<SearchResultsAdapter.SearchResultsViewHolder> {
 
-    List<String> results = new ArrayList<>();
+    List<TEMP_DummyResult> results = new ArrayList<>();
+    OnResultClickListener onResultClickListener = null;
 
-    public void setItems(Collection<String> newResults) {
+    public interface OnResultClickListener {
+        void onResultClick(TEMP_DummyResult result);
+
+    }
+
+    public void setOnResultClickListener(OnResultClickListener listener) {
+        this.onResultClickListener = listener;
+    }
+
+    public void setItems(Collection<TEMP_DummyResult> newResults) {
         results.clear();
         results.addAll(newResults);
         notifyDataSetChanged();
@@ -37,7 +48,7 @@ public class SearchResultsAdapter extends
     @Override
     public void onBindViewHolder(@NonNull SearchResultsViewHolder holder, int position) {
         holder.icon.setImageResource(R.drawable.ic_place_black_24dp);
-        holder.text.setText(results.get(position));
+        holder.text.setText(results.get(position).string);
     }
 
     @Override
@@ -45,7 +56,7 @@ public class SearchResultsAdapter extends
         return results.size();
     }
 
-    public static class SearchResultsViewHolder extends RecyclerView.ViewHolder {
+    public class SearchResultsViewHolder extends RecyclerView.ViewHolder {
         private ImageView icon;
         private TextView text;
 
@@ -54,6 +65,11 @@ public class SearchResultsAdapter extends
 
             icon = view.findViewById(R.id.icon);
             text = view.findViewById(R.id.text);
+
+            view.setOnClickListener(v -> {
+                TEMP_DummyResult result = results.get(getLayoutPosition());
+                onResultClickListener.onResultClick(result);
+            });
         }
 
     }
