@@ -7,6 +7,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <ImageView
+        android:id="@+id/blackout_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="@color/colorDarkGrey"/>
+
     <include
         android:id="@+id/menu_bar_section_in_layout"
         android:layout_width="match_parent"

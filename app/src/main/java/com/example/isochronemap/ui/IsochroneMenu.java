@@ -2,11 +2,9 @@ package com.example.isochronemap.ui;
 
 import android.animation.ObjectAnimator;
 import android.content.Context;
-import android.graphics.Rect;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.AttributeSet;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
@@ -34,7 +32,7 @@ public class IsochroneMenu extends ConstraintLayout {
 
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
-    private ImageButton settingsButton;
+    private ImageButton additionalSettingsButton;
     private ImageButton menuButton;
     private ImageButton walkingButton;
     private ImageButton bikeButton;
@@ -45,8 +43,15 @@ public class IsochroneMenu extends ConstraintLayout {
 
     private OnPlaceQueryListener onPlaceQueryListener = null;
 
-    private boolean menuButtonIsActivated = false;
-    private boolean additionalSettingsButtonIsActivated = false;
+    private enum Mode {
+        CLOSED,
+        MAIN_SETTING,
+        ADDITIONAL_SETTINGS,
+        SEARCH
+    }
+
+    private Mode currentMode = Mode.CLOSED;
+    private ImageView blackoutView;
 
     private TransportType currentTransport = TransportType.FOOT;
     private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
@@ -82,32 +87,19 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
     public boolean closeEverything() {
-        if (menuButtonIsActivated) {
-            menuButton.callOnClick();
-            return true;
-        } else if (searchField.hasFocus()) {
-            searchField.clearFocus();
+        if (currentMode != Mode.CLOSED) {
+            currentMode = Mode.CLOSED;
+            updateModeUI(true);
             return true;
         }
         return false;
-    }
-
-    public void handleClickOutside(MotionEvent event) {
-        Rect rectMenuBar = new Rect();
-        Rect rectSettings = new Rect();
-        findViewById(R.id.menu_bar_card).getGlobalVisibleRect(rectMenuBar);
-        findViewById(R.id.settings_card).getGlobalVisibleRect(rectSettings);
-        if (!rectMenuBar.contains((int) event.getX(), (int) event.getY())
-                && !rectSettings.contains((int) event.getX(), (int) event.getY())) {
-            closeEverything();
-        }
     }
 
     public void setOnConvexHullButtonClickListener(OnClickListener callerListener) {
         convexHullButton.setOnClickListener(a -> {
             callerListener.onClick(a);
             currentRequestType = IsochroneRequestType.CONVEX_HULL;
-            updateIsochroneTypeDependingUI();
+            updateAdditionalSettingUI();
         });
     }
 
@@ -115,7 +107,7 @@ public class IsochroneMenu extends ConstraintLayout {
         hexagonalCoverButton.setOnClickListener(a -> {
             callerListener.onClick(a);
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
-            updateIsochroneTypeDependingUI();
+            updateAdditionalSettingUI();
         });
     }
 
@@ -127,9 +119,6 @@ public class IsochroneMenu extends ConstraintLayout {
         onPlaceQueryListener = listener;
     }
 
-    public void setOnSearchBarQueryTextListener(SearchView.OnQueryTextListener listener) {
-        searchField.setOnQueryTextListener(listener);
-    }
 
     private void init(AttributeSet attributes) {
         menuMainLayout = inflate(getContext(), R.layout.menu_main_layout, this);
@@ -140,7 +129,7 @@ public class IsochroneMenu extends ConstraintLayout {
 
         mainSettings = findViewById(R.id.main_settings);
         additionalSettings = findViewById(R.id.additional_settings);
-        settingsButton = findViewById(R.id.settings_button);
+        additionalSettingsButton = findViewById(R.id.additional_settings_button);
         menuButton = findViewById(R.id.menu_button);
         walkingButton = findViewById(R.id.walking_button);
         bikeButton = findViewById(R.id.bike_button);
@@ -148,51 +137,55 @@ public class IsochroneMenu extends ConstraintLayout {
         convexHullButton = findViewById(R.id.convex_hull_button);
         hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
         seekBar = findViewById(R.id.seekBar);
+        blackoutView = findViewById(R.id.blackout_view);
 
         menuButton.setOnClickListener(view -> {
-            menuButtonIsActivated = !menuButtonIsActivated;
-            if (menuButtonIsActivated & additionalSettingsButtonIsActivated) {
-                additionalSettingsButtonIsActivated = false;
-                updateAdditionalSettingsUI();
+            if (currentMode == Mode.CLOSED) {
+                currentMode = Mode.MAIN_SETTING;
+            } else {
+                currentMode = Mode.CLOSED;
             }
-            updateMenuStateUI(true);
+            updateModeUI(true);
         });
 
-        settingsButton.setOnClickListener(view -> {
-            additionalSettingsButtonIsActivated = !additionalSettingsButtonIsActivated;
-            updateAdditionalSettingsUI();
+        additionalSettingsButton.setOnClickListener(view -> {
+            if (currentMode == Mode.ADDITIONAL_SETTINGS) {
+                currentMode = Mode.MAIN_SETTING;
+            } else {
+                currentMode = Mode.ADDITIONAL_SETTINGS;
+            }
+            updateModeUI(true);
         });
 
         walkingButton.setOnClickListener(view -> {
             currentTransport = TransportType.FOOT;
-            updateTransportDependingUI();
+            updateMainSettingUI();
         });
 
         carButton.setOnClickListener(view -> {
             currentTransport = TransportType.CAR;
-            updateTransportDependingUI();
+            updateMainSettingUI();
         });
 
         bikeButton.setOnClickListener(view -> {
             currentTransport = TransportType.BIKE;
-            updateTransportDependingUI();
+            updateMainSettingUI();
         });
 
         convexHullButton.setOnClickListener(view -> {
             currentRequestType = IsochroneRequestType.CONVEX_HULL;
-            updateIsochroneTypeDependingUI();
+            updateAdditionalSettingUI();
         });
 
         hexagonalCoverButton.setOnClickListener(view -> {
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
-            updateIsochroneTypeDependingUI();
+            updateAdditionalSettingUI();
         });
 
         searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
             if (hasFocus) {
-                menuButton.setVisibility(GONE);
-            } else {
-                menuButton.setVisibility(VISIBLE);
+                currentMode = Mode.SEARCH;
+                updateModeUI(true);
             }
         });
 
@@ -215,6 +208,11 @@ public class IsochroneMenu extends ConstraintLayout {
             }
         });
 
+        blackoutView.setOnClickListener(view -> {
+            currentMode = Mode.CLOSED;
+            updateModeUI(true);
+        });
+
         resultsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
         resultsRecycler.setAdapter(adapter);
 
@@ -222,21 +220,21 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
     private void updateUIWithoutAnimation() {
-        updateIsochroneTypeDependingUI();
-        updateTransportDependingUI();
-        updateAdditionalSettingsUI();
+        updateAdditionalSettingUI();
+        updateMainSettingUI();
+        updateModeUI(false);
         findViewById(R.id.settings_card).getViewTreeObserver()
                 .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
                         findViewById(R.id.settings_card).getViewTreeObserver()
                                 .removeOnGlobalLayoutListener(this);
-                        updateMenuStateUI(false);
+                        updateModeUI(false);
                     }
                 });
     }
 
-    private void updateTransportDependingUI() {
+    private void updateMainSettingUI() {
         ImageButton transportButton;
         float progress = seekBar.getProgressFloat();
         switch (currentTransport) {
@@ -271,7 +269,7 @@ public class IsochroneMenu extends ConstraintLayout {
         transportButton.setImageTintList(getContext().getColorStateList(R.color.colorDarkGrey));
     }
 
-    private void updateIsochroneTypeDependingUI() {
+    private void updateAdditionalSettingUI() {
         ImageButton currentButton;
         ImageView currentBorder;
         ImageButton otherButton;
@@ -298,33 +296,70 @@ public class IsochroneMenu extends ConstraintLayout {
         otherBorder.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
     }
 
-    private void updateAdditionalSettingsUI() {
-        if (additionalSettingsButtonIsActivated) {
-            settingsButton.setImageTintList(getContext().getColorStateList(R.color.colorDarkGrey));
-            mainSettings.setVisibility(View.INVISIBLE);
-            additionalSettings.setVisibility(View.VISIBLE);
-        } else {
-            settingsButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
-            additionalSettings.setVisibility(View.INVISIBLE);
-            mainSettings.setVisibility(View.VISIBLE);
-        }
-    }
-
-    private void updateMenuStateUI(boolean animate) {
-        if (menuButtonIsActivated) {
-            settingsButton.setVisibility(View.VISIBLE);
-            searchField.setVisibility(View.INVISIBLE);
-            adjustSettingsCardHeight(animate, findViewById(R.id.main_settings).getHeight());
-        } else {
-            settingsButton.setVisibility(View.GONE);
-            searchField.setVisibility(View.VISIBLE);
+    private void updateModeUI(boolean animate) {
+        if (currentMode == Mode.CLOSED) {
+            additionalSettingsButton.setVisibility(GONE);
+            menuButton.setVisibility(VISIBLE);
+            searchField.setVisibility(VISIBLE);
+            searchField.clearFocus();
             adjustSettingsCardHeight(animate, 0);
+
+            blackoutView.setClickable(false);
+            if (animate) {
+                ObjectAnimator animation = ObjectAnimator.ofFloat(blackoutView,
+                        "alpha", 0);
+                animation.setDuration(200);
+                animation.start();
+            } else {
+                blackoutView.setAlpha((float) 0);
+            }
+            return;
+        }
+
+        blackoutView.setClickable(true);
+        if (animate) {
+            ObjectAnimator animation = ObjectAnimator.ofFloat(blackoutView,
+                    "alpha", (float) 0.7);
+            animation.setDuration(200);
+            animation.start();
+        } else {
+            blackoutView.setAlpha((float) 0.7);
+        }
+
+        mainSettings.setVisibility(INVISIBLE);
+        additionalSettings.setVisibility(INVISIBLE);
+        resultsRecycler.setVisibility(INVISIBLE);
+
+        switch(currentMode) {
+            case MAIN_SETTING:
+                mainSettings.setVisibility(VISIBLE);
+                menuButton.setVisibility(VISIBLE);
+                additionalSettingsButton.setVisibility(View.VISIBLE);
+                additionalSettingsButton.setImageTintList(
+                        getContext().getColorStateList(R.color.colorPrimary));
+                searchField.setVisibility(View.INVISIBLE);
+                adjustSettingsCardHeight(animate, mainSettings.getHeight());
+                break;
+            case ADDITIONAL_SETTINGS:
+                additionalSettings.setVisibility(VISIBLE);
+                menuButton.setVisibility(VISIBLE);
+                additionalSettingsButton.setVisibility(View.VISIBLE);
+                additionalSettingsButton.setImageTintList(
+                        getContext().getColorStateList(R.color.colorDarkGrey));
+                searchField.setVisibility(View.INVISIBLE);
+                adjustSettingsCardHeight(animate, mainSettings.getHeight());
+                break;
+            case SEARCH:
+                resultsRecycler.setVisibility(VISIBLE);
+                menuButton.setVisibility(GONE);
+                additionalSettings.setVisibility(GONE);
+                adjustSettingsCardHeight(true, resultsRecycler.getHeight());
+                break;
         }
     }
 
     static class SavedState extends BaseSavedState {
-        private boolean menuButtonIsActivated = false;
-        private boolean settingsButtonIsActivated = false;
+        private Mode currentMode = Mode.CLOSED;
 
         SavedState(Parcelable superState) {
             super(superState);
@@ -332,16 +367,13 @@ public class IsochroneMenu extends ConstraintLayout {
 
         private SavedState(Parcel in) {
             super(in);
-            boolean[] booleanArray = new boolean[2];
-            in.readBooleanArray(booleanArray);
-            menuButtonIsActivated = booleanArray[0];
-            settingsButtonIsActivated = booleanArray[1];
+            currentMode = (Mode)in.readSerializable();
         }
 
         @Override
         public void writeToParcel(Parcel out, int flags) {
             super.writeToParcel(out, flags);
-            out.writeBooleanArray(new boolean[] {menuButtonIsActivated, settingsButtonIsActivated});
+            out.writeSerializable(currentMode);
         }
 
         public static final Parcelable.Creator<SavedState> CREATOR =
@@ -360,8 +392,7 @@ public class IsochroneMenu extends ConstraintLayout {
         Parcelable superState = super.onSaveInstanceState();
         SavedState savedState = new SavedState(superState);
 
-        savedState.menuButtonIsActivated = this.menuButtonIsActivated;
-        savedState.settingsButtonIsActivated = this.additionalSettingsButtonIsActivated;
+        savedState.currentMode = currentMode;
 
         return savedState;
     }
@@ -376,8 +407,7 @@ public class IsochroneMenu extends ConstraintLayout {
         SavedState savedState = (SavedState)state;
         super.onRestoreInstanceState(savedState.getSuperState());
 
-        this.menuButtonIsActivated = savedState.menuButtonIsActivated;
-        this.additionalSettingsButtonIsActivated = savedState.settingsButtonIsActivated;
+        currentMode = savedState.currentMode;
 
         updateUIWithoutAnimation();
     }

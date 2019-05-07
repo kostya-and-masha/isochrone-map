@@ -129,12 +129,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        menu.handleClickOutside(event);
-        return super.dispatchTouchEvent(event);
-    }
-
-    @Override
     public void onBackPressed() {
         if (!menu.closeEverything()) {
             super.onBackPressed();
@@ -166,6 +160,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         showProgressBar();
         removeCurrentPolygons();
         if (currentPosition == null) {
+            hideProgressBar();
             Toast toast = Toast.makeText(
                     this,
                     "please choose location",
