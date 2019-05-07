@@ -6,11 +6,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
-import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.example.isochronemap.isochronebuilding.IsochroneBuilder;
@@ -39,9 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.Scanner;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -72,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         menu = findViewById(R.id.menu);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geopositionButton = findViewById(R.id.geoposition_button);
-        progressBar = findViewById(R.id.progressBar);
+        progressBar = findViewById(R.id.progress_bar);
 
         sharedPreferences = getPreferences(Context.MODE_PRIVATE);
         TransportType currentTransport = TransportType.valueOf(
