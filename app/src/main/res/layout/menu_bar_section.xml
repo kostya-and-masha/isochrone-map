@@ -28,6 +28,7 @@
                 android:layout_height="@dimen/icons_size"
                 android:queryBackground="@color/transparent"
                 android:layout_weight="1"
+                android:imeOptions="actionSearch|flagNoExtractUi"
                 android:iconifiedByDefault="false" />
 
             <ImageButton

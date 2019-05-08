@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 sharedPreferences.getString("currentRequestType", "HEXAGONAL_COVER"));
         float seekBarProgress =  sharedPreferences.getFloat("seekBarProgress", 10);
 
-        menu.setCurrentPreferencesWithoutAnimation(currentTransport,
+        menu.setPreferencesBeforeDrawn(currentTransport,
                 currentRequestType, seekBarProgress);
 
         if (currentRequestType == IsochroneRequestType.HEXAGONAL_COVER) {
@@ -273,6 +273,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
             } else {
+                hideProgressBar();
                 Toast toast = Toast.makeText(this, "give permissions please :(",
                         Toast.LENGTH_LONG);
                 toast.show();

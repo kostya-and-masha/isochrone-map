@@ -1,5 +1,6 @@
 package com.example.isochronemap.ui;
 
+import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.os.Parcel;
@@ -53,9 +54,12 @@ public class IsochroneMenu extends ConstraintLayout {
         SEARCH
     }
 
+    private boolean searchResultsSet = false;
+    private boolean isDrawn = false;
     private Mode currentMode = Mode.CLOSED;
     private ImageView blackoutView;
 
+    private float seekBarProgress = 0;
     private TransportType currentTransport = TransportType.FOOT;
     private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
@@ -68,13 +72,16 @@ public class IsochroneMenu extends ConstraintLayout {
         init(attributes);
     }
 
-    public void setCurrentPreferencesWithoutAnimation(TransportType transportType,
-                                                      IsochroneRequestType isochroneRequestType,
-                                                      float seekBarProgress) {
+    public void setPreferencesBeforeDrawn(TransportType transportType,
+                                          IsochroneRequestType isochroneRequestType,
+                                          float seekBarProgress) {
+        if(isDrawn) {
+            throw new IllegalStateException("Menu is already drawn");
+        }
+
         currentTransport = transportType;
         currentRequestType = isochroneRequestType;
-        updateUIWithoutAnimation();
-        seekBar.setProgress(seekBarProgress);
+        this.seekBarProgress = seekBarProgress;
     }
 
     public TransportType getCurrentTransport() {
@@ -185,13 +192,6 @@ public class IsochroneMenu extends ConstraintLayout {
             updateAdditionalSettingUI();
         });
 
-        searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
-            if (hasFocus) {
-                currentMode = Mode.SEARCH;
-                updateModeUI(true);
-            }
-        });
-
         searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -207,6 +207,7 @@ public class IsochroneMenu extends ConstraintLayout {
                     adapter.setItems(list);
                     updateModeUI(true);
                 }
+                clearFocus();
                 return false;
             }
 
@@ -214,8 +215,21 @@ public class IsochroneMenu extends ConstraintLayout {
             public boolean onQueryTextChange(String newText) {
                 List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(10);
                 adapter.setItems(list);
-                updateModeUI(true);
+                searchResultsSet = true;
+                if (isDrawn) {
+                    updateModeUI(true);
+                }
                 return true;
+            }
+        });
+
+        searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus) {
+                currentMode = Mode.SEARCH;
+                updateModeUI(true);
+                if (!searchResultsSet) {
+                    searchField.setQuery(searchField.getQuery(), false);
+                }
             }
         });
 
@@ -233,27 +247,26 @@ public class IsochroneMenu extends ConstraintLayout {
             updateModeUI(true);
         });
 
-        updateUIWithoutAnimation();
+        setUIUpdater();
     }
 
-    private void updateUIWithoutAnimation() {
-        updateAdditionalSettingUI();
-        updateMainSettingUI();
-        updateModeUI(false);
-        findViewById(R.id.settings_card).getViewTreeObserver()
+    private void setUIUpdater() {
+        menuMainLayout.getViewTreeObserver()
                 .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
-                        findViewById(R.id.settings_card).getViewTreeObserver()
+                        menuMainLayout.getViewTreeObserver()
                                 .removeOnGlobalLayoutListener(this);
+                        updateAdditionalSettingUI();
+                        updateMainSettingUI();
                         updateModeUI(false);
+                        isDrawn = true;
                     }
                 });
     }
 
     private void updateMainSettingUI() {
         ImageButton transportButton;
-        float progress = seekBar.getProgressFloat();
         switch (currentTransport) {
             //FIXME magic constants
             case FOOT:
@@ -277,7 +290,7 @@ public class IsochroneMenu extends ConstraintLayout {
             default:
                 throw new RuntimeException();
         }
-        seekBar.setProgress(progress);
+        seekBar.setProgress(seekBarProgress);
 
         walkingButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
         bikeButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
@@ -319,28 +332,8 @@ public class IsochroneMenu extends ConstraintLayout {
             menuButton.setVisibility(VISIBLE);
             searchField.setVisibility(VISIBLE);
             searchField.clearFocus();
-            adjustSettingsCardHeight(animate, 0);
-
-            blackoutView.setClickable(false);
-            if (animate) {
-                ObjectAnimator animation = ObjectAnimator.ofFloat(blackoutView,
-                        "alpha", 0);
-                animation.setDuration(200);
-                animation.start();
-            } else {
-                blackoutView.setAlpha((float) 0);
-            }
+            adjustCardHeightAndBlackout(animate, 0, false);
             return;
-        }
-
-        blackoutView.setClickable(true);
-        if (animate) {
-            ObjectAnimator animation = ObjectAnimator.ofFloat(blackoutView,
-                    "alpha", (float) 0.7);
-            animation.setDuration(200);
-            animation.start();
-        } else {
-            blackoutView.setAlpha((float) 0.7);
         }
 
         mainSettings.setVisibility(INVISIBLE);
@@ -355,7 +348,7 @@ public class IsochroneMenu extends ConstraintLayout {
                 additionalSettingsButton.setImageTintList(
                         getContext().getColorStateList(R.color.colorPrimary));
                 searchField.setVisibility(View.INVISIBLE);
-                adjustSettingsCardHeight(animate, mainSettings.getHeight());
+                adjustCardHeightAndBlackout(animate, mainSettings.getHeight(), true);
                 break;
             case ADDITIONAL_SETTINGS:
                 additionalSettings.setVisibility(VISIBLE);
@@ -364,13 +357,13 @@ public class IsochroneMenu extends ConstraintLayout {
                 additionalSettingsButton.setImageTintList(
                         getContext().getColorStateList(R.color.colorDarkGrey));
                 searchField.setVisibility(View.INVISIBLE);
-                adjustSettingsCardHeight(animate, mainSettings.getHeight());
+                adjustCardHeightAndBlackout(animate, mainSettings.getHeight(), true);
                 break;
             case SEARCH:
                 resultsRecycler.setVisibility(VISIBLE);
                 menuButton.setVisibility(GONE);
                 additionalSettings.setVisibility(GONE);
-                adjustSettingsCardHeight(true, computeResultsRecyclerHeight());
+                adjustCardHeightAndBlackout(true, computeResultsRecyclerHeight(), true);
                 break;
         }
     }
@@ -436,22 +429,41 @@ public class IsochroneMenu extends ConstraintLayout {
         super.onRestoreInstanceState(savedState.getSuperState());
 
         currentMode = savedState.currentMode;
-
-        updateUIWithoutAnimation();
     }
 
-    private void adjustSettingsCardHeight(boolean animate, float contentHeight) {
+    private void adjustCardHeightAndBlackout(boolean animate,
+                                             float contentHeight,
+                                             boolean blackout) {
+
         CardView settingsCard = findViewById(R.id.settings_card);
         float translation = -settingsCard.getHeight() + contentHeight;
         if (translation > 0) translation = 0;
+        float blackoutAlpha;
+
+        if (blackout) {
+            blackoutView.setClickable(true);
+            blackoutAlpha = (float)0.7;
+        } else {
+            blackoutView.setClickable(false);
+            blackoutAlpha = 0;
+        }
 
         if (animate) {
-            ObjectAnimator animation = ObjectAnimator.ofFloat(settingsCard,
+            ObjectAnimator cardAnimation = ObjectAnimator.ofFloat(settingsCard,
                     "translationY", translation);
-            animation.setDuration(200);
-            animation.start();
+            ObjectAnimator blackoutAnimation = ObjectAnimator.ofFloat(blackoutView,
+                    "alpha", blackoutAlpha);
+
+            blackoutAnimation.setDuration(200);
+            cardAnimation.setDuration(200);
+
+            AnimatorSet animatorSet = new AnimatorSet();
+            animatorSet.play(cardAnimation);
+            animatorSet.play(blackoutAnimation);
+            animatorSet.start();
         } else {
             settingsCard.setTranslationY(translation);
+            blackoutView.setAlpha(blackoutAlpha);
         }
     }
 }
