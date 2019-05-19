@@ -19,6 +19,7 @@ import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
 import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
+import com.example.isochronemap.searchhistory.SearchDatabase;
 import com.example.isochronemap.ui.IsochroneMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -48,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final float DEFAULT_ZOOM_LEVEL = 10;
     private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
+
+    private SearchDatabase searchDatabase;
 
     private GoogleMap map;
     private Marker currentPosition;
@@ -122,6 +125,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
         });
+
+        searchDatabase = new SearchDatabase(
+                getApplicationContext(), "search.db"
+        );
+    }
+
+    @Override
+    public void onDestroy() {
+        searchDatabase.close();
     }
 
     @Override

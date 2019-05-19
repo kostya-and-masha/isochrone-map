@@ -8,16 +8,16 @@ import org.locationtech.spatial4j.shape.Rectangle;
 import org.locationtech.spatial4j.shape.impl.CircleImpl;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-class BoundingBox {
-    final Coordinate minimum;
-    final Coordinate maximum;
+public class BoundingBox {
+    public final Coordinate minimum;
+    public final Coordinate maximum;
 
-    BoundingBox(@NotNull Coordinate minimum, @NotNull Coordinate maximum) {
+    public BoundingBox(@NotNull Coordinate minimum, @NotNull Coordinate maximum) {
         this.minimum = minimum;
         this.maximum = maximum;
     }
 
-    BoundingBox(@NotNull Coordinate center, double radiusInKilometers) {
+    public BoundingBox(@NotNull Coordinate center, double radiusInKilometers) {
         Circle circle = new CircleImpl(
                 new PointImpl(
                         center.longitudeDeg,
