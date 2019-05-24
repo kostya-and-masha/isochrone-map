@@ -133,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onDestroy() {
+        super.onDestroy();
         searchDatabase.close();
     }
 
