@@ -126,13 +126,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onBackPressed() {
-        if (!menu.closeEverything()) {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
 
@@ -145,12 +138,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         );
     }
 
-    private LatLng toLatLng(Coordinate coordinate) {
-        return new LatLng(coordinate.latitudeDeg, coordinate.longitudeDeg);
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //FIXME magic constant literals
+        sharedPreferences.edit()
+                .putString("currentTransport", menu.getCurrentTransport().toString())
+                .putString("currentRequestType", menu.getCurrentRequestType().toString())
+                .putFloat("seekBarProgress", menu.getCurrentSeekBarProgress())
+                .apply();
     }
 
-    private Coordinate toCoordinate(LatLng latLng) {
-        return new Coordinate(latLng.latitude, latLng.longitude);
+    @Override
+    public void onBackPressed() {
+        if (!menu.closeEverything()) {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        //FIXME magic constant
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 18) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
+            } else {
+                hideProgressBar();
+                Toast toast = Toast.makeText(this, "give permissions please :(",
+                        Toast.LENGTH_LONG);
+                toast.show();
+            }
+        }
     }
 
     private void buildIsochrone() {
@@ -198,28 +219,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         moveCameraToCurrentPosition();
     }
 
-    private static class LatLngBox {
-        private double minLat = 1000;
-        private double minLng = 1000;
-        private double maxLat = -1000;
-        private double maxLng = -1000;
-
-        private void add(LatLng latLng) {
-            minLat = Math.min(minLat, latLng.latitude);
-            maxLat = Math.max(maxLat, latLng.latitude);
-            minLng = Math.min(minLng, latLng.longitude);
-            maxLng = Math.max(maxLng, latLng.longitude);
-        }
-
-        private LatLng getMin() {
-            return new LatLng(minLat, minLng);
-        }
-
-        private LatLng getMax() {
-            return new LatLng(maxLat, maxLng);
-        }
-    }
-
     private void setCurrentPolygons(List<IsochronePolygon> isochronePolygons) {
         removeCurrentPolygons();
 
@@ -264,26 +263,61 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         currentPolygons.clear();
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        //FIXME magic constant
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 18) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
-            } else {
-                hideProgressBar();
-                Toast toast = Toast.makeText(this, "give permissions please :(",
-                        Toast.LENGTH_LONG);
-                toast.show();
-            }
-        }
+    private LatLng toLatLng(Coordinate coordinate) {
+        return new LatLng(coordinate.latitudeDeg, coordinate.longitudeDeg);
+    }
+
+    private Coordinate toCoordinate(LatLng latLng) {
+        return new Coordinate(latLng.latitude, latLng.longitude);
     }
 
     private double getTravelTime() {
         return menu.getCurrentSeekBarProgress() / 60.0;
+    }
+
+    private void showProgressBar() {
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
+    private void hideProgressBar() {
+        progressBar.setVisibility(View.GONE);
+    }
+
+    private class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
+        @Override
+        protected IsochroneResponse doInBackground(IsochroneRequest ... isochroneRequest) {
+            IsochroneRequest request = isochroneRequest[0];
+            try {
+                return new IsochroneResponse(
+                        IsochroneBuilder.getIsochronePolygons(
+                                request.coordinate,
+                                request.travelTime,
+                                request.transportType,
+                                request.isochroneType
+                        )
+                );
+            } catch (UnsupportedParameterException e) {
+                return new IsochroneResponse(e.getMessage());
+            } catch (IOException e) {
+                return new IsochroneResponse("failed to download map");
+            } catch (NotEnoughNodesException e) {
+                return new IsochroneResponse("cannot build isochrone in this area");
+            }
+        }
+
+        @Override
+        protected void onPostExecute(IsochroneResponse response) {
+            hideProgressBar();
+            if (response.isSuccessful) {
+                setCurrentPolygons(response.getResult());
+            } else {
+                Toast toast = Toast.makeText(
+                        MainActivity.this,
+                        response.getErrorMessage(),
+                        Toast.LENGTH_LONG);
+                toast.show();
+            }
+        }
     }
 
     private static class IsochroneRequest {
@@ -327,59 +361,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
-        @Override
-        protected IsochroneResponse doInBackground(IsochroneRequest ... isochroneRequest) {
-            IsochroneRequest request = isochroneRequest[0];
-            try {
-                return new IsochroneResponse(
-                        IsochroneBuilder.getIsochronePolygons(
-                                request.coordinate,
-                                request.travelTime,
-                                request.transportType,
-                                request.isochroneType
-                        )
-                );
-            } catch (UnsupportedParameterException e) {
-                return new IsochroneResponse(e.getMessage());
-            } catch (IOException e) {
-                return new IsochroneResponse("failed to download map");
-            } catch (NotEnoughNodesException e) {
-                return new IsochroneResponse("cannot build isochrone in this area");
-            }
+    private static class LatLngBox {
+        private double minLat = 1000;
+        private double minLng = 1000;
+        private double maxLat = -1000;
+        private double maxLng = -1000;
+
+        private void add(LatLng latLng) {
+            minLat = Math.min(minLat, latLng.latitude);
+            maxLat = Math.max(maxLat, latLng.latitude);
+            minLng = Math.min(minLng, latLng.longitude);
+            maxLng = Math.max(maxLng, latLng.longitude);
         }
 
-        @Override
-        protected void onPostExecute(IsochroneResponse response) {
-            hideProgressBar();
-            if (response.isSuccessful) {
-                setCurrentPolygons(response.getResult());
-            } else {
-                Toast toast = Toast.makeText(
-                        MainActivity.this,
-                        response.getErrorMessage(),
-                        Toast.LENGTH_LONG);
-                toast.show();
-            }
+        private LatLng getMin() {
+            return new LatLng(minLat, minLng);
         }
-    }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        //FIXME magic constant literals
-        sharedPreferences.edit()
-                .putString("currentTransport", menu.getCurrentTransport().toString())
-                .putString("currentRequestType", menu.getCurrentRequestType().toString())
-                .putFloat("seekBarProgress", menu.getCurrentSeekBarProgress())
-                .apply();
-    }
-
-    private void showProgressBar() {
-        progressBar.setVisibility(View.VISIBLE);
-    }
-
-    private void hideProgressBar() {
-        progressBar.setVisibility(View.GONE);
+        private LatLng getMax() {
+            return new LatLng(maxLat, maxLng);
+        }
     }
 }
