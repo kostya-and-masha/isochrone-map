@@ -20,6 +20,12 @@ public class SearchDatabaseTest {
         SearchDatabase database = new SearchDatabase(context, "test.db");
 
         database.clearDatabase();
+
+        Assert.assertEquals(
+                Collections.emptyList(),
+                database.getSearchQueries("")
+        );
+
         database.putSearchQuery("central street 28");
         database.putSearchQuery("кантемировская 3а");
         database.putSearchQuery("central street 28");
@@ -45,6 +51,16 @@ public class SearchDatabaseTest {
         Assert.assertEquals(
                 Arrays.asList(
                         "площадь ленина 3", "планерная улица 7", "площадь мира 4",
+                        "central street 28", "кантемировская 3а"
+                ),
+                database.getSearchQueries("")
+        );
+
+        database.deleteSearchQuery("планерная улица 7");
+        database.deleteSearchQuery("кантемировская 3");
+        Assert.assertEquals(
+                Arrays.asList(
+                        "площадь ленина 3", "площадь мира 4",
                         "central street 28", "кантемировская 3а"
                 ),
                 database.getSearchQueries("")
