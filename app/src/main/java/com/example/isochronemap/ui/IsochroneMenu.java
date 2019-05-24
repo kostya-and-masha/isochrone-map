@@ -271,9 +271,9 @@ public class IsochroneMenu extends ConstraintLayout {
             //FIXME magic constants
             case FOOT:
                 transportButton = walkingButton;
-                seekBar.setMin(10);
+                seekBar.setMin(5);
                 seekBar.setMax(40);
-                seekBar.setTickCount(7);
+                seekBar.setTickCount(8);
                 break;
             case CAR:
                 transportButton = carButton;
