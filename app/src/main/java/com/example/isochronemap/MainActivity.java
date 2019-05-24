@@ -50,8 +50,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
 
-    private SearchDatabase searchDatabase;
-
     private GoogleMap map;
     private Marker currentPosition;
     private List<Polygon> currentPolygons = new ArrayList<>();
@@ -125,16 +123,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
         });
-
-        searchDatabase = new SearchDatabase(
-                getApplicationContext(), "search.db"
-        );
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        searchDatabase.close();
     }
 
     @Override
