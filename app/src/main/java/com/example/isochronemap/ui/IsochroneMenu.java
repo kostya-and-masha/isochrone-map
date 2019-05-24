@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
@@ -13,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.SearchView;
 
 import com.example.isochronemap.R;
+import com.example.isochronemap.geocoding.Geocoder;
 import com.example.isochronemap.isochronebuilding.IsochroneRequestType;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
@@ -226,9 +228,10 @@ public class IsochroneMenu extends ConstraintLayout {
         searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
             if (hasFocus) {
                 currentMode = Mode.SEARCH;
-                updateModeUI(true);
                 if (!searchResultsSet) {
                     searchField.setQuery(searchField.getQuery(), false);
+                } else if (isDrawn){
+                    updateModeUI(true);
                 }
             }
         });
@@ -362,7 +365,7 @@ public class IsochroneMenu extends ConstraintLayout {
             case SEARCH:
                 resultsRecycler.setVisibility(VISIBLE);
                 menuButton.setVisibility(GONE);
-                additionalSettings.setVisibility(GONE);
+                additionalSettingsButton.setVisibility(GONE);
                 adjustCardHeightAndBlackout(true, computeResultsRecyclerHeight(), true);
                 break;
         }
@@ -434,7 +437,6 @@ public class IsochroneMenu extends ConstraintLayout {
     private void adjustCardHeightAndBlackout(boolean animate,
                                              float contentHeight,
                                              boolean blackout) {
-
         CardView settingsCard = findViewById(R.id.settings_card);
         float translation = -settingsCard.getHeight() + contentHeight;
         if (translation > 0) translation = 0;
