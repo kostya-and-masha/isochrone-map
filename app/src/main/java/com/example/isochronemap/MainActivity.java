@@ -19,12 +19,12 @@ import com.example.isochronemap.isochronebuilding.UnsupportedParameterException;
 import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
-import com.example.isochronemap.searchhistory.SearchDatabase;
 import com.example.isochronemap.ui.IsochroneMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -47,8 +47,15 @@ import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private static final float DEFAULT_ZOOM_LEVEL = 10;
-    private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
+
+    private static final String CAMERA_POSITION = "CAMERA_POSITION";
+    private static final String MARKER_POSITION = "MARKER_POSITION";
+    private static final String POLYGON_OPTIONS = "POLYGON_OPTIONS";
+
+    private CameraPosition initialCameraPosition;
+    private LatLng initialMarkerPosition;
+    private ArrayList<PolygonOptions> currentPolygonOptions;
 
     private GoogleMap map;
     private Marker currentPosition;
@@ -103,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        menu.setOnPlaceQueryListener(this::setCurrentPositionAndMoveCamera);
+        menu.setOnPlaceQueryListener(this::setCurrentPosition);
 
         buildIsochroneButton.setOnClickListener(ignored -> {
             menu.closeEverything();
@@ -121,21 +128,57 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
                 return;
             }
-            OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
+            OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
         });
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        initialCameraPosition = savedInstanceState.getParcelable(CAMERA_POSITION);
+        initialMarkerPosition = savedInstanceState.getParcelable(MARKER_POSITION);
+        currentPolygonOptions = savedInstanceState.getParcelableArrayList(POLYGON_OPTIONS);
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        if (map != null) {
+            outState.putParcelable(CAMERA_POSITION, map.getCameraPosition());
+        }
+        if (currentPosition != null) {
+            outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
+        }
+        outState.putParcelableArrayList(POLYGON_OPTIONS, currentPolygonOptions);
+
+        super.onSaveInstanceState(outState);
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
-
         map.setPadding(14, 180, 14, 0);
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                START_POSITION, DEFAULT_ZOOM_LEVEL
-        ));
-        map.setOnMapLongClickListener(latLng ->
-                setCurrentPosition(new Coordinate(latLng.latitude, latLng.longitude))
-        );
+        map.setOnMapLongClickListener(position -> setCurrentPosition(new Coordinate(position)));
+
+        if (initialCameraPosition != null) {
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(initialCameraPosition));
+        } else {
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                    START_POSITION, DEFAULT_ZOOM_LEVEL
+            ));
+        }
+
+        if (initialMarkerPosition != null) {
+            currentPosition = map.addMarker(new MarkerOptions().position(initialMarkerPosition));
+        }
+
+        if (currentPolygonOptions != null) {
+            for (PolygonOptions options : currentPolygonOptions) {
+                currentPolygons.add(map.addPolygon(options));
+            }
+        } else {
+            currentPolygonOptions = new ArrayList<>();
+        }
     }
 
     @Override
@@ -164,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 18) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this, this::setCurrentPositionAndMoveCamera);
+                OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
             } else {
                 hideProgressBar();
                 Toast toast = Toast.makeText(this, "give permissions please :(",
@@ -189,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         new AsyncMapRequest().execute(
                 new IsochroneRequest(
-                        toCoordinate(currentPosition.getPosition()),
+                        new Coordinate(currentPosition.getPosition()),
                         getTravelTime(),
                         menu.getCurrentTransport(),
                         menu.getCurrentRequestType()
@@ -197,29 +240,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         );
     }
 
-    private void setCurrentPosition(Coordinate coordinate) {
+    private void setCurrentPosition(Coordinate position) {
         if (currentPosition == null) {
-            currentPosition = map.addMarker(new MarkerOptions().position(toLatLng(coordinate)));
+            currentPosition = map.addMarker(new MarkerOptions().position(position.toLatLng()));
         } else {
-            currentPosition.setPosition(toLatLng(coordinate));
+            currentPosition.setPosition(position.toLatLng());
         }
         buildIsochrone();
     }
 
-    private void moveCameraToCurrentPosition() {
-        map.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(currentPosition.getPosition(), CLOSE_ZOOM_LEVEL),
-                2000,
-                null
-        );
-    }
-
-    private void setCurrentPositionAndMoveCamera(Coordinate coordinate) {
-        setCurrentPosition(coordinate);
-        moveCameraToCurrentPosition();
-    }
-
-    private void setCurrentPolygons(List<IsochronePolygon> isochronePolygons) {
+    private void setCurrentPolygons(@NonNull List<IsochronePolygon> isochronePolygons) {
         removeCurrentPolygons();
 
         LatLngBox bounds = new LatLngBox();
@@ -232,7 +262,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             .getColor(this, R.color.colorPolygonFill));
 
             for (Coordinate coordinate : currentPolygon.getExteriorRing()) {
-                LatLng latLng = toLatLng(coordinate);
+                LatLng latLng = coordinate.toLatLng();
                 options.add(latLng);
                 bounds.add(latLng);
             }
@@ -240,10 +270,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             for (List<Coordinate> coordinates : currentPolygon.getInteriorRings()) {
                 List<LatLng> hole = new ArrayList<>();
                 for (Coordinate point : coordinates) {
-                    hole.add(toLatLng(point));
+                    hole.add(point.toLatLng());
                 }
                 options.addHole(hole);
             }
+            currentPolygonOptions.add(options);
             currentPolygons.add(map.addPolygon(options));
         }
 
@@ -261,14 +292,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             polygon.remove();
         }
         currentPolygons.clear();
-    }
-
-    private LatLng toLatLng(Coordinate coordinate) {
-        return new LatLng(coordinate.latitudeDeg, coordinate.longitudeDeg);
-    }
-
-    private Coordinate toCoordinate(LatLng latLng) {
-        return new Coordinate(latLng.latitude, latLng.longitude);
+        currentPolygonOptions.clear();
     }
 
     private double getTravelTime() {

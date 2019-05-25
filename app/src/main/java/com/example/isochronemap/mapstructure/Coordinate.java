@@ -1,9 +1,13 @@
 package com.example.isochronemap.mapstructure;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.util.Objects;
+
+import androidx.annotation.NonNull;
 
 /** Geographical coordinate. **/
 public class Coordinate {
@@ -24,6 +28,16 @@ public class Coordinate {
 
         this.latitudeRad = latitudeDeg * DistanceUtils.DEGREES_TO_RADIANS;
         this.longitudeRad = longitudeDeg * DistanceUtils.DEGREES_TO_RADIANS;
+    }
+
+    /** Constructs geographical coordinate from {@link LatLng}. **/
+    public Coordinate(@NonNull LatLng latLng) {
+        this(latLng.latitude, latLng.longitude);
+    }
+
+    /** Converts coordinate to {@link LatLng}. **/
+    public @NonNull LatLng toLatLng() {
+        return new LatLng(latitudeDeg, longitudeDeg);
     }
 
     /**
