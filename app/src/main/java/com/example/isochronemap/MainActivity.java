@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
     private static final String MARKER_POSITION = "MARKER_POSITION";
     private static final String POLYGON_OPTIONS = "POLYGON_OPTIONS";
+    private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
 
     private CameraPosition initialCameraPosition;
     private LatLng initialMarkerPosition;
@@ -85,8 +86,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 sharedPreferences.getString("currentRequestType", "HEXAGONAL_COVER"));
         float seekBarProgress =  sharedPreferences.getFloat("seekBarProgress", 10);
 
-        menu.setPreferencesBeforeDrawn(currentTransport,
-                currentRequestType, seekBarProgress);
+        menu.setPreferencesBeforeDrawn(currentTransport, currentRequestType, seekBarProgress);
 
         if (currentRequestType == IsochroneRequestType.HEXAGONAL_COVER) {
             ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(
@@ -139,6 +139,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         initialCameraPosition = savedInstanceState.getParcelable(CAMERA_POSITION);
         initialMarkerPosition = savedInstanceState.getParcelable(MARKER_POSITION);
         currentPolygonOptions = savedInstanceState.getParcelableArrayList(POLYGON_OPTIONS);
+        if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE)) {
+            showProgressBar();
+        }
     }
 
     @Override
@@ -150,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
         }
         outState.putParcelableArrayList(POLYGON_OPTIONS, currentPolygonOptions);
+        outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
 
         super.onSaveInstanceState(outState);
     }
