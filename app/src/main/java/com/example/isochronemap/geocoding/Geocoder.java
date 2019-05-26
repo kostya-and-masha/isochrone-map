@@ -1,5 +1,7 @@
 package com.example.isochronemap.geocoding;
 
+import android.os.AsyncTask;
+
 import com.example.isochronemap.mapstructure.BoundingBox;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.google.android.gms.common.util.IOUtils;
@@ -28,6 +30,7 @@ public class Geocoder {
      * @param currentLocation if not {@code null}, close locations have higher priority
      * @return list of matching locations
      */
+    // fixme exceptions
     public static List<Location> getLocations(@NonNull String query,
                                               @Nullable Coordinate currentLocation)
             throws IOException {
@@ -49,6 +52,20 @@ public class Geocoder {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Suggests locations matching with given query.
+     * @param query location description (address/name/etc)
+     * @param currentLocation if not {@code null}, close locations have higher priority
+     * @param onSuccess on success callback
+     * @param onFailure on failure callback
+     */
+    public static void getLocations(@NonNull String query,
+                                    @Nullable Coordinate currentLocation,
+                                    @NonNull Consumer<List<Location>> onSuccess,
+                                    @NonNull Consumer<Exception> onFailure) {
+        new GeocodingTask(query, currentLocation, onSuccess, onFailure).execute();
     }
 
     private static @NonNull String getViewBox(@NonNull Coordinate center, double radius) {
@@ -86,5 +103,44 @@ public class Geocoder {
             result.add(new Location(name, new Coordinate(latitude, longitude)));
         }
         return result;
+    }
+
+    private static class GeocodingTask extends AsyncTask<Void, Void, Void> {
+        private String query;
+        private Coordinate currentLocation;
+        private Consumer<List<Location>> onSuccess;
+        private Consumer<Exception> onFailure;
+
+        private List<Location> result;
+        private Exception exception;
+
+        private GeocodingTask(@NonNull String query,
+                              @Nullable Coordinate currentLocation,
+                              @NonNull Consumer<List<Location>> onSuccess,
+                              @NonNull Consumer<Exception> onFailure) {
+            this.query = query;
+            this.currentLocation = currentLocation;
+            this.onSuccess = onSuccess;
+            this.onFailure = onFailure;
+        }
+
+        @Override
+        protected Void doInBackground(Void... v) {
+            try {
+                result = Geocoder.getLocations(query, currentLocation);
+            } catch (IOException e) {
+                exception = e;
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            if (exception != null) {
+                onFailure.accept(exception);
+            } else {
+                onSuccess.accept(result);
+            }
+        }
     }
 }
