@@ -53,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String MARKER_POSITION = "MARKER_POSITION";
     private static final String POLYGON_OPTIONS = "POLYGON_OPTIONS";
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
+    public static final int INITIAL_PERMISSIONS_REQUEST = 1;
+    public static final int GEOPOSITION_REQUEST = 2;
 
     private CameraPosition initialCameraPosition;
     private LatLng initialMarkerPosition;
@@ -121,15 +123,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             showProgressBar();
             menu.closeEverything();
             //FIXME magic constant
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (!OneTimeLocationProvider.hasPermissions(this)) {
                 ActivityCompat.requestPermissions(this,
-                        new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 18);
+                        new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
+                        GEOPOSITION_REQUEST);
                 return;
             }
             OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
         });
+
+        //FIXME logic is to complex!!!
+        if (!OneTimeLocationProvider.hasPermissions(this)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
+                    INITIAL_PERMISSIONS_REQUEST);
+        }
     }
 
     @Override
@@ -207,17 +215,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        //FIXME magic constant
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 18) {
+        if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
             } else {
                 hideProgressBar();
+                //FIXME move to Util class
                 Toast toast = Toast.makeText(this, "give permissions please :(",
                         Toast.LENGTH_LONG);
                 toast.show();
             }
+        } else if (requestCode == INITIAL_PERMISSIONS_REQUEST
+                && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+            Toast toast = Toast.makeText(this, "give permissions please :(",
+                    Toast.LENGTH_LONG);
+            toast.show();
         }
     }
 

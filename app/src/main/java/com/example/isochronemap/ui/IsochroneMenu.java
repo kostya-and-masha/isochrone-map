@@ -6,20 +6,23 @@ import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SearchView;
+import android.widget.Toast;
 
 import com.example.isochronemap.R;
+import com.example.isochronemap.geocoding.Consumer;
 import com.example.isochronemap.geocoding.Geocoder;
+import com.example.isochronemap.geocoding.Location;
 import com.example.isochronemap.isochronebuilding.IsochroneRequestType;
+import com.example.isochronemap.location.CoordinateConsumer;
+import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
 import com.example.isochronemap.util.CoordinateParser;
-import com.example.isochronemap.util.TEMP_DummyResult;
 import com.warkiz.widget.IndicatorSeekBar;
 
 import java.util.List;
@@ -134,11 +137,6 @@ public class IsochroneMenu extends ConstraintLayout {
 
     private void init(AttributeSet attributes) {
         menuMainLayout = inflate(getContext(), R.layout.menu_main_layout, this);
-        searchField = findViewById(R.id.search_field);
-
-        resultsRecycler = findViewById(R.id.results_list);
-        adapter = new SearchResultsAdapter();
-
         mainSettings = findViewById(R.id.main_settings);
         additionalSettings = findViewById(R.id.additional_settings);
         additionalSettingsButton = findViewById(R.id.additional_settings_button);
@@ -194,6 +192,20 @@ public class IsochroneMenu extends ConstraintLayout {
             updateAdditionalSettingUI();
         });
 
+        blackoutView.setOnClickListener(view -> {
+            currentMode = Mode.CLOSED;
+            updateModeUI(true);
+        });
+
+        initSearch();
+        setUIUpdater();
+    }
+
+    private void initSearch() {
+        searchField = findViewById(R.id.search_field);
+        resultsRecycler = findViewById(R.id.results_list);
+        adapter = new SearchResultsAdapter();
+
         searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -205,9 +217,28 @@ public class IsochroneMenu extends ConstraintLayout {
                     currentMode = Mode.CLOSED;
                     updateModeUI(true);
                 } else {
-                    List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(30);
-                    adapter.setItems(list);
-                    updateModeUI(true);
+                    Consumer<List<Location>> onSuccessListener = list -> {
+                        adapter.setItems(list);
+                        updateModeUI(true);
+                    };
+
+                    Consumer<Exception> onFailureListener = exception -> {
+                        Toast toast = Toast.makeText(getContext(),
+                                "could not get search results",
+                                Toast.LENGTH_LONG);
+                        toast.show();
+                    };
+
+                    CoordinateConsumer coordinateCallback = position -> {
+                            Geocoder.getLocations(query, position,
+                                    onSuccessListener, onFailureListener);
+                    };
+
+                    if (OneTimeLocationProvider.hasPermissions(getContext())) {
+                        OneTimeLocationProvider.getLocation(getContext(), coordinateCallback);
+                    } else {
+                        coordinateCallback.accept(null);
+                    }
                 }
                 clearFocus();
                 return false;
@@ -215,8 +246,8 @@ public class IsochroneMenu extends ConstraintLayout {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(10);
-                adapter.setItems(list);
+                //List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(10);
+                //adapter.setItems(list);
                 searchResultsSet = true;
                 if (isDrawn) {
                     updateModeUI(true);
@@ -236,11 +267,6 @@ public class IsochroneMenu extends ConstraintLayout {
             }
         });
 
-        blackoutView.setOnClickListener(view -> {
-            currentMode = Mode.CLOSED;
-            updateModeUI(true);
-        });
-
         resultsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
         resultsRecycler.setAdapter(adapter);
 
@@ -249,8 +275,6 @@ public class IsochroneMenu extends ConstraintLayout {
             currentMode = Mode.CLOSED;
             updateModeUI(true);
         });
-
-        setUIUpdater();
     }
 
     private void setUIUpdater() {

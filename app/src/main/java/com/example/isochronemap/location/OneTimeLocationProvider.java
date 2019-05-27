@@ -1,6 +1,7 @@
 package com.example.isochronemap.location;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
@@ -11,17 +12,21 @@ import android.os.Bundle;
 
 import com.example.isochronemap.mapstructure.Coordinate;
 
+import java.util.function.Consumer;
+
 import androidx.core.content.ContextCompat;
 
 //FIXME add javadoc
+//FIXME make methods non static
 public class OneTimeLocationProvider {
+    @SuppressLint("MissingPermission") // :)
     public static void getLocation(final Context context, CoordinateConsumer callback) {
         final LocationManager locationManager =
                 (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+
+        if (!hasPermissions(context)) {
             throw new SecurityException();
         }
 
@@ -43,5 +48,10 @@ public class OneTimeLocationProvider {
             public void onProviderDisabled(String provider) {
             }
         }, null);
+    }
+
+    public static boolean hasPermissions(final Context context) {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
     }
 }
