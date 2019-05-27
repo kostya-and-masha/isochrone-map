@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        menu = findViewById(R.id.menu);
+        menu = (IsochroneMenu)getSupportFragmentManager().findFragmentById(R.id.menu);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geopositionButton = findViewById(R.id.geoposition_button);
         progressBar = findViewById(R.id.progress_bar);

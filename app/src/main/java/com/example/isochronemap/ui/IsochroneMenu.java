@@ -3,10 +3,13 @@ package com.example.isochronemap.ui;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.AttributeSet;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -25,15 +28,22 @@ import com.example.isochronemap.mapstructure.TransportType;
 import com.example.isochronemap.util.CoordinateParser;
 import com.warkiz.widget.IndicatorSeekBar;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class IsochroneMenu extends ConstraintLayout {
-    private View menuMainLayout;
+public class IsochroneMenu extends Fragment {
+    private static final String MODE = "MODE";
+
+    private View mainLayout;
     private SearchView searchField;
 
     private RecyclerView resultsRecycler;
@@ -51,6 +61,17 @@ public class IsochroneMenu extends ConstraintLayout {
     private IndicatorSeekBar seekBar;
 
     private OnPlaceQueryListener onPlaceQueryListener = null;
+    private View.OnClickListener onConvexHullButtonClickListener = null;
+    private View.OnClickListener onHexagonalCoverButtonClickListener = null;
+
+    private boolean searchResultsSet = false;
+    private boolean isDrawn = false;
+    private Mode currentMode = Mode.CLOSED;
+    private ImageView blackoutView;
+
+    private Float seekBarProgress = null;
+    private TransportType currentTransport = TransportType.FOOT;
+    private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
     private enum Mode {
         CLOSED,
@@ -59,22 +80,22 @@ public class IsochroneMenu extends ConstraintLayout {
         SEARCH
     }
 
-    private boolean searchResultsSet = false;
-    private boolean isDrawn = false;
-    private Mode currentMode = Mode.CLOSED;
-    private ImageView blackoutView;
-
-    private float seekBarProgress = 0;
-    private TransportType currentTransport = TransportType.FOOT;
-    private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
-
-    public IsochroneMenu(Context context) {
-        this(context, null);
+    @Override
+    public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
+                                       @Nullable ViewGroup container,
+                                       @Nullable Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+        if (savedInstanceState != null) {
+            currentMode = (Mode)savedInstanceState.getSerializable(MODE);
+        }
+        return inflater.inflate(R.layout.menu_main_layout, container, false);
     }
 
-    public IsochroneMenu(Context context, AttributeSet attributes) {
-        super(context, attributes);
-        init(attributes);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        mainLayout = view;
+        init();
     }
 
     public void setPreferencesBeforeDrawn(TransportType transportType,
@@ -110,20 +131,12 @@ public class IsochroneMenu extends ConstraintLayout {
         return false;
     }
 
-    public void setOnConvexHullButtonClickListener(OnClickListener callerListener) {
-        convexHullButton.setOnClickListener(a -> {
-            callerListener.onClick(a);
-            currentRequestType = IsochroneRequestType.CONVEX_HULL;
-            updateAdditionalSettingUI();
-        });
+    public void setOnConvexHullButtonClickListener(View.OnClickListener callerListener) {
+        onConvexHullButtonClickListener = callerListener;
     }
 
-    public void setOnHexagonalCoverButtonClickListener(OnClickListener callerListener) {
-        hexagonalCoverButton.setOnClickListener(a -> {
-            callerListener.onClick(a);
-            currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
-            updateAdditionalSettingUI();
-        });
+    public void setOnHexagonalCoverButtonClickListener(View.OnClickListener callerListener) {
+        onHexagonalCoverButtonClickListener = callerListener;
     }
 
     public interface OnPlaceQueryListener {
@@ -135,19 +148,18 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
 
-    private void init(AttributeSet attributes) {
-        menuMainLayout = inflate(getContext(), R.layout.menu_main_layout, this);
-        mainSettings = findViewById(R.id.main_settings);
-        additionalSettings = findViewById(R.id.additional_settings);
-        additionalSettingsButton = findViewById(R.id.additional_settings_button);
-        menuButton = findViewById(R.id.menu_button);
-        walkingButton = findViewById(R.id.walking_button);
-        bikeButton = findViewById(R.id.bike_button);
-        carButton = findViewById(R.id.car_button);
-        convexHullButton = findViewById(R.id.convex_hull_button);
-        hexagonalCoverButton = findViewById(R.id.hexagonal_cover_button);
-        seekBar = findViewById(R.id.seekBar);
-        blackoutView = findViewById(R.id.blackout_view);
+    private void init() {
+        mainSettings = mainLayout.findViewById(R.id.main_settings);
+        additionalSettings = mainLayout.findViewById(R.id.additional_settings);
+        additionalSettingsButton = mainLayout.findViewById(R.id.additional_settings_button);
+        menuButton = mainLayout.findViewById(R.id.menu_button);
+        walkingButton = mainLayout.findViewById(R.id.walking_button);
+        bikeButton = mainLayout.findViewById(R.id.bike_button);
+        carButton = mainLayout.findViewById(R.id.car_button);
+        convexHullButton = mainLayout.findViewById(R.id.convex_hull_button);
+        hexagonalCoverButton = mainLayout.findViewById(R.id.hexagonal_cover_button);
+        seekBar = mainLayout.findViewById(R.id.seekBar);
+        blackoutView = mainLayout.findViewById(R.id.blackout_view);
 
         menuButton.setOnClickListener(view -> {
             if (currentMode == Mode.CLOSED) {
@@ -183,11 +195,17 @@ public class IsochroneMenu extends ConstraintLayout {
         });
 
         convexHullButton.setOnClickListener(view -> {
+            if (onConvexHullButtonClickListener != null) {
+                onConvexHullButtonClickListener.onClick(view);
+            }
             currentRequestType = IsochroneRequestType.CONVEX_HULL;
             updateAdditionalSettingUI();
         });
 
         hexagonalCoverButton.setOnClickListener(view -> {
+            if (onHexagonalCoverButtonClickListener != null) {
+                onHexagonalCoverButtonClickListener.onClick(view);
+            }
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
             updateAdditionalSettingUI();
         });
@@ -202,8 +220,8 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
     private void initSearch() {
-        searchField = findViewById(R.id.search_field);
-        resultsRecycler = findViewById(R.id.results_list);
+        searchField = mainLayout.findViewById(R.id.search_field);
+        resultsRecycler = mainLayout.findViewById(R.id.results_list);
         adapter = new SearchResultsAdapter();
 
         searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -240,7 +258,7 @@ public class IsochroneMenu extends ConstraintLayout {
                         coordinateCallback.accept(null);
                     }
                 }
-                clearFocus();
+                searchField.clearFocus();
                 return false;
             }
 
@@ -278,11 +296,11 @@ public class IsochroneMenu extends ConstraintLayout {
     }
 
     private void setUIUpdater() {
-        menuMainLayout.getViewTreeObserver()
+        mainLayout.getViewTreeObserver()
                 .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
-                        menuMainLayout.getViewTreeObserver()
+                        mainLayout.getViewTreeObserver()
                                 .removeOnGlobalLayoutListener(this);
                         updateAdditionalSettingUI();
                         updateMainSettingUI();
@@ -294,6 +312,11 @@ public class IsochroneMenu extends ConstraintLayout {
 
     private void updateMainSettingUI() {
         ImageButton transportButton;
+
+        float currentProgress =
+                (seekBarProgress != null ? seekBarProgress : seekBar.getProgressFloat());
+        seekBarProgress = null;
+
         switch (currentTransport) {
             //FIXME magic constants
             case FOOT:
@@ -317,7 +340,7 @@ public class IsochroneMenu extends ConstraintLayout {
             default:
                 throw new RuntimeException();
         }
-        seekBar.setProgress(seekBarProgress);
+        seekBar.setProgress(currentProgress);
 
         walkingButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
         bikeButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
@@ -334,15 +357,15 @@ public class IsochroneMenu extends ConstraintLayout {
         switch (currentRequestType) {
             case CONVEX_HULL:
                 currentButton = convexHullButton;
-                currentBorder = findViewById(R.id.convex_hull_border);
+                currentBorder = mainLayout.findViewById(R.id.convex_hull_border);
                 otherButton = hexagonalCoverButton;
-                otherBorder = findViewById(R.id.hexagonal_cover_border);
+                otherBorder = mainLayout.findViewById(R.id.hexagonal_cover_border);
                 break;
             case HEXAGONAL_COVER:
                 currentButton = hexagonalCoverButton;
-                currentBorder = findViewById(R.id.hexagonal_cover_border);
+                currentBorder = mainLayout.findViewById(R.id.hexagonal_cover_border);
                 otherButton = convexHullButton;
-                otherBorder = findViewById(R.id.convex_hull_border);
+                otherBorder = mainLayout.findViewById(R.id.convex_hull_border);
                 break;
             default:
                 throw new RuntimeException();
@@ -355,22 +378,22 @@ public class IsochroneMenu extends ConstraintLayout {
 
     private void updateModeUI(boolean animate) {
         if (currentMode == Mode.CLOSED) {
-            additionalSettingsButton.setVisibility(GONE);
-            menuButton.setVisibility(VISIBLE);
-            searchField.setVisibility(VISIBLE);
+            additionalSettingsButton.setVisibility(View.GONE);
+            menuButton.setVisibility(View.VISIBLE);
+            searchField.setVisibility(View.VISIBLE);
             searchField.clearFocus();
             adjustCardHeightAndBlackout(animate, 0, false);
             return;
         }
 
-        mainSettings.setVisibility(INVISIBLE);
-        additionalSettings.setVisibility(INVISIBLE);
-        resultsRecycler.setVisibility(INVISIBLE);
+        mainSettings.setVisibility(View.INVISIBLE);
+        additionalSettings.setVisibility(View.INVISIBLE);
+        resultsRecycler.setVisibility(View.INVISIBLE);
 
         switch(currentMode) {
             case MAIN_SETTING:
-                mainSettings.setVisibility(VISIBLE);
-                menuButton.setVisibility(VISIBLE);
+                mainSettings.setVisibility(View.VISIBLE);
+                menuButton.setVisibility(View.VISIBLE);
                 additionalSettingsButton.setVisibility(View.VISIBLE);
                 additionalSettingsButton.setImageTintList(
                         getContext().getColorStateList(R.color.colorPrimary));
@@ -378,8 +401,8 @@ public class IsochroneMenu extends ConstraintLayout {
                 adjustCardHeightAndBlackout(animate, mainSettings.getHeight(), true);
                 break;
             case ADDITIONAL_SETTINGS:
-                additionalSettings.setVisibility(VISIBLE);
-                menuButton.setVisibility(VISIBLE);
+                additionalSettings.setVisibility(View.VISIBLE);
+                menuButton.setVisibility(View.VISIBLE);
                 additionalSettingsButton.setVisibility(View.VISIBLE);
                 additionalSettingsButton.setImageTintList(
                         getContext().getColorStateList(R.color.colorDarkGrey));
@@ -387,9 +410,9 @@ public class IsochroneMenu extends ConstraintLayout {
                 adjustCardHeightAndBlackout(animate, mainSettings.getHeight(), true);
                 break;
             case SEARCH:
-                resultsRecycler.setVisibility(VISIBLE);
-                menuButton.setVisibility(GONE);
-                additionalSettingsButton.setVisibility(GONE);
+                resultsRecycler.setVisibility(View.VISIBLE);
+                menuButton.setVisibility(View.GONE);
+                additionalSettingsButton.setVisibility(View.GONE);
                 adjustCardHeightAndBlackout(true, computeResultsRecyclerHeight(), true);
                 break;
         }
@@ -406,62 +429,17 @@ public class IsochroneMenu extends ConstraintLayout {
         return padding + itemCount * itemSize + padding;
     }
 
-    static class SavedState extends BaseSavedState {
-        private Mode currentMode = Mode.CLOSED;
-
-        SavedState(Parcelable superState) {
-            super(superState);
-        }
-
-        private SavedState(Parcel in) {
-            super(in);
-            currentMode = (Mode)in.readSerializable();
-        }
-
-        @Override
-        public void writeToParcel(Parcel out, int flags) {
-            super.writeToParcel(out, flags);
-            out.writeSerializable(currentMode);
-        }
-
-        public static final Parcelable.Creator<SavedState> CREATOR =
-                new Parcelable.Creator<SavedState>() {
-                    public SavedState createFromParcel(Parcel in) {
-                        return new SavedState(in);
-                    }
-                    public SavedState[] newArray(int size) {
-                        return new SavedState[size];
-                    }
-                };
-    }
 
     @Override
-    public Parcelable onSaveInstanceState() {
-        Parcelable superState = super.onSaveInstanceState();
-        SavedState savedState = new SavedState(superState);
-
-        savedState.currentMode = currentMode;
-
-        return savedState;
-    }
-
-    @Override
-    public void onRestoreInstanceState(Parcelable state) {
-        if(!(state instanceof SavedState)) {
-            super.onRestoreInstanceState(state);
-            return;
-        }
-
-        SavedState savedState = (SavedState)state;
-        super.onRestoreInstanceState(savedState.getSuperState());
-
-        currentMode = savedState.currentMode;
+    public void onSaveInstanceState(@NotNull Bundle bundle) {
+        super.onSaveInstanceState(bundle);
+        bundle.putSerializable(MODE, currentMode);
     }
 
     private void adjustCardHeightAndBlackout(boolean animate,
                                              float contentHeight,
                                              boolean blackout) {
-        CardView settingsCard = findViewById(R.id.settings_card);
+        CardView settingsCard = mainLayout.findViewById(R.id.settings_card);
         float translation = -settingsCard.getHeight() + contentHeight;
         if (translation > 0) translation = 0;
         float blackoutAlpha;

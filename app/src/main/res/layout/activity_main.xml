@@ -42,7 +42,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_my_location_black_24dp" />
 
-    <com.example.isochronemap.ui.IsochroneMenu
+    <fragment
+        android:name="com.example.isochronemap.ui.IsochroneMenu"
         android:id="@+id/menu"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
