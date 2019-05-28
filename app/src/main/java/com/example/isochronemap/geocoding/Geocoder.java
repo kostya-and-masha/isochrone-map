@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 
 import com.example.isochronemap.mapstructure.BoundingBox;
 import com.example.isochronemap.mapstructure.Coordinate;
+import com.example.isochronemap.util.Consumer;
 import com.google.android.gms.common.util.IOUtils;
 import com.jsoniter.JsonIterator;
 

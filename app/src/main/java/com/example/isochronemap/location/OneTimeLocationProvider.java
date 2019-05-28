@@ -11,8 +11,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 
 import com.example.isochronemap.mapstructure.Coordinate;
-
-import java.util.function.Consumer;
+import com.example.isochronemap.util.Consumer;
 
 import androidx.core.content.ContextCompat;
 
@@ -20,7 +19,7 @@ import androidx.core.content.ContextCompat;
 //FIXME make methods non static
 public class OneTimeLocationProvider {
     @SuppressLint("MissingPermission") // :)
-    public static void getLocation(final Context context, CoordinateConsumer callback) {
+    public static void getLocation(final Context context, Consumer<Coordinate> callback) {
         final LocationManager locationManager =
                 (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();

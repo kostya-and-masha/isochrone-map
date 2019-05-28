@@ -13,15 +13,14 @@ import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.example.isochronemap.R;
-import com.example.isochronemap.geocoding.Consumer;
 import com.example.isochronemap.geocoding.Geocoder;
 import com.example.isochronemap.geocoding.Location;
 import com.example.isochronemap.isochronebuilding.IsochroneRequestType;
-import com.example.isochronemap.location.CoordinateConsumer;
 import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
 import com.example.isochronemap.searchhistory.SearchDatabase;
+import com.example.isochronemap.util.Consumer;
 import com.example.isochronemap.util.CoordinateParser;
 import com.warkiz.widget.IndicatorSeekBar;
 
@@ -303,7 +302,7 @@ public class IsochroneMenu extends Fragment {
                         toast.show();
                     };
 
-                    CoordinateConsumer coordinateCallback = position -> {
+                    Consumer<Coordinate> coordinateCallback = position -> {
                             Geocoder.getLocations(query, position,
                                     onSuccessListener, onFailureListener);
                     };
