@@ -319,6 +319,9 @@ public class IsochroneMenu extends Fragment {
                                 "could not get search results",
                                 Toast.LENGTH_LONG);
                         toast.show();
+                        if (onScreenBlcokListener != null) {
+                            onScreenBlcokListener.block(false);
+                        }
                     };
 
                     Consumer<Coordinate> coordinateCallback = position -> {
