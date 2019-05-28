@@ -16,6 +16,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -101,7 +102,9 @@ public class Geocoder {
                         break;
                 }
             }
-            result.add(new Location(name, new Coordinate(latitude, longitude)));
+            result.add(
+                    new Location(Objects.requireNonNull(name), new Coordinate(latitude, longitude))
+            );
         }
         return result;
     }
