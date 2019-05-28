@@ -110,11 +110,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 R.drawable.ic_convex_hull_button_24dp)
         );
 
+        menu.setOnPlaceQueryListener(this::setCurrentPosition);
+
+        menu.setOnScreenBlockListener(enable -> {
+            if (enable) {
+                showProgressBar();
+            } else {
+                hideProgressBar();
+            }
+        });
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-        menu.setOnPlaceQueryListener(this::setCurrentPosition);
 
         buildIsochroneButton.setOnClickListener(ignored -> {
             menu.closeEverything();

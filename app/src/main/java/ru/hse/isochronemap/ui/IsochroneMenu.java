@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewPropertyAnimator;
 import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -64,9 +63,10 @@ public class IsochroneMenu extends Fragment {
     private ImageButton hexagonalCoverButton;
     private IndicatorSeekBar seekBar;
 
-    private OnPlaceQueryListener onPlaceQueryListener = null;
-    private View.OnClickListener onConvexHullButtonClickListener = null;
-    private View.OnClickListener onHexagonalCoverButtonClickListener = null;
+    private OnPlaceQueryListener onPlaceQueryListener;
+    private View.OnClickListener onConvexHullButtonClickListener;
+    private View.OnClickListener onHexagonalCoverButtonClickListener;
+    private OnScreenBlockListener onScreenBlcokListener;
 
     private boolean isDrawn = false;
     private Mode currentMode = Mode.CLOSED;
@@ -75,6 +75,14 @@ public class IsochroneMenu extends Fragment {
     private Float seekBarProgress = null;
     private TransportType currentTransport = TransportType.FOOT;
     private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
+
+    public interface OnScreenBlockListener {
+        void block(boolean enable);
+    }
+
+    public interface OnPlaceQueryListener {
+        void OnPlaceQuery(Coordinate coordinate);
+    }
 
     private enum Mode {
         CLOSED,
@@ -167,14 +175,13 @@ public class IsochroneMenu extends Fragment {
         onHexagonalCoverButtonClickListener = callerListener;
     }
 
-    public interface OnPlaceQueryListener {
-        void OnPlaceQuery(Coordinate coordinate);
+    public void setOnScreenBlockListener(OnScreenBlockListener listener) {
+        onScreenBlcokListener = listener;
     }
 
     public void setOnPlaceQueryListener(OnPlaceQueryListener listener) {
         onPlaceQueryListener = listener;
     }
-
 
     private void init(Bundle savedInstanceState) {
         mainSettings = mainLayout.findViewById(R.id.main_settings);
@@ -295,8 +302,15 @@ public class IsochroneMenu extends Fragment {
                     }
                     closeEverything();
                 } else {
+                    if (onScreenBlcokListener != null) {
+                        onScreenBlcokListener.block(true);
+                    }
+
                     Consumer<List<Location>> onSuccessListener = list -> {
                         adapter.setResults(list);
+                        if (onScreenBlcokListener != null) {
+                            onScreenBlcokListener.block(false);
+                        }
                         updateModeUI(true);
                     };
 
@@ -520,7 +534,7 @@ public class IsochroneMenu extends Fragment {
                     "translationY", translation);
             ObjectAnimator blackoutAnimation = ObjectAnimator.ofFloat(blackoutView,
                     "alpha", blackoutAlpha);
-            
+
             blackoutAnimation.setDuration(200);
             cardAnimation.setDuration(200);
 
