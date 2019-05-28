@@ -8,67 +8,149 @@ import android.widget.TextView;
 
 import com.example.isochronemap.R;
 import com.example.isochronemap.geocoding.Location;
-import com.example.isochronemap.util.TEMP_DummyResult;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class SearchResultsAdapter extends
+class SearchResultsAdapter extends
         RecyclerView.Adapter<SearchResultsAdapter.SearchResultsViewHolder> {
 
-    List<Location> results = new ArrayList<>();
-    OnResultClickListener onResultClickListener = null;
+    private List<String> hints = new ArrayList<>();
+    private List<Location> results;
 
-    public interface OnResultClickListener {
+    private OnHintClickListener onHintClickListener;
+    private OnHintDeleteClickListener onHintDeleteClickListener;
+    private OnResultClickListener onResultClickListener;
+
+    private AdapterMode mode = AdapterMode.HINTS;
+
+    enum AdapterMode {
+        HINTS, RESULTS
+    }
+
+    interface OnResultClickListener {
         void onResultClick(Location result);
     }
 
-    public void setOnResultClickListener(OnResultClickListener listener) {
-        this.onResultClickListener = listener;
+    void setOnResultClickListener(@NonNull OnResultClickListener listener) {
+        onResultClickListener = listener;
     }
 
-    public void setItems(Collection<Location> newResults) {
-        results.clear();
-        results.addAll(newResults);
+    interface OnHintClickListener {
+        void onHintClick(String hint);
+    }
+
+    void setOnHintClickListener(@NonNull OnHintClickListener listener) {
+        onHintClickListener = listener;
+    }
+
+    interface OnHintDeleteClickListener {
+        void onHintDeleteClick(String hint);
+    }
+
+    void setOnHintDeleteClickListener(@NotNull OnHintDeleteClickListener listener) {
+        onHintDeleteClickListener = listener;
+    }
+
+    void setResults(List<Location> newResults) {
+        hints = null;
+        results = newResults;
+        mode = AdapterMode.RESULTS;
         notifyDataSetChanged();
     }
 
-    @NonNull
+    void setHints(List<String> newHints) {
+        results = null;
+        hints = newHints;
+        mode = AdapterMode.HINTS;
+        notifyDataSetChanged();
+    }
+
+
+    @NonNull AdapterMode getAdapterMode() {
+        return mode;
+    }
+
+    @NonNull Serializable getAdapterContentSerializable() {
+        List<?> list = (mode == AdapterMode.HINTS ? hints : results);
+
+        if (hints instanceof Serializable) {
+            return (Serializable)list;
+        } else {
+            return new ArrayList<>(list);
+        }
+    }
+
     @Override
-    public SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public @NonNull SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent,
+                                                               int viewType) {
         View item = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.search_results_item, parent,false);
+        ((ImageView)item.findViewById(R.id.right_icon))
+                .setImageResource(R.drawable.ic_delete_black_24dp);
         return new SearchResultsViewHolder(item);
     }
 
     @Override
     public void onBindViewHolder(@NonNull SearchResultsViewHolder holder, int position) {
-        holder.icon.setImageResource(R.drawable.ic_place_black_24dp);
-        holder.text.setText(results.get(position).name);
+        if (mode == AdapterMode.HINTS) {
+            holder.leftIcon.setImageResource(R.drawable.ic_access_time_black_24dp);
+            holder.rightIcon.setVisibility(View.VISIBLE);
+            holder.text.setText(hints.get(position));
+        } else if (mode == AdapterMode.RESULTS) {
+            holder.leftIcon.setImageResource(R.drawable.ic_place_black_24dp);
+            holder.rightIcon.setVisibility(View.GONE);
+            holder.text.setText(results.get(position).name);
+        }
     }
 
     @Override
     public int getItemCount() {
-        return results.size();
+        if (mode == AdapterMode.HINTS) {
+            return hints.size();
+        } else if (mode == AdapterMode.RESULTS) {
+            return results.size();
+        }
+        return 0;
     }
 
     public class SearchResultsViewHolder extends RecyclerView.ViewHolder {
-        private ImageView icon;
+        private ImageView leftIcon;
         private TextView text;
+        private ImageView rightIcon;
 
         public SearchResultsViewHolder(View view) {
             super(view);
 
-            icon = view.findViewById(R.id.icon);
+            leftIcon = view.findViewById(R.id.left_icon);
             text = view.findViewById(R.id.text);
+            rightIcon = view.findViewById(R.id.right_icon);
 
             view.setOnClickListener(v -> {
-                Location result = results.get(getLayoutPosition());
-                onResultClickListener.onResultClick(result);
+                if (mode == AdapterMode.HINTS) {
+                    String hint = hints.get(getLayoutPosition());
+                    if (onHintClickListener != null) {
+                        onHintClickListener.onHintClick(hint);
+                    }
+                } else if (mode == AdapterMode.RESULTS) {
+                    Location result = results.get(getLayoutPosition());
+                    if (onResultClickListener != null) {
+                        onResultClickListener.onResultClick(result);
+                    }
+                }
+            });
+
+            rightIcon.setOnClickListener(v -> {
+                String hint = hints.get(getLayoutPosition());
+                if (onHintDeleteClickListener != null) {
+                    onHintDeleteClickListener.onHintDeleteClick(hint);
+                }
             });
         }
 

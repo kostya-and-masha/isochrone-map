@@ -2,11 +2,7 @@ package com.example.isochronemap.ui;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.content.Context;
 import android.os.Bundle;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +21,7 @@ import com.example.isochronemap.location.CoordinateConsumer;
 import com.example.isochronemap.location.OneTimeLocationProvider;
 import com.example.isochronemap.mapstructure.Coordinate;
 import com.example.isochronemap.mapstructure.TransportType;
+import com.example.isochronemap.searchhistory.SearchDatabase;
 import com.example.isochronemap.util.CoordinateParser;
 import com.warkiz.widget.IndicatorSeekBar;
 
@@ -41,13 +38,19 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class IsochroneMenu extends Fragment {
-    private static final String MODE = "MODE";
+    private static final String MENU_MODE = "MENU_MODE";
+    private static final String DATABASE_NAME = "HINTS_DB";
+    private static final String SEARCH_FIELD_QUERY = "SEARCH_FIELD_QUERY";
+    private static final String ADAPTER_MODE = "ADAPTER_MODE";
+    private static final String ADAPTER_LIST = "ADAPTER_LIST";
 
     private View mainLayout;
     private SearchView searchField;
 
     private RecyclerView resultsRecycler;
-    private SearchResultsAdapter adapter;
+    private SearchResultsAdapter adapter = new SearchResultsAdapter();
+    private String currentQuery = "";
+    private SearchDatabase database;
 
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
@@ -64,7 +67,6 @@ public class IsochroneMenu extends Fragment {
     private View.OnClickListener onConvexHullButtonClickListener = null;
     private View.OnClickListener onHexagonalCoverButtonClickListener = null;
 
-    private boolean searchResultsSet = false;
     private boolean isDrawn = false;
     private Mode currentMode = Mode.CLOSED;
     private ImageView blackoutView;
@@ -81,13 +83,22 @@ public class IsochroneMenu extends Fragment {
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            currentMode = (Mode)savedInstanceState.getSerializable(MENU_MODE);
+        }
+
+        //Will not happen because onCreate is called after onAttach
+        assert getActivity() != null;
+        database = new SearchDatabase(getActivity(), DATABASE_NAME);
+    }
+
+    @Override
     public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
                                        @Nullable ViewGroup container,
                                        @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        if (savedInstanceState != null) {
-            currentMode = (Mode)savedInstanceState.getSerializable(MODE);
-        }
         return inflater.inflate(R.layout.menu_main_layout, container, false);
     }
 
@@ -95,8 +106,24 @@ public class IsochroneMenu extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mainLayout = view;
-        init();
+        init(savedInstanceState);
     }
+
+    @Override
+    public void onSaveInstanceState(@NotNull Bundle bundle) {
+        super.onSaveInstanceState(bundle);
+        bundle.putSerializable(MENU_MODE, currentMode);
+        bundle.putSerializable(ADAPTER_MODE, adapter.getAdapterMode());
+        bundle.putString(SEARCH_FIELD_QUERY, searchField.getQuery().toString());
+        bundle.putSerializable(ADAPTER_LIST, adapter.getAdapterContentSerializable());
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        database.close();
+    }
+
 
     public void setPreferencesBeforeDrawn(TransportType transportType,
                                           IsochroneRequestType isochroneRequestType,
@@ -148,7 +175,7 @@ public class IsochroneMenu extends Fragment {
     }
 
 
-    private void init() {
+    private void init(Bundle savedInstanceState) {
         mainSettings = mainLayout.findViewById(R.id.main_settings);
         additionalSettings = mainLayout.findViewById(R.id.additional_settings);
         additionalSettingsButton = mainLayout.findViewById(R.id.additional_settings_button);
@@ -215,28 +242,57 @@ public class IsochroneMenu extends Fragment {
             updateModeUI(true);
         });
 
-        initSearch();
+        initSearch(savedInstanceState);
         setUIUpdater();
     }
 
-    private void initSearch() {
+    private void initSearch(Bundle savedInstanceState) {
         searchField = mainLayout.findViewById(R.id.search_field);
         resultsRecycler = mainLayout.findViewById(R.id.results_list);
-        adapter = new SearchResultsAdapter();
+
+        Consumer<String> hintsUpdater = (hint -> {
+            List<String> list = database.getSearchQueries(hint);
+            adapter.setHints(list);
+            if (isDrawn) {
+                updateModeUI(true);
+            }
+        });
+
+        if (savedInstanceState != null) {
+            SearchResultsAdapter.AdapterMode mode =
+                    (SearchResultsAdapter.AdapterMode)savedInstanceState
+                            .getSerializable(ADAPTER_MODE);
+            currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY);
+
+            if (mode == SearchResultsAdapter.AdapterMode.HINTS) {
+                @SuppressWarnings("unchecked")
+                List<String> content =
+                        (List<String>) savedInstanceState.getSerializable(ADAPTER_LIST);
+                adapter.setHints(content);
+            } else {
+                @SuppressWarnings("unchecked")
+                List<Location> content =
+                        (List<Location>) savedInstanceState.getSerializable(ADAPTER_LIST);
+                adapter.setResults(content);
+            }
+        } else {
+            hintsUpdater.accept(currentQuery);
+        }
 
         searchField.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
+                database.putSearchQuery(query);
                 Coordinate coordinate = CoordinateParser.parseCoordinate(query);
+
                 if (coordinate != null) {
                     if (onPlaceQueryListener != null) {
                         onPlaceQueryListener.OnPlaceQuery(coordinate);
                     }
-                    currentMode = Mode.CLOSED;
-                    updateModeUI(true);
+                    closeEverything();
                 } else {
                     Consumer<List<Location>> onSuccessListener = list -> {
-                        adapter.setItems(list);
+                        adapter.setResults(list);
                         updateModeUI(true);
                     };
 
@@ -264,12 +320,11 @@ public class IsochroneMenu extends Fragment {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                //List<TEMP_DummyResult> list = TEMP_DummyResult.getMultipleDummies(10);
-                //adapter.setItems(list);
-                searchResultsSet = true;
-                if (isDrawn) {
-                    updateModeUI(true);
+                if (newText.equals(currentQuery)) {
+                    return true;
                 }
+                currentQuery = newText;
+                hintsUpdater.accept(newText);
                 return true;
             }
         });
@@ -277,9 +332,7 @@ public class IsochroneMenu extends Fragment {
         searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
             if (hasFocus) {
                 currentMode = Mode.SEARCH;
-                if (!searchResultsSet) {
-                    searchField.setQuery(searchField.getQuery(), false);
-                } else if (isDrawn){
+                if (isDrawn){
                     updateModeUI(true);
                 }
             }
@@ -292,6 +345,15 @@ public class IsochroneMenu extends Fragment {
             onPlaceQueryListener.OnPlaceQuery(result.coordinate);
             currentMode = Mode.CLOSED;
             updateModeUI(true);
+        });
+
+        adapter.setOnHintClickListener(hint -> {
+            searchField.setQuery(hint, true);
+        });
+
+        adapter.setOnHintDeleteClickListener(hint -> {
+            database.deleteSearchQuery(hint);
+            hintsUpdater.accept(searchField.getQuery().toString());
         });
     }
 
@@ -413,7 +475,8 @@ public class IsochroneMenu extends Fragment {
                 resultsRecycler.setVisibility(View.VISIBLE);
                 menuButton.setVisibility(View.GONE);
                 additionalSettingsButton.setVisibility(View.GONE);
-                adjustCardHeightAndBlackout(true, computeResultsRecyclerHeight(), true);
+                adjustCardHeightAndBlackout(true,
+                        computeResultsRecyclerHeight(), true);
                 break;
         }
     }
@@ -427,13 +490,6 @@ public class IsochroneMenu extends Fragment {
         float padding = getResources().getDimension(R.dimen.card_hidden_part);
         float itemSize = getResources().getDimension(R.dimen.icons_size);
         return padding + itemCount * itemSize + padding;
-    }
-
-
-    @Override
-    public void onSaveInstanceState(@NotNull Bundle bundle) {
-        super.onSaveInstanceState(bundle);
-        bundle.putSerializable(MODE, currentMode);
     }
 
     private void adjustCardHeightAndBlackout(boolean animate,
