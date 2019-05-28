@@ -16,6 +16,7 @@ import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
+import ru.hse.isochronemap.location.ApproximateLocationProvider;
 import ru.hse.isochronemap.location.OneTimeLocationProvider;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
@@ -51,6 +52,7 @@ public class IsochroneMenu extends Fragment {
     private SearchResultsAdapter adapter = new SearchResultsAdapter();
     private String currentQuery = "";
     private SearchDatabase database;
+    private ApproximateLocationProvider approximateLocationProvider;
 
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
@@ -101,6 +103,8 @@ public class IsochroneMenu extends Fragment {
         //Will not happen because onCreate is called after onAttach
         assert getActivity() != null;
         database = new SearchDatabase(getActivity(), DATABASE_NAME);
+
+        approximateLocationProvider = new ApproximateLocationProvider(getContext());
     }
 
     @Override
@@ -151,6 +155,7 @@ public class IsochroneMenu extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         database.close();
+        approximateLocationProvider.close();
     }
 
 
@@ -329,16 +334,10 @@ public class IsochroneMenu extends Fragment {
                         }
                     };
 
-                    Consumer<Coordinate> coordinateCallback = position -> {
-                            Geocoder.getLocations(query, position,
-                                    onSuccessListener, onFailureListener);
-                    };
-
-                    if (OneTimeLocationProvider.hasPermissions(getContext())) {
-                        OneTimeLocationProvider.getLocation(getContext(), coordinateCallback);
-                    } else {
-                        coordinateCallback.accept(null);
-                    }
+                    approximateLocationProvider.getLocation(position -> {
+                        Geocoder.getLocations(query, position,
+                                onSuccessListener, onFailureListener);
+                    });
                 }
                 searchField.clearFocus();
                 return false;
