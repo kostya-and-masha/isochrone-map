@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 R.drawable.ic_convex_hull_button_24dp)
         );
 
-        menu.setOnPlaceQueryListener(this::setCurrentPosition);
+        menu.setOnPlaceQueryListener(this::setCurrentPositionAndMoveCamera);
 
         menu.setOnScreenBlockListener(enable -> {
             if (enable) {
@@ -139,7 +139,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         GEOPOSITION_REQUEST);
                 return;
             }
-            OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+            OneTimeLocationProvider.getLocation(this,
+                    this::setCurrentPositionAndMoveCamera);
         });
 
         //FIXME logic is to complex!!!
@@ -228,7 +229,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this, this::setCurrentPosition);
+                OneTimeLocationProvider.getLocation(this,
+                        this::setCurrentPositionAndMoveCamera);
             } else {
                 hideProgressBar();
                 //FIXME move to Util class
@@ -274,6 +276,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentPosition.setPosition(position.toLatLng());
         }
         buildIsochrone();
+    }
+
+    private void setCurrentPositionAndMoveCamera(Coordinate position) {
+        setCurrentPosition(position);
+        map.animateCamera(
+                CameraUpdateFactory.newLatLng(currentPosition.getPosition()),
+                2000,
+                null
+        );
     }
 
     private void setCurrentPolygons(@NonNull List<IsochronePolygon> isochronePolygons) {
