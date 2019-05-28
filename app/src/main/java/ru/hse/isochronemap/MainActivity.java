@@ -11,7 +11,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.example.isochronemap.R;
+import ru.hse.isochronemap.R;
 
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.IsochronePolygon;
