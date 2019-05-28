@@ -42,7 +42,7 @@ public class SearchDatabase implements AutoCloseable {
     }
 
     public void deleteSearchQuery(@NonNull String query) {
-        String selection = SearchEntry.COLUMN_QUERY + " = ?";
+        String selection = "LOWER(" + SearchEntry.COLUMN_QUERY + ") = LOWER(?)";
         String[] selectionArgs = { query };
         database.delete(SearchEntry.TABLE_NAME, selection, selectionArgs);
     }
