@@ -124,7 +124,27 @@ public class IsochroneMenu extends Fragment {
         bundle.putSerializable(MENU_MODE, currentMode);
         bundle.putSerializable(ADAPTER_MODE, adapter.getAdapterMode());
         bundle.putString(SEARCH_FIELD_QUERY, searchField.getQuery().toString());
-        bundle.putSerializable(ADAPTER_LIST, adapter.getAdapterContentSerializable());
+
+        if (adapter.getAdapterMode() == SearchResultsAdapter.AdapterMode.HINTS) {
+            bundle.putStringArrayList(ADAPTER_LIST, adapter.getHintsList());
+        } else {
+            bundle.putParcelableArrayList(ADAPTER_LIST, adapter.getResultsList());
+        }
+    }
+
+    private void restoreAdapterAndQuery(@NonNull Bundle savedInstanceState) {
+        SearchResultsAdapter.AdapterMode mode =
+                (SearchResultsAdapter.AdapterMode)savedInstanceState.getSerializable(ADAPTER_MODE);
+
+        currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY);
+
+        if (mode == SearchResultsAdapter.AdapterMode.HINTS) {
+            List<String> content = savedInstanceState.getStringArrayList(ADAPTER_LIST);
+            adapter.setHints(content);
+        } else {
+            List<Location> content = savedInstanceState.getParcelableArrayList(ADAPTER_LIST);
+            adapter.setResults(content);
+        }
     }
 
     @Override
@@ -266,23 +286,8 @@ public class IsochroneMenu extends Fragment {
             }
         });
 
-        if (savedInstanceState != null) {
-            SearchResultsAdapter.AdapterMode mode =
-                    (SearchResultsAdapter.AdapterMode)savedInstanceState
-                            .getSerializable(ADAPTER_MODE);
-            currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY);
-
-            if (mode == SearchResultsAdapter.AdapterMode.HINTS) {
-                @SuppressWarnings("unchecked")
-                List<String> content =
-                        (List<String>) savedInstanceState.getSerializable(ADAPTER_LIST);
-                adapter.setHints(content);
-            } else {
-                @SuppressWarnings("unchecked")
-                List<Location> content =
-                        (List<Location>) savedInstanceState.getSerializable(ADAPTER_LIST);
-                adapter.setResults(content);
-            }
+        if (savedInstanceState != null ) {
+            restoreAdapterAndQuery(savedInstanceState);
         } else {
             hintsUpdater.accept(currentQuery);
         }

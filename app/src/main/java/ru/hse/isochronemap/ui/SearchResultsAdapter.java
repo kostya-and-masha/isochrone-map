@@ -77,14 +77,22 @@ class SearchResultsAdapter extends
         return mode;
     }
 
-    @NonNull Serializable getAdapterContentSerializable() {
-        List<?> list = (mode == AdapterMode.HINTS ? hints : results);
-
-        if (hints instanceof Serializable) {
-            return (Serializable)list;
-        } else {
-            return new ArrayList<>(list);
+    @NonNull ArrayList<String> getHintsList() {
+        if (hints instanceof ArrayList) {
+            return (ArrayList<String>) hints;
+        } else if (hints != null) {
+            return new ArrayList<>(hints);
         }
+        return new ArrayList<>();
+    }
+
+    @NonNull ArrayList<Location> getResultsList() {
+        if (results instanceof ArrayList) {
+            return (ArrayList<Location>) results;
+        } else if (hints != null) {
+            return new ArrayList<>(results);
+        }
+        return new ArrayList<>();
     }
 
     @Override
