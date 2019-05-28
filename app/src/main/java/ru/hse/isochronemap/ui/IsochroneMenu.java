@@ -17,7 +17,6 @@ import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
 import ru.hse.isochronemap.location.ApproximateLocationProvider;
-import ru.hse.isochronemap.location.OneTimeLocationProvider;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
 import ru.hse.isochronemap.searchhistory.SearchDatabase;
@@ -44,6 +43,7 @@ public class IsochroneMenu extends Fragment {
     private static final String SEARCH_FIELD_QUERY = "SEARCH_FIELD_QUERY";
     private static final String ADAPTER_MODE = "ADAPTER_MODE";
     private static final String ADAPTER_LIST = "ADAPTER_LIST";
+    private static final String APPROXIMATE_LOCATION = "APPROXIMATE_LOCATION";
 
     private View mainLayout;
     private SearchView searchField;
@@ -104,7 +104,17 @@ public class IsochroneMenu extends Fragment {
         assert getActivity() != null;
         database = new SearchDatabase(getActivity(), DATABASE_NAME);
 
-        approximateLocationProvider = new ApproximateLocationProvider(getContext());
+        assert getContext() != null;
+        if (savedInstanceState != null) {
+            Coordinate location = savedInstanceState.getParcelable(APPROXIMATE_LOCATION);
+            approximateLocationProvider = new ApproximateLocationProvider(
+                    getContext(), location
+            );
+        } else {
+            approximateLocationProvider = new ApproximateLocationProvider(
+                    getContext(), null
+            );
+        }
     }
 
     @Override
@@ -134,6 +144,11 @@ public class IsochroneMenu extends Fragment {
         } else {
             bundle.putParcelableArrayList(ADAPTER_LIST, adapter.getResultsList());
         }
+
+        bundle.putParcelable(
+                APPROXIMATE_LOCATION,
+                approximateLocationProvider.getLocationImmediately()
+        );
     }
 
     private void restoreAdapterAndQuery(@NonNull Bundle savedInstanceState) {

@@ -1,5 +1,8 @@
 package ru.hse.isochronemap.mapstructure;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.android.gms.maps.model.LatLng;
 
 import org.jetbrains.annotations.NotNull;
@@ -8,7 +11,20 @@ import org.locationtech.spatial4j.distance.DistanceUtils;
 import androidx.annotation.NonNull;
 
 /** Geographical coordinate. **/
-public class Coordinate {
+public class Coordinate implements Parcelable {
+    public static final Parcelable.Creator<Coordinate> CREATOR =
+            new Parcelable.Creator<Coordinate>() {
+        @Override
+        public Coordinate createFromParcel(@NonNull Parcel in) {
+            return new Coordinate(in);
+        }
+
+        @Override
+        public Coordinate[] newArray(int size) {
+            return new Coordinate[size];
+        }
+    };
+
     public final double latitudeDeg;
     public final double longitudeDeg;
 
@@ -31,6 +47,10 @@ public class Coordinate {
     /** Constructs geographical coordinate from {@link LatLng}. **/
     public Coordinate(@NonNull LatLng latLng) {
         this(latLng.latitude, latLng.longitude);
+    }
+
+    private Coordinate(@NonNull Parcel in) {
+        this(in.readDouble(), in.readDouble());
     }
 
     /** Converts coordinate to {@link LatLng}. **/
@@ -60,5 +80,16 @@ public class Coordinate {
         Coordinate that = (Coordinate) o;
         return Math.abs(that.latitudeDeg - latitudeDeg) < 1e-8
                 && Math.abs(that.longitudeDeg - longitudeDeg) < 1e-8;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel out, int flags) {
+        out.writeDouble(latitudeDeg);
+        out.writeDouble(longitudeDeg);
     }
 }

@@ -9,6 +9,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.Consumer;
 
@@ -18,11 +20,13 @@ public class ApproximateLocationProvider implements AutoCloseable {
 
     private final HandlerThread handlerThread;
     private final Context context;
-    private final AtomicReference<Coordinate> lastLocation = new AtomicReference<>(null);
+    private final AtomicReference<Coordinate> lastLocation;
     private final Timer timer;
 
-    public ApproximateLocationProvider(final Context context) {
+    public ApproximateLocationProvider(@NonNull final Context context,
+                                       @Nullable Coordinate initialLocation) {
         this.context = context;
+        lastLocation = new AtomicReference<>(initialLocation);
 
         handlerThread = new HandlerThread("GET_LOCATION_HANDLER_THREAD");
         handlerThread.start();
@@ -56,6 +60,10 @@ public class ApproximateLocationProvider implements AutoCloseable {
         } else {
             callback.accept(location);
         }
+    }
+
+    public @Nullable Coordinate getLocationImmediately() {
+        return lastLocation.get();
     }
 
     @Override
