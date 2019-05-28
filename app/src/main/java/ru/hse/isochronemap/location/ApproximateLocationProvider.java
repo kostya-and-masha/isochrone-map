@@ -50,15 +50,18 @@ public class ApproximateLocationProvider implements AutoCloseable {
     }
 
     public void getLocation(Consumer<Coordinate> callback) {
-        Coordinate location = lastLocation;
-        if (location == null) {
+        Coordinate locationSnapshot = lastLocation;
+        if (locationSnapshot == null) {
             if (OneTimeLocationProvider.hasPermissions(context)) {
-                OneTimeLocationProvider.getLocation(context, callback);
+                OneTimeLocationProvider.getLocation(context, location -> {
+                    lastLocation = location;
+                    callback.accept(location);
+                });
             } else {
                 callback.accept(null);
             }
         } else {
-            callback.accept(location);
+            callback.accept(locationSnapshot);
         }
     }
 
