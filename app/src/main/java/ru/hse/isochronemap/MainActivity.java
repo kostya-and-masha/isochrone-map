@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String TASKS_FRAGMENT_TAG = "TASKS_FRAGMENT";
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
     private static final String MARKER_POSITION = "MARKER_POSITION";
+    private static final String MARKER_TITLE = "MARKER_TITLE";
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
     private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
     public static final int INITIAL_PERMISSIONS_REQUEST = 1;
@@ -63,12 +64,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private CameraPosition initialCameraPosition;
     private LatLng initialMarkerPosition;
+    private String initialMarkerTitle;
     private Runnable onMapReadyAction;
     private ArrayList<PolygonOptions> currentPolygonOptions;
 
     private GoogleMap map;
     private Marker currentPosition;
     private List<Polygon> currentPolygons = new ArrayList<>();
+
 
     private IsochroneMenu menu;
     private FloatingActionButton buildIsochroneButton;
@@ -174,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         initialCameraPosition = savedInstanceState.getParcelable(CAMERA_POSITION);
         initialMarkerPosition = savedInstanceState.getParcelable(MARKER_POSITION);
+        initialMarkerTitle = savedInstanceState.getString(MARKER_TITLE);
         currentPolygonOptions = auxiliaryFragment.getSavedPolygons();
         auxiliaryFragment.setSavedPolygons(null);
         if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE)) {
@@ -189,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         if (currentPosition != null) {
             outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
+            outState.putString(MARKER_TITLE, currentPosition.getTitle());
         }
         auxiliaryFragment.setSavedPolygons(currentPolygonOptions);
         outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
@@ -199,6 +204,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
+        //FIXME
         map.setPadding(14, 180, 14, 0);
         map.setOnMapLongClickListener(position -> setCurrentPosition(new Coordinate(position)));
 
@@ -212,6 +218,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (initialMarkerPosition != null) {
             currentPosition = map.addMarker(new MarkerOptions().position(initialMarkerPosition));
+            updateMarkerTitle(initialMarkerTitle);
         }
 
         if (currentPolygonOptions != null) {
@@ -290,6 +297,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
 
+        updateMarkerTitle("");
         new AsyncMapRequest(auxiliaryFragment).execute(
                 new IsochroneRequest(
                         new Coordinate(currentPosition.getPosition()),
@@ -306,6 +314,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             currentPosition.setPosition(position.toLatLng());
         }
+        currentPosition.setTitle("");
+        currentPosition.hideInfoWindow();
         buildIsochrone();
     }
 
@@ -364,6 +374,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         currentPolygonOptions.clear();
     }
 
+    private void updateMarkerTitle(String title) {
+        currentPosition.setTitle(title);
+        if (title.equals("")) {
+            currentPosition.hideInfoWindow();
+        } else {
+            currentPosition.showInfoWindow();
+        }
+    }
     private double getTravelTime() {
         return menu.getCurrentSeekBarProgress() / 60.0;
     }
@@ -380,6 +398,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return menu;
     }
 
+    //FIXME PLS!!!! mb move to enum?????
+    private static String transportTypeInSentence(@NonNull TransportType transportType) {
+        if (transportType == TransportType.FOOT) {
+            return "on foot";
+        } else {
+            return "by " + transportType.name().toLowerCase();
+        }
+    }
     public void asyncMapRequestCallback(IsochroneResponse response) {
         if (map == null) {
             onMapReadyAction = () -> asyncMapRequestCallback(response);
@@ -389,6 +415,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         hideProgressBar();
         if (response.isSuccessful) {
             setCurrentPolygons(response.getResult());
+            updateMarkerTitle(Math.round(
+                    response.travelTime * 60) +
+                    " min " +
+                    transportTypeInSentence(response.transportType));
         } else {
             Toast toast = Toast.makeText(
                     MainActivity.this,
@@ -425,7 +455,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 request.travelTime,
                                 request.transportType,
                                 request.isochroneType
-                        )
+                        ),
+                        request.travelTime,
+                        request.transportType
                 );
             } catch (UnsupportedParameterException e) {
                 return new IsochroneResponse(e.getMessage());
@@ -460,17 +492,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     static class IsochroneResponse {
         private final boolean isSuccessful;
         private final List<IsochronePolygon> result;
+        private final double travelTime;
+        private final TransportType transportType;
         private final String errorMessage;
 
-        private IsochroneResponse(List<IsochronePolygon> polygons) {
+        private IsochroneResponse(List<IsochronePolygon> polygons,
+                                  double travelTime, TransportType transportType) {
             isSuccessful = true;
             result = polygons;
+            this.travelTime = travelTime;
+            this.transportType = transportType;
             errorMessage = null;
         }
 
         private IsochroneResponse(String message) {
             isSuccessful = false;
             result = null;
+            travelTime = 0;
+            transportType = null;
             errorMessage = message;
         }
 
