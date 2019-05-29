@@ -12,7 +12,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.fragment.app.FragmentManager;
-import ru.hse.isochronemap.R;
 
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.IsochronePolygon;
@@ -55,12 +54,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String TASKS_FRAGMENT_TAG = "TASKS_FRAGMENT";
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
     private static final String MARKER_POSITION = "MARKER_POSITION";
-    private static final String POLYGON_OPTIONS = "POLYGON_OPTIONS";
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
+    private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
     public static final int INITIAL_PERMISSIONS_REQUEST = 1;
     public static final int GEOPOSITION_REQUEST = 2;
 
-    private TasksFragment tasksFragment;
+    private AuxiliaryFragment auxiliaryFragment;
 
     private CameraPosition initialCameraPosition;
     private LatLng initialMarkerPosition;
@@ -76,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton geopositionButton;
     private ProgressBar progressBar;
 
+    private boolean permissionsDenied;
     SharedPreferences sharedPreferences;
 
     @Override
@@ -84,10 +84,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
 
         FragmentManager fragmentManager = getSupportFragmentManager();
-        tasksFragment = (TasksFragment) fragmentManager.findFragmentByTag(TASKS_FRAGMENT_TAG);
-        if (tasksFragment == null) {
-            tasksFragment = new TasksFragment();
-            fragmentManager.beginTransaction().add(tasksFragment, TASKS_FRAGMENT_TAG).commit();
+        auxiliaryFragment = (AuxiliaryFragment) fragmentManager.findFragmentByTag(TASKS_FRAGMENT_TAG);
+        if (auxiliaryFragment == null) {
+            auxiliaryFragment = new AuxiliaryFragment();
+            fragmentManager.beginTransaction().add(auxiliaryFragment, TASKS_FRAGMENT_TAG).commit();
         }
 
         menu = (IsochroneMenu)getSupportFragmentManager().findFragmentById(R.id.menu);
@@ -132,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        menu.setTasksFragment(tasksFragment);
+        menu.setAuxiliaryFragment(auxiliaryFragment);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -153,27 +153,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         GEOPOSITION_REQUEST);
                 return;
             }
-            OneTimeLocationProvider.getLocation(this, tasksFragment::gpsButtonCallback);
+            OneTimeLocationProvider.getLocation(this, auxiliaryFragment::gpsButtonCallback);
         });
 
-        //FIXME logic is to complex!!!
-        if (!OneTimeLocationProvider.hasPermissions(this)) {
+        if (savedInstanceState != null) {
+            restoreInstanceState(savedInstanceState);
+        }
+
+        if (!permissionsDenied && !OneTimeLocationProvider.hasPermissions(this)) {
             ActivityCompat.requestPermissions(this,
                     new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
                     INITIAL_PERMISSIONS_REQUEST);
         }
     }
 
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    // onRestoreInstanceState does not fit
+    // because some parameters have to be restored in onCreate
+    private void restoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
         initialCameraPosition = savedInstanceState.getParcelable(CAMERA_POSITION);
         initialMarkerPosition = savedInstanceState.getParcelable(MARKER_POSITION);
-        currentPolygonOptions = savedInstanceState.getParcelableArrayList(POLYGON_OPTIONS);
+        currentPolygonOptions = auxiliaryFragment.getSavedPolygons();
+        auxiliaryFragment.setSavedPolygons(null);
         if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE)) {
             showProgressBar();
         }
+        permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED);
     }
 
     @Override
@@ -184,9 +190,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (currentPosition != null) {
             outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
         }
-        outState.putParcelableArrayList(POLYGON_OPTIONS, currentPolygonOptions);
+        auxiliaryFragment.setSavedPolygons(currentPolygonOptions);
         outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
-
+        outState.putBoolean(PERMISSIONS_DENIED, permissionsDenied);
         super.onSaveInstanceState(outState);
     }
 
@@ -246,9 +252,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (permissions.length == 0) {
+            return;
+        }
+
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this, tasksFragment::gpsButtonCallback);
+                OneTimeLocationProvider.getLocation(this,
+                        auxiliaryFragment::gpsButtonCallback);
             } else {
                 hideProgressBar();
                 //FIXME move to Util class
@@ -261,6 +273,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Toast toast = Toast.makeText(this, "give permissions please :(",
                     Toast.LENGTH_LONG);
             toast.show();
+            permissionsDenied = true;
         }
     }
 
@@ -277,7 +290,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
 
-        new AsyncMapRequest(tasksFragment).execute(
+        new AsyncMapRequest(auxiliaryFragment).execute(
                 new IsochroneRequest(
                         new Coordinate(currentPosition.getPosition()),
                         getTravelTime(),
@@ -395,11 +408,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private static class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
-        TasksFragment tasksFragment;
+        AuxiliaryFragment auxiliaryFragment;
 
-        private AsyncMapRequest(TasksFragment tasksFragment) {
+        private AsyncMapRequest(AuxiliaryFragment auxiliaryFragment) {
             super();
-            this.tasksFragment = tasksFragment;
+            this.auxiliaryFragment = auxiliaryFragment;
         }
 
         @Override
@@ -425,7 +438,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         @Override
         protected void onPostExecute(IsochroneResponse response) {
-            tasksFragment.asyncMapRequestCallback(response);
+            auxiliaryFragment.asyncMapRequestCallback(response);
         }
     }
 

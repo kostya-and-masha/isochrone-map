@@ -4,14 +4,18 @@ import android.content.Context;
 import android.os.Bundle;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.PolygonOptions;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import androidx.fragment.app.Fragment;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 
-public class TasksFragment extends Fragment {
+public class AuxiliaryFragment extends Fragment {
     private MainActivity mainActivity;
+    private ArrayList<PolygonOptions> savedPolygons;
 
     @Override
     public void onAttach(Context context) {
@@ -33,6 +37,14 @@ public class TasksFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mainActivity = null;
+    }
+
+    public ArrayList<PolygonOptions> getSavedPolygons() {
+        return savedPolygons;
+    }
+
+    public void setSavedPolygons(ArrayList<PolygonOptions> savedPolygons) {
+        this.savedPolygons = savedPolygons;
     }
 
     public void asyncMapRequestCallback(MainActivity.IsochroneResponse response) {

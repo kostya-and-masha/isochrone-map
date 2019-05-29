@@ -13,7 +13,7 @@ import android.widget.SearchView;
 import android.widget.Toast;
 
 import ru.hse.isochronemap.R;
-import ru.hse.isochronemap.TasksFragment;
+import ru.hse.isochronemap.AuxiliaryFragment;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
@@ -49,7 +49,7 @@ public class IsochroneMenu extends Fragment {
     private View mainLayout;
     private SearchView searchField;
 
-    private TasksFragment tasksFragment;
+    private AuxiliaryFragment auxiliaryFragment;
 
     private RecyclerView resultsRecycler;
     private SearchResultsAdapter adapter = new SearchResultsAdapter();
@@ -209,8 +209,8 @@ public class IsochroneMenu extends Fragment {
         return false;
     }
 
-    public void setTasksFragment(TasksFragment tasksFragment) {
-        this.tasksFragment = tasksFragment;
+    public void setAuxiliaryFragment(AuxiliaryFragment auxiliaryFragment) {
+        this.auxiliaryFragment = auxiliaryFragment;
     }
 
     public void setOnConvexHullButtonClickListener(View.OnClickListener callerListener) {
@@ -357,8 +357,8 @@ public class IsochroneMenu extends Fragment {
 
                     approximateLocationProvider.getLocation(position -> {
                         Geocoder.getLocations(query, position,
-                                tasksFragment::onSuccessSearchResultsCallback,
-                                tasksFragment::onFailureSearchResultsCallback);
+                                auxiliaryFragment::onSuccessSearchResultsCallback,
+                                auxiliaryFragment::onFailureSearchResultsCallback);
                     });
                 }
                 searchField.clearFocus();
