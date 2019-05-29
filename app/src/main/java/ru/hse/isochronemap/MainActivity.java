@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import androidx.fragment.app.FragmentManager;
 import ru.hse.isochronemap.R;
 
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final float DEFAULT_ZOOM_LEVEL = 10;
     private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
 
+    private static final String TASKS_FRAGMENT_TAG = "TASKS_FRAGMENT";
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
     private static final String MARKER_POSITION = "MARKER_POSITION";
     private static final String POLYGON_OPTIONS = "POLYGON_OPTIONS";
@@ -58,8 +60,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public static final int INITIAL_PERMISSIONS_REQUEST = 1;
     public static final int GEOPOSITION_REQUEST = 2;
 
+    private TasksFragment tasksFragment;
+
     private CameraPosition initialCameraPosition;
     private LatLng initialMarkerPosition;
+    private Runnable onMapReadyAction;
     private ArrayList<PolygonOptions> currentPolygonOptions;
 
     private GoogleMap map;
@@ -77,6 +82,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        tasksFragment = (TasksFragment) fragmentManager.findFragmentByTag(TASKS_FRAGMENT_TAG);
+        if (tasksFragment == null) {
+            tasksFragment = new TasksFragment();
+            fragmentManager.beginTransaction().add(tasksFragment, TASKS_FRAGMENT_TAG).commit();
+        }
 
         menu = (IsochroneMenu)getSupportFragmentManager().findFragmentById(R.id.menu);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
@@ -120,6 +132,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        menu.setTasksFragment(tasksFragment);
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -139,8 +153,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         GEOPOSITION_REQUEST);
                 return;
             }
-            OneTimeLocationProvider.getLocation(this,
-                    this::setCurrentPositionAndMoveCamera);
+            OneTimeLocationProvider.getLocation(this, tasksFragment::gpsButtonCallback);
         });
 
         //FIXME logic is to complex!!!
@@ -202,6 +215,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             currentPolygonOptions = new ArrayList<>();
         }
+
+        //zhopa
+        if (onMapReadyAction != null) {
+            onMapReadyAction.run();
+            onMapReadyAction = null;
+        }
     }
 
     @Override
@@ -229,8 +248,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this,
-                        this::setCurrentPositionAndMoveCamera);
+                OneTimeLocationProvider.getLocation(this, tasksFragment::gpsButtonCallback);
             } else {
                 hideProgressBar();
                 //FIXME move to Util class
@@ -259,7 +277,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
 
-        new AsyncMapRequest().execute(
+        new AsyncMapRequest(tasksFragment).execute(
                 new IsochroneRequest(
                         new Coordinate(currentPosition.getPosition()),
                         getTravelTime(),
@@ -345,7 +363,45 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         progressBar.setVisibility(View.GONE);
     }
 
-    private class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
+    public IsochroneMenu getMenu() {
+        return menu;
+    }
+
+    public void asyncMapRequestCallback(IsochroneResponse response) {
+        if (map == null) {
+            onMapReadyAction = () -> asyncMapRequestCallback(response);
+            return;
+        }
+
+        hideProgressBar();
+        if (response.isSuccessful) {
+            setCurrentPolygons(response.getResult());
+        } else {
+            Toast toast = Toast.makeText(
+                    MainActivity.this,
+                    response.getErrorMessage(),
+                    Toast.LENGTH_LONG);
+            toast.show();
+        }
+    }
+
+    public void gpsButtonCallback(Coordinate coordinate) {
+        if (map == null) {
+            onMapReadyAction = () -> gpsButtonCallback(coordinate);
+            return;
+        }
+
+        setCurrentPositionAndMoveCamera(coordinate);
+    }
+
+    private static class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
+        TasksFragment tasksFragment;
+
+        private AsyncMapRequest(TasksFragment tasksFragment) {
+            super();
+            this.tasksFragment = tasksFragment;
+        }
+
         @Override
         protected IsochroneResponse doInBackground(IsochroneRequest ... isochroneRequest) {
             IsochroneRequest request = isochroneRequest[0];
@@ -369,16 +425,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         @Override
         protected void onPostExecute(IsochroneResponse response) {
-            hideProgressBar();
-            if (response.isSuccessful) {
-                setCurrentPolygons(response.getResult());
-            } else {
-                Toast toast = Toast.makeText(
-                        MainActivity.this,
-                        response.getErrorMessage(),
-                        Toast.LENGTH_LONG);
-                toast.show();
-            }
+            tasksFragment.asyncMapRequestCallback(response);
         }
     }
 
@@ -397,7 +444,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private static class IsochroneResponse {
+    static class IsochroneResponse {
         private final boolean isSuccessful;
         private final List<IsochronePolygon> result;
         private final String errorMessage;

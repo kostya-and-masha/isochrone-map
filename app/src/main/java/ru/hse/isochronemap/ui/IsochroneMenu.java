@@ -13,6 +13,7 @@ import android.widget.SearchView;
 import android.widget.Toast;
 
 import ru.hse.isochronemap.R;
+import ru.hse.isochronemap.TasksFragment;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
@@ -47,6 +48,8 @@ public class IsochroneMenu extends Fragment {
 
     private View mainLayout;
     private SearchView searchField;
+
+    private TasksFragment tasksFragment;
 
     private RecyclerView resultsRecycler;
     private SearchResultsAdapter adapter = new SearchResultsAdapter();
@@ -173,7 +176,6 @@ public class IsochroneMenu extends Fragment {
         approximateLocationProvider.close();
     }
 
-
     public void setPreferencesBeforeDrawn(TransportType transportType,
                                           IsochroneRequestType isochroneRequestType,
                                           float seekBarProgress) {
@@ -205,6 +207,10 @@ public class IsochroneMenu extends Fragment {
             return true;
         }
         return false;
+    }
+
+    public void setTasksFragment(TasksFragment tasksFragment) {
+        this.tasksFragment = tasksFragment;
     }
 
     public void setOnConvexHullButtonClickListener(View.OnClickListener callerListener) {
@@ -294,6 +300,24 @@ public class IsochroneMenu extends Fragment {
         setUIUpdater();
     }
 
+    public void onSuccessSearchResultsCallback(List<Location> list) {
+        adapter.setResults(list);
+        if (onScreenBlcokListener != null) {
+            onScreenBlcokListener.block(false);
+        }
+        updateModeUI(true);
+    }
+
+    public void onFailureSearchResultsCallback(Exception exception) {
+        Toast toast = Toast.makeText(getContext(),
+                "could not get search results",
+                Toast.LENGTH_LONG);
+        toast.show();
+        if (onScreenBlcokListener != null) {
+            onScreenBlcokListener.block(false);
+        }
+    }
+
     private void initSearch(Bundle savedInstanceState) {
         searchField = mainLayout.findViewById(R.id.search_field);
         resultsRecycler = mainLayout.findViewById(R.id.results_list);
@@ -331,27 +355,10 @@ public class IsochroneMenu extends Fragment {
                         onScreenBlcokListener.block(true);
                     }
 
-                    Consumer<List<Location>> onSuccessListener = list -> {
-                        adapter.setResults(list);
-                        if (onScreenBlcokListener != null) {
-                            onScreenBlcokListener.block(false);
-                        }
-                        updateModeUI(true);
-                    };
-
-                    Consumer<Exception> onFailureListener = exception -> {
-                        Toast toast = Toast.makeText(getContext(),
-                                "could not get search results",
-                                Toast.LENGTH_LONG);
-                        toast.show();
-                        if (onScreenBlcokListener != null) {
-                            onScreenBlcokListener.block(false);
-                        }
-                    };
-
                     approximateLocationProvider.getLocation(position -> {
                         Geocoder.getLocations(query, position,
-                                onSuccessListener, onFailureListener);
+                                tasksFragment::onSuccessSearchResultsCallback,
+                                tasksFragment::onFailureSearchResultsCallback);
                     });
                 }
                 searchField.clearFocus();
