@@ -27,10 +27,10 @@ class OverpassRequestBuilder {
 
     private static String boundingBoxString(BoundingBox box) {
         return "[bbox:" +
-                Double.toString(box.minimum.latitudeDeg) + "," +
-                Double.toString(box.minimum.longitudeDeg) + "," +
-                Double.toString(box.maximum.latitudeDeg) + "," +
-                Double.toString(box.maximum.longitudeDeg) + "]";
+                Double.toString(box.minimum.latitudeDeg) + ","
+                + Double.toString(box.minimum.longitudeDeg) + ","
+                + Double.toString(box.maximum.latitudeDeg) + ","
+                + Double.toString(box.maximum.longitudeDeg) + "]";
     }
 
     private static String restrictionString(RoadRestriction restriction) {

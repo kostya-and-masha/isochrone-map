@@ -2,6 +2,7 @@ package ru.hse.isochronemap;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
@@ -84,6 +85,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // fix android bug which occurs if newly installed app is run from the confirmation window
+        if (!isTaskRoot()
+            && getIntent().hasCategory(Intent.CATEGORY_LAUNCHER)
+            && getIntent().getAction() != null
+            && getIntent().getAction().equals(Intent.ACTION_MAIN)) {
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_main);
 
         FragmentManager fragmentManager = getSupportFragmentManager();
