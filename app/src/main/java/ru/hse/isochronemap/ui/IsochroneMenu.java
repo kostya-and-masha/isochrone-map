@@ -355,11 +355,19 @@ public class IsochroneMenu extends Fragment {
                         onScreenBlcokListener.block(true);
                     }
 
-                    approximateLocationProvider.getLocation(position -> {
-                        Geocoder.getLocations(query, position,
-                                auxiliaryFragment::onSuccessSearchResultsCallback,
-                                auxiliaryFragment::onFailureSearchResultsCallback);
-                    });
+                    approximateLocationProvider.getLocation(position ->
+                        Geocoder.getLocations(
+                                query,
+                                position,
+                                list -> auxiliaryFragment.transferActionToMainActivity(
+                                        activity -> activity.getMenu()
+                                                .onSuccessSearchResultsCallback(list)
+                                ),
+                                exception -> auxiliaryFragment.transferActionToMainActivity(
+                                        activity -> activity.getMenu()
+                                                .onFailureSearchResultsCallback(exception)
+                                ))
+                    );
                 }
                 searchField.clearFocus();
                 return false;

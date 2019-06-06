@@ -171,7 +171,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         GEOPOSITION_REQUEST);
                 return;
             }
-            OneTimeLocationProvider.getLocation(this, auxiliaryFragment::gpsButtonCallback);
+            OneTimeLocationProvider.getLocation(this,
+                    result -> auxiliaryFragment.transferActionToMainActivity(
+                            activity -> activity.gpsButtonCallback(result))
+            );
         });
 
         if (savedInstanceState != null) {
@@ -286,7 +289,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 OneTimeLocationProvider.getLocation(this,
-                        auxiliaryFragment::gpsButtonCallback);
+                        result -> auxiliaryFragment.transferActionToMainActivity(
+                                activity -> activity.gpsButtonCallback(result))
+                );
             } else {
                 hideProgressBar();
                 hideBlackoutView();
@@ -434,28 +439,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return "by " + transportType.name().toLowerCase();
         }
     }
-    public void asyncMapRequestCallback(IsochroneResponse response) {
-        if (map == null) {
-            onMapReadyAction = () -> asyncMapRequestCallback(response);
-            return;
-        }
-
-        hideProgressBar();
-        hideBlackoutView();
-        if (response.isSuccessful) {
-            setCurrentPolygons(response.getResult());
-            updateMarkerTitle(Math.round(
-                    response.travelTime * 60) +
-                    " min " +
-                    transportTypeInSentence(response.transportType));
-        } else {
-            Toast toast = Toast.makeText(
-                    MainActivity.this,
-                    response.getErrorMessage(),
-                    Toast.LENGTH_LONG);
-            toast.show();
-        }
-    }
 
     public void gpsButtonCallback(Coordinate coordinate) {
         if (map == null) {
@@ -499,7 +482,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         @Override
         protected void onPostExecute(IsochroneResponse response) {
-            auxiliaryFragment.asyncMapRequestCallback(response);
+            auxiliaryFragment.transferActionToMainActivity(activity ->
+                    activity.asyncMapRequestCallback(response));
+        }
+    }
+
+    public void asyncMapRequestCallback(IsochroneResponse response) {
+        if (map == null) {
+            onMapReadyAction = () -> asyncMapRequestCallback(response);
+            return;
+        }
+
+        hideProgressBar();
+        hideBlackoutView();
+        if (response.isSuccessful) {
+            setCurrentPolygons(response.getResult());
+            updateMarkerTitle(Math.round(
+                    response.travelTime * 60) +
+                    " min " +
+                    transportTypeInSentence(response.transportType));
+        } else {
+            Toast toast = Toast.makeText(
+                    MainActivity.this,
+                    response.getErrorMessage(),
+                    Toast.LENGTH_LONG);
+            toast.show();
         }
     }
 
