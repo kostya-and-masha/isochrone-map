@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String MARKER_POSITION = "MARKER_POSITION";
     private static final String MARKER_TITLE = "MARKER_TITLE";
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
+    private static final String BLACKOUT_VIEW_STATE = "BLACKOUT_VIEW_STATE";
     private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
     public static final int INITIAL_PERMISSIONS_REQUEST = 1;
     public static final int GEOPOSITION_REQUEST = 2;
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton buildIsochroneButton;
     private FloatingActionButton geopositionButton;
     private ProgressBar progressBar;
+    private View blackoutView;
 
     private boolean permissionsDenied;
     SharedPreferences sharedPreferences;
@@ -108,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geopositionButton = findViewById(R.id.geoposition_button);
         progressBar = findViewById(R.id.progress_bar);
+        blackoutView = findViewById(R.id.main_blackout_view);
 
         sharedPreferences = getPreferences(Context.MODE_PRIVATE);
         TransportType currentTransport = TransportType.valueOf(
@@ -159,6 +162,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         geopositionButton.setOnClickListener(ignored -> {
             showProgressBar();
+            showBlackoutView();
             menu.closeEverything();
             //FIXME magic constant
             if (!OneTimeLocationProvider.hasPermissions(this)) {
@@ -194,6 +198,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE)) {
             showProgressBar();
         }
+        if (savedInstanceState.getBoolean(BLACKOUT_VIEW_STATE)) {
+            showBlackoutView();
+        }
         permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED);
     }
 
@@ -208,6 +215,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         auxiliaryFragment.setSavedPolygons(currentPolygonOptions);
         outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
+        outState.putBoolean(BLACKOUT_VIEW_STATE, blackoutView.getVisibility() == View.VISIBLE);
         outState.putBoolean(PERMISSIONS_DENIED, permissionsDenied);
         super.onSaveInstanceState(outState);
     }
@@ -281,6 +289,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         auxiliaryFragment::gpsButtonCallback);
             } else {
                 hideProgressBar();
+                hideBlackoutView();
                 //FIXME move to Util class
                 Toast toast = Toast.makeText(this, "give permissions please :(",
                         Toast.LENGTH_LONG);
@@ -296,10 +305,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void buildIsochrone() {
-        showProgressBar();
         removeCurrentPolygons();
         if (currentPosition == null) {
-            hideProgressBar();
             Toast toast = Toast.makeText(
                     this,
                     "please choose location",
@@ -307,6 +314,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             toast.show();
             return;
         }
+        showProgressBar();
+        showBlackoutView();
 
         updateMarkerTitle("");
         new AsyncMapRequest(auxiliaryFragment).execute(
@@ -397,6 +406,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return menu.getCurrentSeekBarProgress() / 60.0;
     }
 
+    private void showBlackoutView() {
+        blackoutView.setVisibility(View.VISIBLE);
+    }
+
+    private void hideBlackoutView() {
+        blackoutView.setVisibility(View.GONE);
+    }
+
     private void showProgressBar() {
         progressBar.setVisibility(View.VISIBLE);
     }
@@ -424,6 +441,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         hideProgressBar();
+        hideBlackoutView();
         if (response.isSuccessful) {
             setCurrentPolygons(response.getResult());
             updateMarkerTitle(Math.round(

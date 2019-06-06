@@ -50,9 +50,18 @@
         tools:visibility="invisible"
         android:elevation="@dimen/ui_elevation"/>
 
+    <View
+        android:id="@+id/main_blackout_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.7"
+        android:elevation="@dimen/ui_elevation_plus"
+        android:background="@color/colorDarkGrey"
+        android:visibility="gone"/>
+
     <ProgressBar
         android:id="@+id/progress_bar"
-        android:elevation="@dimen/ui_elevation"
+        android:elevation="@dimen/ui_elevation_plus"
         android:indeterminateDrawable="@drawable/progress_bar_drawable"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

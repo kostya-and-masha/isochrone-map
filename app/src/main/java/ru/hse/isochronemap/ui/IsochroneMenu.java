@@ -75,7 +75,7 @@ public class IsochroneMenu extends Fragment {
 
     private boolean isDrawn = false;
     private Mode currentMode = Mode.CLOSED;
-    private ImageView blackoutView;
+    private View blackoutView;
 
     private Float seekBarProgress = null;
     private TransportType currentTransport = TransportType.FOOT;
@@ -240,7 +240,7 @@ public class IsochroneMenu extends Fragment {
         convexHullButton = mainLayout.findViewById(R.id.convex_hull_button);
         hexagonalCoverButton = mainLayout.findViewById(R.id.hexagonal_cover_button);
         seekBar = mainLayout.findViewById(R.id.seekBar);
-        blackoutView = mainLayout.findViewById(R.id.blackout_view);
+        blackoutView = mainLayout.findViewById(R.id.menu_blackout_view);
 
         menuButton.setOnClickListener(view -> {
             if (currentMode == Mode.CLOSED) {
@@ -556,9 +556,6 @@ public class IsochroneMenu extends Fragment {
         }
 
         if (animate) {
-            //settingsCard.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            //blackoutView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-
             ObjectAnimator cardAnimation = ObjectAnimator.ofFloat(settingsCard,
                     "translationY", translation);
             ObjectAnimator blackoutAnimation = ObjectAnimator.ofFloat(blackoutView,
