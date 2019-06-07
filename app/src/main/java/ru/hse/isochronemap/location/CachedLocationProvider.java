@@ -31,8 +31,6 @@ public class CachedLocationProvider {
      * Creates CachedLocationProvider from current context and initial cached location.
      * Subscribes cache to regular updates if has permissions.
      */
-    // Permissions are checked in a separate method therefore IntelliJ does not understand it.
-    @SuppressLint("MissingPermission")
     public CachedLocationProvider(@NonNull final Context context) {
         this.context = context;
         locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -40,7 +38,6 @@ public class CachedLocationProvider {
         if (hasPermissions()) {
             subscribeToUpdates();
         }
-
     }
 
     /** Checks for location permissions. */
@@ -77,13 +74,9 @@ public class CachedLocationProvider {
      *
      * @throws SecurityException if no permissions were given.
      */
-    // Permissions are checked in a separate method therefore IntelliJ does not understand it.
+    // Permissions are always checked before calls to this method.
     @SuppressLint("MissingPermission")
     private void subscribeToUpdates() {
-        if (!hasPermissions()) {
-            throw new SecurityException();
-        }
-
         if (!subscribedToUpdates) {
             locationManager.requestLocationUpdates(MIN_UPDATE_TIME_MILLIS,
                                                    MIN_UPDATE_DISTANCE_KM,
