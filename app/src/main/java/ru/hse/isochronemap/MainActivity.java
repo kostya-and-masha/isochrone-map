@@ -59,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
     private static final String BLACKOUT_VIEW_STATE = "BLACKOUT_VIEW_STATE";
     private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
-    private static final String APPROXIMATE_LOCATION = "APPROXIMATE_LOCATION";
     public static final int INITIAL_PERMISSIONS_REQUEST = 1;
     public static final int GEOPOSITION_REQUEST = 2;
 
@@ -82,9 +81,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ProgressBar progressBar;
     private View blackoutView;
 
-    private Coordinate initialCachedLocation;
     private CachedLocationProvider locationProvider;
-
     private boolean permissionsDenied;
     SharedPreferences sharedPreferences;
 
@@ -170,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             restoreInstanceState(savedInstanceState);
         }
 
-        locationProvider = new CachedLocationProvider(this, initialCachedLocation);
+        locationProvider = new CachedLocationProvider(this);
         menu.setCachedLocationProvider(locationProvider);
 
         geopositionButton.setOnClickListener(ignored -> {
@@ -217,7 +214,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             showBlackoutView();
         }
         permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED);
-        initialCachedLocation = savedInstanceState.getParcelable(APPROXIMATE_LOCATION);
     }
 
     @Override
@@ -237,7 +233,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
         outState.putBoolean(BLACKOUT_VIEW_STATE, blackoutView.getVisibility() == View.VISIBLE);
         outState.putBoolean(PERMISSIONS_DENIED, permissionsDenied);
-        outState.putParcelable(APPROXIMATE_LOCATION, locationProvider.getCachedLocation());
         super.onSaveInstanceState(outState);
     }
 

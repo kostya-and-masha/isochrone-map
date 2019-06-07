@@ -33,10 +33,8 @@ public class CachedLocationProvider {
      */
     // Permissions are checked in a separate method therefore IntelliJ does not understand it.
     @SuppressLint("MissingPermission")
-    public CachedLocationProvider(@NonNull final Context context,
-                                  @Nullable Coordinate initialLocation) {
+    public CachedLocationProvider(@NonNull final Context context) {
         this.context = context;
-        lastLocation = initialLocation;
         locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         if (hasPermissions()) {
@@ -110,12 +108,6 @@ public class CachedLocationProvider {
 
         subscribeToUpdates();
         locationManager.requestSingleUpdate(criteria, new CachedLocationListener(callback), null);
-    }
-
-    /** Returns cached location */
-    public @Nullable
-    Coordinate getCachedLocation() {
-        return lastLocation;
     }
 
     private class CachedLocationListener implements LocationListener {
