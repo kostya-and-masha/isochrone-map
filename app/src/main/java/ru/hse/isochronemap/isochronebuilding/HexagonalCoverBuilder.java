@@ -90,8 +90,9 @@ class HexagonalCoverBuilder {
             @NonNull List<Coordinate> hexagonCenters) {
         List<Hexagon> hexagons = new ArrayList<>();
         Comparator<Coordinate> comparator =
-                (c1, c2) -> Math.round((float) Math.signum((c1.longitudeDeg + c1.latitudeDeg)
-                                                           - (c2.longitudeDeg + c2.latitudeDeg)));
+                (c1, c2) -> Math.round((float) Math.signum((c1.longitude + c1.latitude)
+                                                           - (c2.longitude
+                                                              + c2.latitude)));
         Collections.sort(hexagonCenters, comparator);
 
         hexagons.add(getOneHexagonFromCenter(hexagonCenters.get(0)));
@@ -108,11 +109,11 @@ class HexagonalCoverBuilder {
     private @NonNull Hexagon getOneHexagonFromCenter(@NonNull Coordinate center) {
         List<Coordinate> points = new ArrayList<>();
         for (double angle = Math.PI / 6; angle < 2 * Math.PI; angle += Math.PI / 3) {
-            double latitude = center.latitudeDeg
+            double latitude = center.latitude
                               + latitudeFromKm(radius * (1 + EPSILON) * Math.sin(angle));
-            double longitude = center.longitudeDeg
+            double longitude = center.longitude
                                + longitudeFromKm(radius * (1 + EPSILON) * Math.cos(angle),
-                                                 center.latitudeDeg);
+                                                 center.latitude);
             points.add(new Coordinate(latitude, longitude));
         }
         return new Hexagon(points.toArray(new Coordinate[6]));
@@ -120,25 +121,25 @@ class HexagonalCoverBuilder {
 
     private @NonNull List<Coordinate> getClosestHexagonCenters(@NonNull Coordinate point) {
         double horizontalStepLength =
-                longitudeFromKm(hexagonsHorizontalDistance, startPoint.latitudeDeg);
+                longitudeFromKm(hexagonsHorizontalDistance, startPoint.latitude);
         double verticalStepLength = latitudeFromKm(hexagonsVerticalDistance);
 
-        double verticalDistance = point.latitudeDeg - startPoint.latitudeDeg;
+        double verticalDistance = point.latitude - startPoint.latitude;
         long verticalStepNumberSmaller =
                 Math.round(Math.floor(verticalDistance / verticalStepLength));
 
         double LowerPointsY =
-                startPoint.latitudeDeg + verticalStepLength * verticalStepNumberSmaller;
+                startPoint.latitude + verticalStepLength * verticalStepNumberSmaller;
         double UpperPointsY = LowerPointsY + verticalStepLength;
 
         List<Coordinate> result = new ArrayList<>();
 
         double[] evenStepsPointsXs =
-                getTwoClosestValuesWithStep(startPoint.longitudeDeg, horizontalStepLength,
-                                            point.longitudeDeg);
+                getTwoClosestValuesWithStep(startPoint.longitude, horizontalStepLength,
+                                            point.longitude);
         double[] oddStepsPointsXs =
-                getTwoClosestValuesWithStep(startPoint.longitudeDeg - horizontalStepLength / 2,
-                                            horizontalStepLength, point.longitudeDeg);
+                getTwoClosestValuesWithStep(startPoint.longitude - horizontalStepLength / 2,
+                                            horizontalStepLength, point.longitude);
 
         double evenStepsPointsY;
         double oddStepsPointsY;

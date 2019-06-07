@@ -12,10 +12,10 @@ class ConvexHullBuilder {
     /** Andrew's monotone chain algorithm */
     static @NonNull List<Coordinate> getPointsConvexHull(@NonNull List<Coordinate> coordinates) {
         Collections.sort(coordinates, (o1, o2) -> {
-            if (o1.longitudeDeg == o2.longitudeDeg) {
-                return Double.compare(o1.latitudeDeg, o2.latitudeDeg);
+            if (o1.longitude == o2.longitude) {
+                return Double.compare(o1.latitude, o2.latitude);
             }
-            return Double.compare(o1.longitudeDeg, o2.longitudeDeg);
+            return Double.compare(o1.longitude, o2.longitude);
         });
 
         List<Coordinate> bottomHull = buildConvexHullGraham(coordinates);
@@ -49,7 +49,8 @@ class ConvexHullBuilder {
 
     static boolean isRightTurn(Coordinate p1, Coordinate p2, Coordinate p3) {
         // x1y2 - y1x2
-        return !((p2.longitudeDeg - p1.longitudeDeg) * (p3.latitudeDeg - p1.latitudeDeg)
-                 - (p2.latitudeDeg - p1.latitudeDeg) * (p3.longitudeDeg - p1.longitudeDeg) > 0);
+        return !((p2.longitude - p1.longitude) * (p3.latitude - p1.latitude)
+                 - (p2.latitude - p1.latitude) * (p3.longitude
+                                                  - p1.longitude) > 0);
     }
 }

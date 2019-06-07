@@ -31,8 +31,8 @@ public class Geocoder {
      * @param query location description (address/name/etc)
      * @param currentLocation if not {@code null}, close locations have higher priority
      * @return list of matching locations
+     * @throws IOException if failed to connect to server
      */
-    // fixme exceptions
     public static List<Location> getLocations(@NonNull String query,
                                               @Nullable Coordinate currentLocation)
             throws IOException {
@@ -72,10 +72,10 @@ public class Geocoder {
 
     private static @NonNull String getViewBox(@NonNull Coordinate center, double radius) {
         BoundingBox box = new BoundingBox(center, radius);
-        return box.minimum.longitudeDeg + "," +
-               box.minimum.latitudeDeg  + "," +
-               box.maximum.longitudeDeg + "," +
-               box.maximum.latitudeDeg;
+        return box.minimum.longitude + ","
+               + box.minimum.latitude + ","
+               + box.maximum.longitude + ","
+               + box.maximum.latitude;
     }
 
     private static List<Location> parseNominatimOutput(@NonNull byte[] data) throws IOException {
@@ -102,9 +102,9 @@ public class Geocoder {
                         break;
                 }
             }
-            result.add(
-                    new Location(Objects.requireNonNull(name), new Coordinate(latitude, longitude))
-            );
+            result.add(new Location(
+                            Objects.requireNonNull(name),
+                            new Coordinate(latitude, longitude)));
         }
         return result;
     }

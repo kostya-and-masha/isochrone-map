@@ -2,13 +2,16 @@ package ru.hse.isochronemap.mapstructure;
 
 import com.google.android.gms.common.util.IOUtils;
 
-import java.io.DataOutputStream;
+import org.apache.http.client.utils.URIBuilder;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.annotation.NonNull;
 import gnu.trove.list.TLongList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TLongCharMap;
@@ -21,15 +24,13 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 public class MapStructureManager {
     private static final String OVERPASS_API_INTERPRETER =
             "https://overpass.kumi.systems/api/interpreter";
-    private static final int PARALLELISM = Runtime.getRuntime().availableProcessors();
-    private static final TIntObjectMap<int[]> splitParameters = new TIntObjectHashMap<>();
-    // FIXME
     private static final int verticalCountWays;
     private static final int horizontalCountWays;
     private static final int verticalCountMapData;
     private static final int horizontalCountMapData;
 
     static {
+        final TIntObjectMap<int[]> splitParameters = new TIntObjectHashMap<>();
         splitParameters.put(1, new int[] {1, 1, 1, 1});
         splitParameters.put(2, new int[] {1, 1, 2, 1});
         splitParameters.put(4, new int[] {1, 1, 3, 1});
@@ -37,9 +38,10 @@ public class MapStructureManager {
         splitParameters.put(8, new int[] {2, 1, 3, 2});
         splitParameters.put(10, new int[] {2, 1, 4, 2});
 
+        final int parallelism = Runtime.getRuntime().availableProcessors();
         int[] values;
-        if (splitParameters.containsKey(PARALLELISM)) {
-            values = splitParameters.get(PARALLELISM);
+        if (splitParameters.containsKey(parallelism)) {
+            values = splitParameters.get(parallelism);
         } else {
             values = splitParameters.get(10);
         }
@@ -53,18 +55,16 @@ public class MapStructureManager {
      * Returns map structure.
      * @param request map request parameters
      * @return start node
+     * @throws IOException if failed to connect to server.
      */
-    public static Node getMapStructure(MapStructureRequest request) throws IOException {
+    public static @NonNull Node getMapStructure(MapStructureRequest request) throws IOException {
         BoundingBox box = new BoundingBox(
                 request.getStartCoordinate(),
-                request.getMaximumDistance()
-        );
+                request.getMaximumDistance());
         List<BoundingBox> boxesForWays = splitBoundingBox(
-                box, verticalCountWays, horizontalCountWays
-        );
+                box, verticalCountWays, horizontalCountWays);
         List<BoundingBox> boxesForMapData = splitBoundingBox(
-                box, verticalCountMapData, horizontalCountMapData
-        );
+                box, verticalCountMapData, horizontalCountMapData);
 
         List<GetMapDataTask> mapDataTasks = new ArrayList<>();
         List<Thread> mapDataThreads = new ArrayList<>();
@@ -121,7 +121,7 @@ public class MapStructureManager {
                 Node node = (Node) o;
                 double distance = startCoordinate.distanceTo(node.coordinate);
                 if (distance < unconditionalAccessDistance) {
-                    startNode.edges.add(new Edge(distance, node));
+                    startNode.addEdge(new Edge(distance, node));
                 }
             }
             return startNode;
@@ -134,31 +134,28 @@ public class MapStructureManager {
                                     TransportType transportType,
                                     OverpassRequestType requestType)
             throws IOException {
-        URL url = new URL(OVERPASS_API_INTERPRETER);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setDoOutput(true);
-
-        DataOutputStream connectionRequestParameters =
-                new DataOutputStream(connection.getOutputStream());
-        connectionRequestParameters.writeBytes(
-                "data=" + OverpassRequestBuilder.buildRequest(box, transportType, requestType)
-        );
-        connectionRequestParameters.close();
-
-        byte[] result = IOUtils.toByteArray(connection.getInputStream());
-        connection.disconnect();
-
-        return result;
+        try {
+            URIBuilder uriBuilder = new URIBuilder(OVERPASS_API_INTERPRETER);
+            uriBuilder.addParameter(
+                    "data",
+                    OverpassRequestBuilder.buildRequest(box, transportType, requestType));
+            URL url = uriBuilder.build().toURL();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            byte[] result = IOUtils.toByteArray(connection.getInputStream());
+            connection.disconnect();
+            return result;
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static List<BoundingBox> splitBoundingBox(BoundingBox box,
                                                       int verticalCount,
                                                       int horizontalCount) {
-        double minimumLatitude = box.minimum.latitudeDeg;
-        double maximumLatitude = box.maximum.latitudeDeg;
-        double minimumLongitude = box.minimum.longitudeDeg;
-        double maximumLongitude = box.maximum.longitudeDeg;
+        double minimumLatitude = box.minimum.latitude;
+        double maximumLatitude = box.maximum.latitude;
+        double minimumLongitude = box.minimum.longitude;
+        double maximumLongitude = box.maximum.longitude;
 
         double verticalStep = (maximumLatitude - minimumLatitude) / verticalCount;
         double horizontalStep = (maximumLongitude - minimumLongitude) / horizontalCount;

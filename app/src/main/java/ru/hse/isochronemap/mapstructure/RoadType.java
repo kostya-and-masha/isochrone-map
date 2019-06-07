@@ -2,6 +2,8 @@ package ru.hse.isochronemap.mapstructure;
 
 import org.jetbrains.annotations.NotNull;
 
+import androidx.annotation.NonNull;
+
 enum RoadType {
     PEDESTRIAN("pedestrian"),
     FOOTWAY("footway"),
@@ -22,7 +24,7 @@ enum RoadType {
 
     private String stringName;
 
-    RoadType(String name) {
+    RoadType(@NonNull String name) {
         stringName = name;
     }
 

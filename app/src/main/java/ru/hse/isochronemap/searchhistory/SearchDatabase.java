@@ -27,11 +27,21 @@ public class SearchDatabase implements AutoCloseable {
 
     private static final String SQL_LIMIT = "10";
 
+    /**
+     * Creates new SearchDatabase instance holding connection with specified database..
+     * New database is created only if database with specified name did not exist before.
+     * @param context context in which database exists
+     * @param databaseName database name
+     */
     public SearchDatabase(@NonNull Context context, @NonNull String databaseName) {
         databaseHelper = new SearchDatabaseHelper(context, databaseName);
         database = databaseHelper.getWritableDatabase();
     }
 
+    /**
+     * Puts search query into database.
+     * @param query search query content
+     */
     public void putSearchQuery(@NonNull String query) {
         deleteSearchQuery(query);
 
@@ -41,12 +51,17 @@ public class SearchDatabase implements AutoCloseable {
         database.insert(SearchEntry.TABLE_NAME, null, values);
     }
 
+    /**
+     * Deletes search query from database.
+     * @param query search query content
+     */
     public void deleteSearchQuery(@NonNull String query) {
         String selection = "LOWER(" + SearchEntry.COLUMN_QUERY + ") = LOWER(?)";
         String[] selectionArgs = { query };
         database.delete(SearchEntry.TABLE_NAME, selection, selectionArgs);
     }
 
+    /** Clears database. **/
     public void clearDatabase() {
         database.execSQL(SQL_DELETE_ENTRIES);
         database.execSQL(SQL_CREATE_ENTRIES);
@@ -62,7 +77,7 @@ public class SearchDatabase implements AutoCloseable {
         String[] projection = { SearchEntry.COLUMN_QUERY };
 
         String selection = SearchEntry.COLUMN_QUERY + " LIKE ?";
-        String[] selectionArgs = { queryPrefix + "%" }; // FIXME
+        String[] selectionArgs = { queryPrefix + "%" };
 
         String sortOrder = BaseColumns._ID + " DESC";
 
@@ -91,14 +106,14 @@ public class SearchDatabase implements AutoCloseable {
     }
 
     private static class SearchEntry implements BaseColumns {
-        public static final String TABLE_NAME = "search";
-        public static final String COLUMN_QUERY = "search_query";
+        private static final String TABLE_NAME = "search";
+        private static final String COLUMN_QUERY = "search_query";
     }
 
     private static class SearchDatabaseHelper extends SQLiteOpenHelper {
-        public static final int DATABASE_VERSION = 1;
+        private static final int DATABASE_VERSION = 1;
 
-        public SearchDatabaseHelper(@NonNull Context context, @NonNull String databaseName) {
+        private SearchDatabaseHelper(@NonNull Context context, @NonNull String databaseName) {
             super(context, databaseName, null, DATABASE_VERSION);
         }
 

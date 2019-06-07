@@ -43,8 +43,8 @@ class Hexagon {
                 new org.locationtech.jts.geom.Coordinate[7];
         for (int i = 0; i < 7; i++) {
             coordinatesJTS[i] =
-                    new org.locationtech.jts.geom.Coordinate(coordinates[i % 6].longitudeDeg,
-                                                             coordinates[i % 6].latitudeDeg);
+                    new org.locationtech.jts.geom.Coordinate(coordinates[i % 6].longitude,
+                                                             coordinates[i % 6].latitude);
         }
         return geometryFactory.createPolygon(coordinatesJTS);
     }

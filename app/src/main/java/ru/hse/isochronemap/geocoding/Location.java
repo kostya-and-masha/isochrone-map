@@ -10,6 +10,7 @@ import ru.hse.isochronemap.mapstructure.Coordinate;
 
 /** This class represents location suggested by {@link Geocoder}. **/
 public class Location implements Parcelable {
+    /** Creates Location instance from {@link Parcel}/ **/
     public static final Parcelable.Creator<Location> CREATOR = new Parcelable.Creator<Location>() {
         @Override
         public Location createFromParcel(@NonNull Parcel in) {
@@ -22,7 +23,9 @@ public class Location implements Parcelable {
         }
     };
 
+    /** Location name. **/
     public final @NonNull String name;
+    /** Central geo coordinate. **/
     public final @NonNull Coordinate coordinate;
 
     public Location(@NonNull String name, @NonNull Coordinate coordinate) {
@@ -38,15 +41,24 @@ public class Location implements Parcelable {
         coordinate = new Coordinate(latitude, longitude);
     }
 
+    /**
+     * Describes the kinds of special objects contained in this {@link Parcelable} instance
+     * (no special objects).
+     */
     @Override
     public int describeContents() {
         return 0;
     }
 
+    /**
+     * Saves Location into {@link Parcel}.
+     * @param out parcel to write in
+     * @param flags ignored
+     */
     @Override
     public void writeToParcel(@NonNull Parcel out, int flags) {
         out.writeString(name);
-        out.writeDouble(coordinate.latitudeDeg);
-        out.writeDouble(coordinate.longitudeDeg);
+        out.writeDouble(coordinate.latitude);
+        out.writeDouble(coordinate.longitude);
     }
 }

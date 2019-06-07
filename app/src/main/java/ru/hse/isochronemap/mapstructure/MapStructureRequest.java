@@ -1,5 +1,7 @@
 package ru.hse.isochronemap.mapstructure;
 
+import androidx.annotation.NonNull;
+
 /** This class represents parameters of map structure request. **/
 public class MapStructureRequest {
     private Coordinate startCoordinate;
@@ -7,47 +9,37 @@ public class MapStructureRequest {
     private double maximumDistance;
     private TransportType transportType;
 
-    public MapStructureRequest() {}
-
-    public MapStructureRequest(Coordinate startCoordinate,
+    /**
+     * Constructs new map structure request.
+     * @param startCoordinate travel start location
+     * @param unconditionalAccessDistance all nodes closer to {@code startCoordinate} then
+     *                                    this value are considered to be accessible from it.
+     * @param maximumDistance limits map size
+     * @param transportType transport type
+     */
+    public MapStructureRequest(@NonNull Coordinate startCoordinate,
                                double unconditionalAccessDistance,
                                double maximumDistance,
-                               TransportType transportType) {
+                               @NonNull TransportType transportType) {
         this.startCoordinate = startCoordinate;
         this.unconditionalAccessDistance = unconditionalAccessDistance;
         this.maximumDistance = maximumDistance;
         this.transportType = transportType;
     }
 
-    public Coordinate getStartCoordinate() {
+    @NonNull Coordinate getStartCoordinate() {
         return startCoordinate;
     }
 
-    public void setStartCoordinate(Coordinate startCoordinate) {
-        this.startCoordinate = startCoordinate;
-    }
-
-    public double getUnconditionalAccessDistance() {
+    double getUnconditionalAccessDistance() {
         return unconditionalAccessDistance;
     }
 
-    public void setUnconditionalAccessDistance(double unconditionalAccessDistance) {
-        this.unconditionalAccessDistance = unconditionalAccessDistance;
-    }
-
-    public double getMaximumDistance() {
+    double getMaximumDistance() {
         return maximumDistance;
     }
 
-    public void setMaximumDistance(double maximumDistance) {
-        this.maximumDistance = maximumDistance;
-    }
-
-    public TransportType getTransportType() {
+    @NonNull TransportType getTransportType() {
         return transportType;
-    }
-
-    public void setTransportType(TransportType transportType) {
-        this.transportType = transportType;
     }
 }

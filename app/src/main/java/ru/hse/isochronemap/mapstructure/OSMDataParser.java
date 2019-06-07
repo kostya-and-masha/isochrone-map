@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import androidx.annotation.NonNull;
 import de.siegmar.fastcsv.reader.CsvParser;
 import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvRow;
@@ -20,7 +21,7 @@ import gnu.trove.map.hash.TLongCharHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 
 class OSMDataParser {
-    static MapData parseCSV(@NotNull byte[] osmData, @NotNull TransportType transportType)
+    static @NonNull MapData parseCSV(@NotNull byte[] osmData, @NotNull TransportType transportType)
             throws IOException {
         boolean isBiDirectional = transportType == TransportType.FOOT;
 
@@ -102,7 +103,7 @@ class OSMDataParser {
         return ways;
     }
 
-    static void connectNodes(MapData map, TLongObjectMap<TLongList> ways) {
+    static void connectNodes(@NonNull MapData map, @NonNull TLongObjectMap<TLongList> ways) {
         TLongObjectMap<Node> nodesMap = map.nodesMap;
         TLongCharMap waysMap = map.waysMap;
 
@@ -124,10 +125,10 @@ class OSMDataParser {
                 }
                 double distance = from.coordinate.distanceTo(to.coordinate);
                 if (forward) {
-                    from.edges.add(new Edge(distance, to));
+                    from.addEdge(new Edge(distance, to));
                 }
                 if (backward) {
-                    to.edges.add(new Edge(distance, from));
+                    to.addEdge(new Edge(distance, from));
                 }
             }
         }
