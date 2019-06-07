@@ -67,8 +67,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private CameraPosition initialCameraPosition;
     private LatLng initialMarkerPosition;
     private String initialMarkerTitle;
-    private Runnable onMapReadyAction;
     private ArrayList<PolygonOptions> currentPolygonOptions;
+    private List<Runnable> onMapReadyActions = new ArrayList<>();
 
     private GoogleMap map;
     private Marker currentPosition;
@@ -240,7 +240,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (initialCameraPosition != null) {
             map.moveCamera(CameraUpdateFactory.newCameraPosition(initialCameraPosition));
         } else if (OneTimeLocationProvider.hasPermissions(this)) {
-            OneTimeLocationProvider.getLocation(this, this::zoomToPosition);
+            OneTimeLocationProvider.getLocation(
+                    this,
+                    result -> auxiliaryFragment.transferActionToMainActivity(
+                            activity -> activity.zoomToPosition(result)));
         }
 
         setPadding();
@@ -258,10 +261,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentPolygonOptions = new ArrayList<>();
         }
 
-        //zhopa
-        if (onMapReadyAction != null) {
-            onMapReadyAction.run();
-            onMapReadyAction = null;
+        for (Runnable action : onMapReadyActions) {
+            action.run();
         }
     }
 
@@ -311,13 +312,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (mapIsReady() && initialCameraPosition == null) {
-                    OneTimeLocationProvider.getLocation(this, this::zoomToPosition);
+                    OneTimeLocationProvider.getLocation(
+                            this,
+                            result -> auxiliaryFragment.transferActionToMainActivity(
+                                    activity -> activity.zoomToPosition(result)));
                 }
             } else {
-                Toast toast = Toast.makeText(this, "give permissions please :(", Toast.LENGTH_LONG);
+                Toast toast = Toast.makeText(this, "give permissions please :(",
+                                             Toast.LENGTH_LONG);
                 toast.show();
                 permissionsDenied = true;
             }
+        }
+    }
+
+    private void addOnMapReadyAction(@NonNull Runnable action) {
+        if (mapIsReady()) {
+            action.run();
+        } else {
+            onMapReadyActions.add(action);
         }
     }
 
@@ -409,19 +422,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.animateCamera(
                 CameraUpdateFactory.newLatLng(position.toLatLng()),
                 CAMERA_ANIMATION_TIME,
-                null
-        );
+                null);
     }
 
     private void zoomToPosition(Coordinate position) {
-        map.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(
-                        position.toLatLng(),
-                        CLOSE_ZOOM_LEVEL
-                ),
-                CAMERA_ANIMATION_TIME,
-                null
-        );
+        if (mapIsReady()) {
+            map.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(position.toLatLng(), CLOSE_ZOOM_LEVEL),
+                    CAMERA_ANIMATION_TIME,
+                    null);
+        }
     }
 
     private void setCurrentPolygons(@NonNull List<IsochronePolygon> isochronePolygons) {
@@ -512,12 +522,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void gpsButtonCallback(Coordinate coordinate) {
-        if (!mapIsReady()) {
-            onMapReadyAction = () -> gpsButtonCallback(coordinate);
-            return;
+        if (mapIsReady()) {
+            setCurrentPositionAndMoveCamera(coordinate);
+        } else {
+            addOnMapReadyAction(() -> gpsButtonCallback(coordinate));
         }
-
-        setCurrentPositionAndMoveCamera(coordinate);
     }
 
     private static class AsyncMapRequest extends AsyncTask<IsochroneRequest, Integer, IsochroneResponse> {
@@ -558,7 +567,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void asyncMapRequestCallback(IsochroneResponse response) {
         if (!mapIsReady()) {
-            onMapReadyAction = () -> asyncMapRequestCallback(response);
+            addOnMapReadyAction(() -> asyncMapRequestCallback(response));
             return;
         }
 
