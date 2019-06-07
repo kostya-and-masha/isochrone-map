@@ -86,11 +86,15 @@ public class IsochroneMenu extends Fragment {
     private TransportType currentTransport = TransportType.FOOT;
     private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
-    /** Creates IsochroneMenu instance with specified initial preferences. */
-    public static @NonNull
-    IsochroneMenu newInstance(@NonNull TransportType transportType,
-                              @NonNull IsochroneRequestType isochroneRequestType,
-                              float seekBarProgress) {
+    /**
+     * Creates IsochroneMenu instance with specified initial preferences. Both
+     * CachedLocationProvider and AuxiliaryFragment must be set after creation
+     * (through specialized setters) in order for menu to work properly.
+     */
+    public static @NonNull IsochroneMenu newInstance(
+            @NonNull TransportType transportType,
+            @NonNull IsochroneRequestType isochroneRequestType,
+            float seekBarProgress) {
 
         IsochroneMenu menu = new IsochroneMenu();
         Bundle arguments = new Bundle();
@@ -122,9 +126,9 @@ public class IsochroneMenu extends Fragment {
 
     /** {@inheritDoc} */
     @Override
-    public @Nullable
-    View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                      @Nullable Bundle savedInstanceState) {
+    public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
+                                       @Nullable ViewGroup container,
+                                       @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         return inflater.inflate(R.layout.menu_main_layout, container, false);
     }
@@ -164,14 +168,12 @@ public class IsochroneMenu extends Fragment {
     }
 
     /** Returns current chosen transport type. */
-    public @NonNull
-    TransportType getCurrentTransport() {
+    public @NonNull TransportType getCurrentTransport() {
         return currentTransport;
     }
 
     /** Returns current chosen isochrone type. */
-    public @NonNull
-    IsochroneRequestType getCurrentRequestType() {
+    public @NonNull IsochroneRequestType getCurrentRequestType() {
         return currentRequestType;
     }
 

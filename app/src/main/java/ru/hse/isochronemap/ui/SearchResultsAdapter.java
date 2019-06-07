@@ -77,8 +77,7 @@ class SearchResultsAdapter
     }
 
     /** Returns current results list. */
-    @NonNull
-    ArrayList<Location> getResultsList() {
+    @NonNull ArrayList<Location> getResultsList() {
         if (results instanceof ArrayList) {
             return (ArrayList<Location>) results;
         } else if (hints != null) {
@@ -89,8 +88,8 @@ class SearchResultsAdapter
 
     /** {@inheritDoc} */
     @Override
-    public @NonNull
-    SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public @NonNull SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent,
+                                                               int viewType) {
         View item = LayoutInflater.from(parent.getContext())
                                   .inflate(R.layout.search_results_item, parent, false);
         ((ImageView) item.findViewById(R.id.right_icon))
