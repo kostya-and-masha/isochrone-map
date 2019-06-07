@@ -19,7 +19,7 @@ import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.IsochronePolygon;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
 import ru.hse.isochronemap.isochronebuilding.NotEnoughNodesException;
-import ru.hse.isochronemap.location.OneTimeLocationProvider;
+import ru.hse.isochronemap.location.CachedLocationProvider;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
 import ru.hse.isochronemap.ui.IsochroneMenu;
@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
     private static final String BLACKOUT_VIEW_STATE = "BLACKOUT_VIEW_STATE";
     private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
+    private static final String APPROXIMATE_LOCATION = "APPROXIMATE_LOCATION";
     public static final int INITIAL_PERMISSIONS_REQUEST = 1;
     public static final int GEOPOSITION_REQUEST = 2;
 
@@ -80,6 +81,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton geopositionButton;
     private ProgressBar progressBar;
     private View blackoutView;
+
+    private Coordinate initialCachedLocation;
+    private CachedLocationProvider locationProvider;
 
     private boolean permissionsDenied;
     SharedPreferences sharedPreferences;
@@ -162,28 +166,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             buildIsochrone();
         });
 
+        if (savedInstanceState != null) {
+            restoreInstanceState(savedInstanceState);
+        }
+
+        locationProvider = new CachedLocationProvider(this, initialCachedLocation);
+        menu.setCachedLocationProvider(locationProvider);
+
         geopositionButton.setOnClickListener(ignored -> {
             showProgressBar();
             showBlackoutView();
             menu.closeEverything();
-            //FIXME magic constant
-            if (!OneTimeLocationProvider.hasPermissions(this)) {
+
+            if (!locationProvider.hasPermissions()) {
                 ActivityCompat.requestPermissions(this,
                         new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
                         GEOPOSITION_REQUEST);
                 return;
             }
-            OneTimeLocationProvider.getLocation(this,
+            locationProvider.getPreciseLocation(
                     result -> auxiliaryFragment.transferActionToMainActivity(
                             activity -> activity.gpsButtonCallback(result))
             );
         });
 
-        if (savedInstanceState != null) {
-            restoreInstanceState(savedInstanceState);
-        }
-
-        if (!permissionsDenied && !OneTimeLocationProvider.hasPermissions(this)) {
+        if (!permissionsDenied && !locationProvider.hasPermissions()) {
             ActivityCompat.requestPermissions(this,
                     new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
                     INITIAL_PERMISSIONS_REQUEST);
@@ -210,6 +217,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             showBlackoutView();
         }
         permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED);
+        initialCachedLocation = savedInstanceState.getParcelable(APPROXIMATE_LOCATION);
     }
 
     @Override
@@ -229,6 +237,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
         outState.putBoolean(BLACKOUT_VIEW_STATE, blackoutView.getVisibility() == View.VISIBLE);
         outState.putBoolean(PERMISSIONS_DENIED, permissionsDenied);
+        outState.putParcelable(APPROXIMATE_LOCATION, locationProvider.getCachedLocation());
         super.onSaveInstanceState(outState);
     }
 
@@ -241,9 +250,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (initialCameraPosition != null) {
             map.moveCamera(CameraUpdateFactory.newCameraPosition(initialCameraPosition));
-        } else if (OneTimeLocationProvider.hasPermissions(this)) {
-            OneTimeLocationProvider.getLocation(
-                    this,
+        } else if (locationProvider.hasPermissions()) {
+            locationProvider.getPreciseLocation(
                     result -> auxiliaryFragment.transferActionToMainActivity(
                             activity -> activity.zoomToPosition(result)));
         }
@@ -299,7 +307,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                OneTimeLocationProvider.getLocation(this,
+                locationProvider.getPreciseLocation(
                         result -> auxiliaryFragment.transferActionToMainActivity(
                                 activity -> activity.gpsButtonCallback(result))
                 );
@@ -314,8 +322,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (mapIsReady() && initialCameraPosition == null) {
-                    OneTimeLocationProvider.getLocation(
-                            this,
+                    locationProvider.getPreciseLocation(
                             result -> auxiliaryFragment.transferActionToMainActivity(
                                     activity -> activity.zoomToPosition(result)));
                 }
