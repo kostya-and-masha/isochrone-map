@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (auxiliaryFragment == null) {
             auxiliaryFragment = new AuxiliaryFragment();
             fragmentManager.beginTransaction().add(auxiliaryFragment, TASKS_FRAGMENT_TAG).commit();
+            savedInstanceState = null;
         }
 
         menu = (IsochroneMenu)getSupportFragmentManager().findFragmentById(R.id.menu);
