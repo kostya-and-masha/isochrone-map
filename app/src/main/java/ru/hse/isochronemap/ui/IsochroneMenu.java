@@ -17,7 +17,7 @@ import ru.hse.isochronemap.AuxiliaryFragment;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
-import ru.hse.isochronemap.location.ApproximateLocationProvider;
+import ru.hse.isochronemap.location.CachedLocationProvider;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
 import ru.hse.isochronemap.searchhistory.SearchDatabase;
@@ -44,7 +44,6 @@ public class IsochroneMenu extends Fragment {
     private static final String SEARCH_FIELD_QUERY = "SEARCH_FIELD_QUERY";
     private static final String ADAPTER_MODE = "ADAPTER_MODE";
     private static final String ADAPTER_LIST = "ADAPTER_LIST";
-    private static final String APPROXIMATE_LOCATION = "APPROXIMATE_LOCATION";
 
     private View mainLayout;
     private SearchView searchField;
@@ -55,7 +54,7 @@ public class IsochroneMenu extends Fragment {
     private SearchResultsAdapter adapter = new SearchResultsAdapter();
     private String currentQuery = "";
     private SearchDatabase database;
-    private ApproximateLocationProvider approximateLocationProvider;
+    private CachedLocationProvider cachedLocationProvider;
 
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
@@ -106,18 +105,6 @@ public class IsochroneMenu extends Fragment {
         //Will not happen because onCreate is called after onAttach
         assert getActivity() != null;
         database = new SearchDatabase(getActivity(), DATABASE_NAME);
-
-        assert getContext() != null;
-        if (savedInstanceState != null) {
-            Coordinate location = savedInstanceState.getParcelable(APPROXIMATE_LOCATION);
-            approximateLocationProvider = new ApproximateLocationProvider(
-                    getContext(), location
-            );
-        } else {
-            approximateLocationProvider = new ApproximateLocationProvider(
-                    getContext(), null
-            );
-        }
     }
 
     @Override
@@ -147,11 +134,6 @@ public class IsochroneMenu extends Fragment {
         } else {
             bundle.putParcelableArrayList(ADAPTER_LIST, adapter.getResultsList());
         }
-
-        bundle.putParcelable(
-                APPROXIMATE_LOCATION,
-                approximateLocationProvider.getLocationImmediately()
-        );
     }
 
     private void restoreAdapterAndQuery(@NonNull Bundle savedInstanceState) {
@@ -173,7 +155,6 @@ public class IsochroneMenu extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         database.close();
-        approximateLocationProvider.close();
     }
 
     public void setPreferencesBeforeDrawn(TransportType transportType,
@@ -227,6 +208,11 @@ public class IsochroneMenu extends Fragment {
 
     public void setOnPlaceQueryListener(OnPlaceQueryListener listener) {
         onPlaceQueryListener = listener;
+    }
+
+    //FIXME MOVE TO CONSTRUCTOR
+    public void setCachedLocationProvider(CachedLocationProvider provider) {
+        cachedLocationProvider = provider;
     }
 
     private void init(Bundle savedInstanceState) {
@@ -355,7 +341,7 @@ public class IsochroneMenu extends Fragment {
                         onScreenBlcokListener.block(true);
                     }
 
-                    approximateLocationProvider.getLocation(position ->
+                    cachedLocationProvider.getApproximateLocation(position ->
                         Geocoder.getLocations(
                                 query,
                                 position,
@@ -366,8 +352,7 @@ public class IsochroneMenu extends Fragment {
                                 exception -> auxiliaryFragment.transferActionToMainActivity(
                                         activity -> activity.getMenu()
                                                 .onFailureSearchResultsCallback(exception)
-                                ))
-                    );
+                                )));
                 }
                 searchField.clearFocus();
                 return false;
