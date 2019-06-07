@@ -6,20 +6,20 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import ru.hse.isochronemap.R;
-import ru.hse.isochronemap.geocoding.Location;
-
-import org.jetbrains.annotations.NotNull;
-
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import ru.hse.isochronemap.R;
+import ru.hse.isochronemap.geocoding.Location;
 
-class SearchResultsAdapter extends
-        RecyclerView.Adapter<SearchResultsAdapter.SearchResultsViewHolder> {
+/**
+ * This class implements adapter for recycler view that is used to show hints and search results
+ * in {@link IsochroneMenu}
+ */
+class SearchResultsAdapter
+        extends RecyclerView.Adapter<SearchResultsAdapter.SearchResultsViewHolder> {
 
     private List<String> hints = new ArrayList<>();
     private List<Location> results;
@@ -30,34 +30,22 @@ class SearchResultsAdapter extends
 
     private AdapterMode mode = AdapterMode.HINTS;
 
-    enum AdapterMode {
-        HINTS, RESULTS
-    }
-
-    interface OnResultClickListener {
-        void onResultClick(Location result);
-    }
-
+    /** {@see OnResultClickListener} */
     void setOnResultClickListener(@NonNull OnResultClickListener listener) {
         onResultClickListener = listener;
     }
 
-    interface OnHintClickListener {
-        void onHintClick(String hint);
-    }
-
+    /** {@see OnHintClickListener} */
     void setOnHintClickListener(@NonNull OnHintClickListener listener) {
         onHintClickListener = listener;
     }
 
-    interface OnHintDeleteClickListener {
-        void onHintDeleteClick(String hint);
-    }
-
-    void setOnHintDeleteClickListener(@NotNull OnHintDeleteClickListener listener) {
+    /** {@see OnHintClickListener} */
+    void setOnHintDeleteClickListener(@NonNull OnHintDeleteClickListener listener) {
         onHintDeleteClickListener = listener;
     }
 
+    /** Sets search results and switches to results mode. */
     void setResults(List<Location> newResults) {
         hints = null;
         results = newResults;
@@ -65,6 +53,7 @@ class SearchResultsAdapter extends
         notifyDataSetChanged();
     }
 
+    /** Sets hints and switches to hint mode. */
     void setHints(List<String> newHints) {
         results = null;
         hints = newHints;
@@ -72,11 +61,12 @@ class SearchResultsAdapter extends
         notifyDataSetChanged();
     }
 
-
+    /** Returns current mode (results/hints). */
     @NonNull AdapterMode getAdapterMode() {
         return mode;
     }
 
+    /** Returns current hints list. */
     @NonNull ArrayList<String> getHintsList() {
         if (hints instanceof ArrayList) {
             return (ArrayList<String>) hints;
@@ -86,7 +76,9 @@ class SearchResultsAdapter extends
         return new ArrayList<>();
     }
 
-    @NonNull ArrayList<Location> getResultsList() {
+    /** Returns current results list. */
+    @NonNull
+    ArrayList<Location> getResultsList() {
         if (results instanceof ArrayList) {
             return (ArrayList<Location>) results;
         } else if (hints != null) {
@@ -95,16 +87,18 @@ class SearchResultsAdapter extends
         return new ArrayList<>();
     }
 
+    /** {@inheritDoc} */
     @Override
-    public @NonNull SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent,
-                                                               int viewType) {
+    public @NonNull
+    SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View item = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.search_results_item, parent,false);
-        ((ImageView)item.findViewById(R.id.right_icon))
+                                  .inflate(R.layout.search_results_item, parent, false);
+        ((ImageView) item.findViewById(R.id.right_icon))
                 .setImageResource(R.drawable.ic_delete_black_24dp);
         return new SearchResultsViewHolder(item);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void onBindViewHolder(@NonNull SearchResultsViewHolder holder, int position) {
         if (mode == AdapterMode.HINTS) {
@@ -118,6 +112,7 @@ class SearchResultsAdapter extends
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public int getItemCount() {
         if (mode == AdapterMode.HINTS) {
@@ -128,12 +123,32 @@ class SearchResultsAdapter extends
         return 0;
     }
 
-    public class SearchResultsViewHolder extends RecyclerView.ViewHolder {
+    enum AdapterMode {
+        HINTS, RESULTS
+    }
+
+    /** This listener will be invoked when user clicks on a search result. */
+    interface OnResultClickListener {
+        void onResultClick(Location result);
+    }
+
+    /** This listener will be invoked when user clicks on a hint. */
+    interface OnHintClickListener {
+        void onHintClick(String hint);
+    }
+
+    /** This listener will be invoked when user deletes hint. */
+    interface OnHintDeleteClickListener {
+        void onHintDeleteClick(String hint);
+    }
+
+    /** View holder for both hints or results. */
+    class SearchResultsViewHolder extends RecyclerView.ViewHolder {
         private ImageView leftIcon;
         private TextView text;
         private ImageView rightIcon;
 
-        public SearchResultsViewHolder(View view) {
+        SearchResultsViewHolder(View view) {
             super(view);
 
             leftIcon = view.findViewById(R.id.left_icon);
@@ -161,6 +176,5 @@ class SearchResultsAdapter extends
                 }
             });
         }
-
     }
 }

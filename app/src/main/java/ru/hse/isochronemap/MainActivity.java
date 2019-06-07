@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int CAMERA_ANIMATION_TIME = 2000;
 
     private static final String TASKS_FRAGMENT_TAG = "TASKS_FRAGMENT";
+    private static final String MENU_FRAGMENT_TAG = "MENU_FRAGMENT";
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
     private static final String MARKER_POSITION = "MARKER_POSITION";
     private static final String MARKER_TITLE = "MARKER_TITLE";
@@ -73,7 +74,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap map;
     private Marker currentPosition;
     private List<Polygon> currentPolygons = new ArrayList<>();
-
 
     private IsochroneMenu menu;
     private FloatingActionButton buildIsochroneButton;
@@ -108,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             savedInstanceState = null;
         }
 
-        menu = (IsochroneMenu)getSupportFragmentManager().findFragmentById(R.id.menu);
+
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geopositionButton = findViewById(R.id.geoposition_button);
         progressBar = findViewById(R.id.progress_bar);
@@ -122,7 +122,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         float seekBarProgress =  sharedPreferences.getFloat("seekBarProgress", 10);
         restoreSavedCameraPosition();
 
-        menu.setPreferencesBeforeDrawn(currentTransport, currentRequestType, seekBarProgress);
+        menu = (IsochroneMenu) fragmentManager.findFragmentByTag(MENU_FRAGMENT_TAG);
+        if (menu == null) {
+            menu = IsochroneMenu.newInstance(currentTransport, currentRequestType, seekBarProgress);
+            fragmentManager.beginTransaction()
+                           .replace(R.id.menu_placeholder, menu, MENU_FRAGMENT_TAG)
+                           .commit();
+        }
+
+
+
 
         if (currentRequestType == IsochroneRequestType.HEXAGONAL_COVER) {
             ((ImageButton)findViewById(R.id.build_isochrone_button)).setImageResource(

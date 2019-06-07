@@ -12,20 +12,7 @@ import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
-import ru.hse.isochronemap.R;
-import ru.hse.isochronemap.AuxiliaryFragment;
-import ru.hse.isochronemap.geocoding.Geocoder;
-import ru.hse.isochronemap.geocoding.Location;
-import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
-import ru.hse.isochronemap.location.CachedLocationProvider;
-import ru.hse.isochronemap.mapstructure.Coordinate;
-import ru.hse.isochronemap.mapstructure.TransportType;
-import ru.hse.isochronemap.searchhistory.SearchDatabase;
-import ru.hse.isochronemap.util.Consumer;
-import ru.hse.isochronemap.util.CoordinateParser;
 import com.warkiz.widget.IndicatorSeekBar;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,13 +24,32 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import ru.hse.isochronemap.AuxiliaryFragment;
+import ru.hse.isochronemap.R;
+import ru.hse.isochronemap.geocoding.Geocoder;
+import ru.hse.isochronemap.geocoding.Location;
+import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
+import ru.hse.isochronemap.location.CachedLocationProvider;
+import ru.hse.isochronemap.mapstructure.Coordinate;
+import ru.hse.isochronemap.mapstructure.TransportType;
+import ru.hse.isochronemap.searchhistory.SearchDatabase;
+import ru.hse.isochronemap.util.Consumer;
+import ru.hse.isochronemap.util.CoordinateParser;
 
+/** This fragment provides upper floating search/settings bar of the application. */
 public class IsochroneMenu extends Fragment {
     private static final String MENU_MODE = "MENU_MODE";
     private static final String DATABASE_NAME = "HINTS_DB";
     private static final String SEARCH_FIELD_QUERY = "SEARCH_FIELD_QUERY";
     private static final String ADAPTER_MODE = "ADAPTER_MODE";
     private static final String ADAPTER_LIST = "ADAPTER_LIST";
+    private static final String TRANSPORT_TYPE = "TRANSPORT_TYPE";
+    private static final String ISOCHRONE_REQUEST_TYPE = "ISOCHRONE_REQUEST_TYPE";
+    private static final String SEEK_BAR_PROGRESS = "SEEK_BAR_PROGRESS";
+    private static final int DEFAULT_SEEK_BAR_PROGRESS = 10;
+    private static final float BLACKOUT_VIEW_ENABLED_ALPHA = (float) 0.7;
+    private static final String NO_SEARCH_RESULTS_MESSAGE = "nothing was found";
+    private static final String SEARCH_FAILED_MESSAGE = "could not get search results";
 
     private View mainLayout;
     private SearchView searchField;
@@ -70,7 +76,7 @@ public class IsochroneMenu extends Fragment {
     private OnPlaceQueryListener onPlaceQueryListener;
     private View.OnClickListener onConvexHullButtonClickListener;
     private View.OnClickListener onHexagonalCoverButtonClickListener;
-    private OnScreenBlockListener onScreenBlcokListener;
+    private OnScreenBlockListener onScreenBlockListener;
 
     private boolean isDrawn = false;
     private Mode currentMode = Mode.CLOSED;
@@ -80,50 +86,60 @@ public class IsochroneMenu extends Fragment {
     private TransportType currentTransport = TransportType.FOOT;
     private IsochroneRequestType currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
 
-    public interface OnScreenBlockListener {
-        void block(boolean enable);
+    /** Creates IsochroneMenu instance with specified initial preferences. */
+    public static @NonNull
+    IsochroneMenu newInstance(@NonNull TransportType transportType,
+                              @NonNull IsochroneRequestType isochroneRequestType,
+                              float seekBarProgress) {
+
+        IsochroneMenu menu = new IsochroneMenu();
+        Bundle arguments = new Bundle();
+        arguments.putSerializable(TRANSPORT_TYPE, transportType);
+        arguments.putSerializable(ISOCHRONE_REQUEST_TYPE, isochroneRequestType);
+        arguments.putFloat(SEEK_BAR_PROGRESS, seekBarProgress);
+        menu.setArguments(arguments);
+        return menu;
     }
 
-    public interface OnPlaceQueryListener {
-        void OnPlaceQuery(Coordinate coordinate);
-    }
-
-    private enum Mode {
-        CLOSED,
-        MAIN_SETTING,
-        ADDITIONAL_SETTINGS,
-        SEARCH
-    }
-
+    /** {@inheritDoc} */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyArguments();
+
         if (savedInstanceState != null) {
-            currentMode = (Mode)savedInstanceState.getSerializable(MENU_MODE);
+            currentMode = (Mode) savedInstanceState.getSerializable(MENU_MODE);
+            currentTransport = (TransportType) savedInstanceState.getSerializable(TRANSPORT_TYPE);
+            currentRequestType = (IsochroneRequestType) savedInstanceState
+                    .getSerializable(ISOCHRONE_REQUEST_TYPE);
+            seekBarProgress = savedInstanceState.getFloat(SEEK_BAR_PROGRESS);
         }
 
-        //Will not happen because onCreate is called after onAttach
+        // Will not happen because onCreate is called after onAttach
         assert getActivity() != null;
         database = new SearchDatabase(getActivity(), DATABASE_NAME);
     }
 
+    /** {@inheritDoc} */
     @Override
-    public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
-                                       @Nullable ViewGroup container,
-                                       @Nullable Bundle savedInstanceState) {
+    public @Nullable
+    View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                      @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         return inflater.inflate(R.layout.menu_main_layout, container, false);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mainLayout = view;
-        init(savedInstanceState);
+        initialize(savedInstanceState);
     }
 
+    /** {@inheritDoc} */
     @Override
-    public void onSaveInstanceState(@NotNull Bundle bundle) {
+    public void onSaveInstanceState(@NonNull Bundle bundle) {
         super.onSaveInstanceState(bundle);
         bundle.putSerializable(MENU_MODE, currentMode);
         bundle.putSerializable(ADAPTER_MODE, adapter.getAdapterMode());
@@ -134,53 +150,37 @@ public class IsochroneMenu extends Fragment {
         } else {
             bundle.putParcelableArrayList(ADAPTER_LIST, adapter.getResultsList());
         }
+
+        bundle.putSerializable(TRANSPORT_TYPE, currentTransport);
+        bundle.putSerializable(ISOCHRONE_REQUEST_TYPE, currentRequestType);
+        bundle.putFloat(SEEK_BAR_PROGRESS, seekBar.getProgressFloat());
     }
 
-    private void restoreAdapterAndQuery(@NonNull Bundle savedInstanceState) {
-        SearchResultsAdapter.AdapterMode mode =
-                (SearchResultsAdapter.AdapterMode)savedInstanceState.getSerializable(ADAPTER_MODE);
-
-        currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY);
-
-        if (mode == SearchResultsAdapter.AdapterMode.HINTS) {
-            List<String> content = savedInstanceState.getStringArrayList(ADAPTER_LIST);
-            adapter.setHints(content);
-        } else {
-            List<Location> content = savedInstanceState.getParcelableArrayList(ADAPTER_LIST);
-            adapter.setResults(content);
-        }
-    }
-
+    /** {@inheritDoc} */
     @Override
     public void onDestroy() {
         super.onDestroy();
         database.close();
     }
 
-    public void setPreferencesBeforeDrawn(TransportType transportType,
-                                          IsochroneRequestType isochroneRequestType,
-                                          float seekBarProgress) {
-        if(isDrawn) {
-            throw new IllegalStateException("Menu is already drawn");
-        }
-
-        currentTransport = transportType;
-        currentRequestType = isochroneRequestType;
-        this.seekBarProgress = seekBarProgress;
-    }
-
-    public TransportType getCurrentTransport() {
+    /** Returns current chosen transport type. */
+    public @NonNull
+    TransportType getCurrentTransport() {
         return currentTransport;
     }
 
-    public IsochroneRequestType getCurrentRequestType() {
+    /** Returns current chosen isochrone type. */
+    public @NonNull
+    IsochroneRequestType getCurrentRequestType() {
         return currentRequestType;
     }
 
+    /** Returns current seek bar value. */
     public float getCurrentSeekBarProgress() {
         return seekBar.getProgressFloat();
     }
 
+    /** Closes drop down menu. */
     public boolean closeEverything() {
         if (currentMode != Mode.CLOSED) {
             currentMode = Mode.CLOSED;
@@ -190,32 +190,70 @@ public class IsochroneMenu extends Fragment {
         return false;
     }
 
-    public void setAuxiliaryFragment(AuxiliaryFragment auxiliaryFragment) {
+    /**
+     * Sets {@link AuxiliaryFragment} which is used to deliver callbacks back to IsochroneMenu
+     * even when fragment is recreated due to configuration changes. Must be set in order for menu
+     * to work properly.
+     */
+    public void setAuxiliaryFragment(@NonNull AuxiliaryFragment auxiliaryFragment) {
         this.auxiliaryFragment = auxiliaryFragment;
     }
 
-    public void setOnConvexHullButtonClickListener(View.OnClickListener callerListener) {
-        onConvexHullButtonClickListener = callerListener;
-    }
-
-    public void setOnHexagonalCoverButtonClickListener(View.OnClickListener callerListener) {
-        onHexagonalCoverButtonClickListener = callerListener;
-    }
-
-    public void setOnScreenBlockListener(OnScreenBlockListener listener) {
-        onScreenBlcokListener = listener;
-    }
-
-    public void setOnPlaceQueryListener(OnPlaceQueryListener listener) {
-        onPlaceQueryListener = listener;
-    }
-
-    //FIXME MOVE TO CONSTRUCTOR
-    public void setCachedLocationProvider(CachedLocationProvider provider) {
+    /**
+     * Sets {@link CachedLocationProvider} which is used to obtain approximate location
+     * (necessary for place searching). Must be set in order for menu to work properly.
+     */
+    public void setCachedLocationProvider(@NonNull CachedLocationProvider provider) {
         cachedLocationProvider = provider;
     }
 
-    private void init(Bundle savedInstanceState) {
+    /** Sets listener which will be called if user chooses ConvexHull isochrone type. */
+    public void setOnConvexHullButtonClickListener(@Nullable View.OnClickListener callerListener) {
+        onConvexHullButtonClickListener = callerListener;
+    }
+
+    /** Sets listener which will be called if user chooses HexagonalCover isochrone type. */
+    public void setOnHexagonalCoverButtonClickListener(
+            @Nullable View.OnClickListener callerListener) {
+        onHexagonalCoverButtonClickListener = callerListener;
+    }
+
+    /** {@see OnScreenBLockListener} */
+    public void setOnScreenBlockListener(@Nullable OnScreenBlockListener listener) {
+        onScreenBlockListener = listener;
+    }
+
+    /** {@see OnPlaceQueryListener} */
+    public void setOnPlaceQueryListener(@Nullable OnPlaceQueryListener listener) {
+        onPlaceQueryListener = listener;
+    }
+
+    private void applyArguments() {
+        if (getArguments() == null) {
+            return;
+        }
+
+        currentTransport = (TransportType) getArguments().getSerializable(TRANSPORT_TYPE);
+        if (currentTransport == null) {
+            currentTransport = TransportType.FOOT;
+        }
+
+        currentRequestType =
+                (IsochroneRequestType) getArguments().getSerializable(ISOCHRONE_REQUEST_TYPE);
+        if (currentRequestType == null) {
+            currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
+        }
+
+        seekBarProgress = getArguments().getFloat(SEEK_BAR_PROGRESS, DEFAULT_SEEK_BAR_PROGRESS);
+    }
+
+    private void initialize(@Nullable Bundle savedInstanceState) {
+        initializeViews();
+        initializeSearch(savedInstanceState);
+        setUIUpdater();
+    }
+
+    private void initializeViews() {
         mainSettings = mainLayout.findViewById(R.id.main_settings);
         additionalSettings = mainLayout.findViewById(R.id.additional_settings);
         additionalSettingsButton = mainLayout.findViewById(R.id.additional_settings_button);
@@ -281,30 +319,9 @@ public class IsochroneMenu extends Fragment {
             currentMode = Mode.CLOSED;
             updateModeUI(true);
         });
-
-        initSearch(savedInstanceState);
-        setUIUpdater();
     }
 
-    public void onSuccessSearchResultsCallback(List<Location> list) {
-        adapter.setResults(list);
-        if (onScreenBlcokListener != null) {
-            onScreenBlcokListener.block(false);
-        }
-        updateModeUI(true);
-    }
-
-    public void onFailureSearchResultsCallback(Exception exception) {
-        Toast toast = Toast.makeText(getContext(),
-                "could not get search results",
-                Toast.LENGTH_LONG);
-        toast.show();
-        if (onScreenBlcokListener != null) {
-            onScreenBlcokListener.block(false);
-        }
-    }
-
-    private void initSearch(Bundle savedInstanceState) {
+    private void initializeSearch(Bundle savedInstanceState) {
         searchField = mainLayout.findViewById(R.id.search_field);
         resultsRecycler = mainLayout.findViewById(R.id.results_list);
 
@@ -316,7 +333,7 @@ public class IsochroneMenu extends Fragment {
             }
         });
 
-        if (savedInstanceState != null ) {
+        if (savedInstanceState != null) {
             restoreAdapterAndQuery(savedInstanceState);
         } else {
             hintsUpdater.accept(currentQuery);
@@ -337,22 +354,27 @@ public class IsochroneMenu extends Fragment {
                     }
                     closeEverything();
                 } else {
-                    if (onScreenBlcokListener != null) {
-                        onScreenBlcokListener.block(true);
+                    if (onScreenBlockListener != null) {
+                        onScreenBlockListener.block(true);
                     }
 
-                    cachedLocationProvider.getApproximateLocation(position ->
-                        Geocoder.getLocations(
-                                query,
-                                position,
-                                list -> auxiliaryFragment.transferActionToMainActivity(
-                                        activity -> activity.getMenu()
-                                                .onSuccessSearchResultsCallback(list)
-                                ),
-                                exception -> auxiliaryFragment.transferActionToMainActivity(
-                                        activity -> activity.getMenu()
-                                                .onFailureSearchResultsCallback(exception)
-                                )));
+                    Consumer<List<Location>> deliverToOnSuccessByAuxiliaryFragment =
+                            list -> auxiliaryFragment.transferActionToMainActivity(
+                                    activity -> activity.getMenu()
+                                                        .onSuccessSearchResultsCallback(list));
+
+                    Consumer<Exception> deliverToOnFailureByAuxiliaryFragment =
+                            exception -> auxiliaryFragment.transferActionToMainActivity(
+                                    activity -> activity.getMenu()
+                                                        .onFailureSearchResultsCallback(exception));
+
+                    cachedLocationProvider.getApproximateLocation(
+                            position -> Geocoder.getLocations(
+                                    query,
+                                    position,
+                                    deliverToOnSuccessByAuxiliaryFragment,
+                                    deliverToOnFailureByAuxiliaryFragment));
+
                 }
                 searchField.clearFocus();
                 return false;
@@ -372,7 +394,7 @@ public class IsochroneMenu extends Fragment {
         searchField.setOnQueryTextFocusChangeListener((view, hasFocus) -> {
             if (hasFocus) {
                 currentMode = Mode.SEARCH;
-                if (isDrawn){
+                if (isDrawn) {
                     updateModeUI(true);
                 }
             }
@@ -387,9 +409,7 @@ public class IsochroneMenu extends Fragment {
             updateModeUI(true);
         });
 
-        adapter.setOnHintClickListener(hint -> {
-            searchField.setQuery(hint, true);
-        });
+        adapter.setOnHintClickListener(hint -> searchField.setQuery(hint, true));
 
         adapter.setOnHintDeleteClickListener(hint -> {
             database.deleteSearchQuery(hint);
@@ -397,19 +417,51 @@ public class IsochroneMenu extends Fragment {
         });
     }
 
+    private void restoreAdapterAndQuery(@NonNull Bundle savedInstanceState) {
+        SearchResultsAdapter.AdapterMode mode =
+                (SearchResultsAdapter.AdapterMode) savedInstanceState.getSerializable(ADAPTER_MODE);
+
+        currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY);
+
+        if (mode == SearchResultsAdapter.AdapterMode.HINTS) {
+            List<String> content = savedInstanceState.getStringArrayList(ADAPTER_LIST);
+            adapter.setHints(content);
+        } else {
+            List<Location> content = savedInstanceState.getParcelableArrayList(ADAPTER_LIST);
+            adapter.setResults(content);
+        }
+    }
+
+    private void onSuccessSearchResultsCallback(@NonNull List<Location> list) {
+        adapter.setResults(list);
+        if (onScreenBlockListener != null) {
+            onScreenBlockListener.block(false);
+        }
+        if (list.size() == 0) {
+            Toast.makeText(getContext(), NO_SEARCH_RESULTS_MESSAGE, Toast.LENGTH_LONG).show();
+        }
+        updateModeUI(true);
+    }
+
+    private void onFailureSearchResultsCallback(@NonNull Exception exception) {
+        Toast.makeText(getContext(), SEARCH_FAILED_MESSAGE, Toast.LENGTH_LONG).show();
+        if (onScreenBlockListener != null) {
+            onScreenBlockListener.block(false);
+        }
+    }
+
     private void setUIUpdater() {
         mainLayout.getViewTreeObserver()
-                .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        mainLayout.getViewTreeObserver()
-                                .removeOnGlobalLayoutListener(this);
-                        updateAdditionalSettingUI();
-                        updateMainSettingUI();
-                        updateModeUI(false);
-                        isDrawn = true;
-                    }
-                });
+                  .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                      @Override
+                      public void onGlobalLayout() {
+                          mainLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                          updateAdditionalSettingUI();
+                          updateMainSettingUI();
+                          updateModeUI(false);
+                          isDrawn = true;
+                      }
+                  });
     }
 
     private void updateMainSettingUI() {
@@ -419,30 +471,31 @@ public class IsochroneMenu extends Fragment {
                 (seekBarProgress != null ? seekBarProgress : seekBar.getProgressFloat());
         seekBarProgress = null;
 
+        TransportTypeSeekBarSettings settings;
         switch (currentTransport) {
-            //FIXME magic constants
             case FOOT:
                 transportButton = walkingButton;
-                seekBar.setMin(5);
-                seekBar.setMax(40);
-                seekBar.setTickCount(8);
-                break;
-            case CAR:
-                transportButton = carButton;
-                seekBar.setMin(5);
-                seekBar.setMax(15);
-                seekBar.setTickCount(3);
+                settings = TransportTypeSeekBarSettings.FOOT;
                 break;
             case BIKE:
                 transportButton = bikeButton;
-                seekBar.setMin(5);
-                seekBar.setMax(15);
-                seekBar.setTickCount(3);
+                settings = TransportTypeSeekBarSettings.BIKE;
+                break;
+            case CAR:
+                transportButton = carButton;
+                settings = TransportTypeSeekBarSettings.CAR;
                 break;
             default:
                 throw new RuntimeException();
         }
+
+        seekBar.setMin(settings.getMinValue());
+        seekBar.setMax(settings.getMaxValue());
+        seekBar.setTickCount(settings.getTickCount());
         seekBar.setProgress(currentProgress);
+
+        // disable inspection (this method is called after fragment has been attached to activity).
+        assert getContext() != null;
 
         walkingButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
         bikeButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
@@ -472,6 +525,10 @@ public class IsochroneMenu extends Fragment {
             default:
                 throw new RuntimeException();
         }
+
+        // disable inspection (this method is called after fragment has been attached to activity).
+        assert getContext() != null;
+
         currentButton.setImageTintList(getContext().getColorStateList(R.color.colorDarkGrey));
         currentBorder.setImageTintList(getContext().getColorStateList(R.color.colorPrimaryDark));
         otherButton.setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
@@ -492,13 +549,16 @@ public class IsochroneMenu extends Fragment {
         additionalSettings.setVisibility(View.INVISIBLE);
         resultsRecycler.setVisibility(View.INVISIBLE);
 
-        switch(currentMode) {
+        // disable inspection (this method is called after fragment has been attached to activity).
+        assert getContext() != null;
+
+        switch (currentMode) {
             case MAIN_SETTING:
                 mainSettings.setVisibility(View.VISIBLE);
                 menuButton.setVisibility(View.VISIBLE);
                 additionalSettingsButton.setVisibility(View.VISIBLE);
-                additionalSettingsButton.setImageTintList(
-                        getContext().getColorStateList(R.color.colorPrimary));
+                additionalSettingsButton
+                        .setImageTintList(getContext().getColorStateList(R.color.colorPrimary));
                 searchField.setVisibility(View.INVISIBLE);
                 adjustCardHeightAndBlackout(animate, mainSettings.getHeight(), true);
                 break;
@@ -506,8 +566,8 @@ public class IsochroneMenu extends Fragment {
                 additionalSettings.setVisibility(View.VISIBLE);
                 menuButton.setVisibility(View.VISIBLE);
                 additionalSettingsButton.setVisibility(View.VISIBLE);
-                additionalSettingsButton.setImageTintList(
-                        getContext().getColorStateList(R.color.colorDarkGrey));
+                additionalSettingsButton
+                        .setImageTintList(getContext().getColorStateList(R.color.colorDarkGrey));
                 searchField.setVisibility(View.INVISIBLE);
                 adjustCardHeightAndBlackout(animate, mainSettings.getHeight(), true);
                 break;
@@ -516,7 +576,7 @@ public class IsochroneMenu extends Fragment {
                 menuButton.setVisibility(View.GONE);
                 additionalSettingsButton.setVisibility(View.GONE);
                 adjustCardHeightAndBlackout(true,
-                        computeResultsRecyclerHeight(), true);
+                                            computeResultsRecyclerHeight(), true);
                 break;
         }
     }
@@ -532,8 +592,7 @@ public class IsochroneMenu extends Fragment {
         return padding + itemCount * itemSize + padding;
     }
 
-    private void adjustCardHeightAndBlackout(boolean animate,
-                                             float contentHeight,
+    private void adjustCardHeightAndBlackout(boolean animate, float contentHeight,
                                              boolean blackout) {
         CardView settingsCard = mainLayout.findViewById(R.id.settings_card);
         float translation = -settingsCard.getHeight() + contentHeight;
@@ -542,17 +601,17 @@ public class IsochroneMenu extends Fragment {
 
         if (blackout) {
             blackoutView.setClickable(true);
-            blackoutAlpha = (float)0.7;
+            blackoutAlpha = BLACKOUT_VIEW_ENABLED_ALPHA;
         } else {
             blackoutView.setClickable(false);
             blackoutAlpha = 0;
         }
 
         if (animate) {
-            ObjectAnimator cardAnimation = ObjectAnimator.ofFloat(settingsCard,
-                    "translationY", translation);
-            ObjectAnimator blackoutAnimation = ObjectAnimator.ofFloat(blackoutView,
-                    "alpha", blackoutAlpha);
+            ObjectAnimator cardAnimation =
+                    ObjectAnimator.ofFloat(settingsCard, "translationY", translation);
+            ObjectAnimator blackoutAnimation =
+                    ObjectAnimator.ofFloat(blackoutView, "alpha", blackoutAlpha);
 
             blackoutAnimation.setDuration(200);
             cardAnimation.setDuration(200);
@@ -565,5 +624,19 @@ public class IsochroneMenu extends Fragment {
             settingsCard.setTranslationY(translation);
             blackoutView.setAlpha(blackoutAlpha);
         }
+    }
+
+    private enum Mode {
+        CLOSED, MAIN_SETTING, ADDITIONAL_SETTINGS, SEARCH
+    }
+
+    /** This listener is called when menu wants to disable or enable all UI interaction */
+    public interface OnScreenBlockListener {
+        void block(boolean enable);
+    }
+
+    /** This listener is called when user chooses place in search results. */
+    public interface OnPlaceQueryListener {
+        void OnPlaceQuery(@NonNull Coordinate coordinate);
     }
 }
