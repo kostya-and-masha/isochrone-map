@@ -50,8 +50,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
-    private static final float DEFAULT_ZOOM_LEVEL = 10;
-    private static final LatLng START_POSITION = new LatLng(59.980547, 30.324066);
+    private static final float CLOSE_ZOOM_LEVEL = 14;
+    private static final int CAMERA_ANIMATION_TIME = 2000;
 
     private static final String TASKS_FRAGMENT_TAG = "TASKS_FRAGMENT";
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         IsochroneRequestType currentRequestType = IsochroneRequestType.valueOf(
                 sharedPreferences.getString("currentRequestType", "HEXAGONAL_COVER"));
         float seekBarProgress =  sharedPreferences.getFloat("seekBarProgress", 10);
+        restoreSavedCameraPosition();
 
         menu.setPreferencesBeforeDrawn(currentTransport, currentRequestType, seekBarProgress);
 
@@ -195,7 +196,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void restoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        initialCameraPosition = savedInstanceState.getParcelable(CAMERA_POSITION);
+        CameraPosition savedPosition = savedInstanceState.getParcelable(CAMERA_POSITION);
+        if (savedPosition != null) {
+            initialCameraPosition = savedPosition;
+        }
         initialMarkerPosition = savedInstanceState.getParcelable(MARKER_POSITION);
         initialMarkerTitle = savedInstanceState.getString(MARKER_TITLE);
         currentPolygonOptions = auxiliaryFragment.getSavedPolygons();
@@ -211,10 +215,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
-        if (map != null) {
+        if (mapIsReady()) {
             resetPadding();
             outState.putParcelable(CAMERA_POSITION, map.getCameraPosition());
             setPadding();
+        } else {
+            outState.putParcelable(CAMERA_POSITION, initialCameraPosition);
         }
         if (currentPosition != null) {
             outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
@@ -234,10 +240,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (initialCameraPosition != null) {
             map.moveCamera(CameraUpdateFactory.newCameraPosition(initialCameraPosition));
-        } else {
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                    START_POSITION, DEFAULT_ZOOM_LEVEL
-            ));
+        } else if (OneTimeLocationProvider.hasPermissions(this)) {
+            OneTimeLocationProvider.getLocation(this, this::zoomToPosition);
         }
 
         setPadding();
@@ -271,6 +275,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .putString("currentRequestType", menu.getCurrentRequestType().toString())
                 .putFloat("seekBarProgress", menu.getCurrentSeekBarProgress())
                 .apply();
+        saveCameraPosition();
     }
 
     @Override
@@ -304,12 +309,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Toast.LENGTH_LONG);
                 toast.show();
             }
-        } else if (requestCode == INITIAL_PERMISSIONS_REQUEST
-                && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-            Toast toast = Toast.makeText(this, "give permissions please :(",
-                    Toast.LENGTH_LONG);
-            toast.show();
-            permissionsDenied = true;
+        } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (mapIsReady() && initialCameraPosition == null) {
+                    OneTimeLocationProvider.getLocation(this, this::zoomToPosition);
+                }
+            } else {
+                Toast toast = Toast.makeText(this, "give permissions please :(", Toast.LENGTH_LONG);
+                toast.show();
+                permissionsDenied = true;
+            }
         }
     }
 
@@ -335,6 +344,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         menu.getCurrentRequestType()
                 )
         );
+    }
+
+    private boolean mapIsReady() {
+        return map != null;
+    }
+
+    private void saveCameraPosition() {
+        if (mapIsReady()) {
+            resetPadding();
+            CameraPosition position = map.getCameraPosition();
+            sharedPreferences.edit().putFloat("cameraLatitude", (float) position.target.latitude)
+                             .putFloat("cameraLongitude", (float) position.target.longitude)
+                             .putFloat("cameraZoom", position.zoom)
+                             .putFloat("cameraTilt", position.tilt)
+                             .putFloat("cameraBearing", position.bearing).apply();
+            setPadding();
+        }
+    }
+
+    private void restoreSavedCameraPosition() {
+        if (sharedPreferences.contains("cameraZoom")) {
+            double latitude = sharedPreferences.getFloat("cameraLatitude", 0);
+            double longitude = sharedPreferences.getFloat("cameraLongitude", 0);
+            float zoom = sharedPreferences.getFloat("cameraZoom", 0);
+            float tilt = sharedPreferences.getFloat("cameraTilt", 0);
+            float bearing = sharedPreferences.getFloat("cameraBearing", 0);
+            initialCameraPosition = new CameraPosition(
+                    new LatLng(latitude, longitude),
+                    zoom,
+                    tilt,
+                    bearing
+            );
+        }
     }
 
     private void setPadding() {
@@ -366,8 +408,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void setCurrentPositionAndMoveCamera(Coordinate position) {
         setCurrentPosition(position);
         map.animateCamera(
-                CameraUpdateFactory.newLatLng(currentPosition.getPosition()),
-                2000,
+                CameraUpdateFactory.newLatLng(position.toLatLng()),
+                CAMERA_ANIMATION_TIME,
+                null
+        );
+    }
+
+    private void zoomToPosition(Coordinate position) {
+        map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                        position.toLatLng(),
+                        CLOSE_ZOOM_LEVEL
+                ),
+                CAMERA_ANIMATION_TIME,
                 null
         );
     }
@@ -405,7 +458,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 CameraUpdateFactory.newLatLngBounds(
                         new LatLngBounds(bounds.getMin(), bounds.getMax()), 0
                 ),
-                2000,
+                CAMERA_ANIMATION_TIME,
                 null
         );
     }
@@ -460,7 +513,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void gpsButtonCallback(Coordinate coordinate) {
-        if (map == null) {
+        if (!mapIsReady()) {
             onMapReadyAction = () -> gpsButtonCallback(coordinate);
             return;
         }
@@ -507,7 +560,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void asyncMapRequestCallback(IsochroneResponse response) {
-        if (map == null) {
+        if (!mapIsReady()) {
             onMapReadyAction = () -> asyncMapRequestCallback(response);
             return;
         }
