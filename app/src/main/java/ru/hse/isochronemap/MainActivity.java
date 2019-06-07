@@ -236,6 +236,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
         map.setOnMapLongClickListener(position -> setCurrentPosition(new Coordinate(position)));
+        map.setOnMapClickListener(event -> {});
+        map.setOnMarkerClickListener(event -> true);
 
         if (initialCameraPosition != null) {
             map.moveCamera(CameraUpdateFactory.newCameraPosition(initialCameraPosition));
