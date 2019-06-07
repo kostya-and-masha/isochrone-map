@@ -1,10 +1,5 @@
 package ru.hse.isochronemap.isochronebuilding;
 
-import ru.hse.isochronemap.mapstructure.Edge;
-import ru.hse.isochronemap.mapstructure.Node;
-import ru.hse.isochronemap.mapstructure.TransportType;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,31 +8,31 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeSet;
 
-/** Dijkstra algorithm */
+import androidx.annotation.NonNull;
+import ru.hse.isochronemap.mapstructure.Edge;
+import ru.hse.isochronemap.mapstructure.Node;
+import ru.hse.isochronemap.mapstructure.TransportType;
+
+/**
+ * This class provides static method which finds
+ * reachable (in a specified time) nodes in a graph.
+ */
 class ReachableNodesFinder {
-    static @NotNull List<Node> getReachableNodes(
-            @NotNull Node startNode, double time, TransportType transportType)
-            throws UnsupportedParameterException {
-        //FIXME move constants to the enum itself
-        //FIXME fix bug related to primitive double value
-        Double speed;
-        switch (transportType) {
-            case FOOT:
-                speed = IsochroneBuilder.AVERAGE_FOOT_SPEED;
-                break;
-            case CAR:
-                speed = IsochroneBuilder.AVERAGE_CAR_SPEED;
-                break;
-            case BIKE:
-                speed = IsochroneBuilder.AVERAGE_BIKE_SPEED;
-                break;
-            default:
-                throw new UnsupportedOperationException();
-        }
+    /**
+     * Dijkstra algorithm
+     *
+     * @param startNode     graph's start point.
+     * @param time          upper bound time.
+     * @param transportType type of transport.
+     * @return list of reachable nodes.
+     */
+    static @NonNull List<Node> getReachableNodes(@NonNull Node startNode, double time,
+                                                 @NonNull TransportType transportType) {
+        Double speed = transportType.getAverageSpeed();
 
         HashMap<Node, Double> nodesReachTime = new HashMap<>();
 
-        // used for nodes order in TreeSet TODO fix it
+        // used for nodes order in TreeSet
         int currentIndex = 0;
         HashMap<Node, Integer> nodesIndex = new HashMap<>();
 
@@ -61,6 +56,10 @@ class ReachableNodesFinder {
             Node currentNode = nodesQueue.first().node;
             double currentReachTime = nodesQueue.first().time;
             nodesQueue.remove(nodesQueue.first());
+
+            if (currentReachTime > time) {
+                continue;
+            }
 
             for (Edge edge : currentNode.edges) {
                 Node destination = edge.destination;
@@ -96,9 +95,14 @@ class ReachableNodesFinder {
         private double time;
         private Node node;
 
-        private TimeAndNode(double time, Node node) {
+        private TimeAndNode(double time, @NonNull Node node) {
             this.time = time;
             this.node = node;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(time, node);
         }
 
         @Override
@@ -110,13 +114,7 @@ class ReachableNodesFinder {
                 return false;
             }
             TimeAndNode that = (TimeAndNode) o;
-            return Double.compare(that.time, time) == 0 &&
-                    node == that.node;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(time, node);
+            return Double.compare(that.time, time) == 0 && node == that.node;
         }
     }
 }
