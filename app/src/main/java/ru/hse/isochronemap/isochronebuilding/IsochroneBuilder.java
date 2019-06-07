@@ -109,14 +109,16 @@ public class IsochroneBuilder {
                 }
                 int numberOfSegments = (int) (edge.length / (HEXAGON_RADIUS * 0.5)) + 1;
                 double latitudeStep =
-                        (edge.destination.coordinate.latitudeDeg - node.coordinate.latitudeDeg)
+                        (edge.destination.coordinate.latitude
+                         - node.coordinate.latitude)
                         / numberOfSegments;
                 double longitudeStep =
-                        (edge.destination.coordinate.longitudeDeg - node.coordinate.longitudeDeg)
+                        (edge.destination.coordinate.longitude
+                         - node.coordinate.longitude)
                         / numberOfSegments;
                 for (int i = 1; i < numberOfSegments; i++) {
-                    double latitude = node.coordinate.latitudeDeg + latitudeStep * i;
-                    double longitude = node.coordinate.longitudeDeg + longitudeStep * i;
+                    double latitude = node.coordinate.latitude + latitudeStep * i;
+                    double longitude = node.coordinate.longitude + longitudeStep * i;
                     reachablePoints.add(new Coordinate(latitude, longitude));
                 }
             }

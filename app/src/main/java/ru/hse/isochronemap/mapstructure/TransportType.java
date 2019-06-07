@@ -4,9 +4,12 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
+import androidx.annotation.NonNull;
+
 /** Class represents list of available transport types. **/
 public enum TransportType implements Serializable {
-    FOOT(   5,
+    FOOT(
+            5,
             new RoadRestriction(
                     "highway",
                     RoadRestriction.Type.TAG_MATCHES,
@@ -25,13 +28,11 @@ public enum TransportType implements Serializable {
                     RoadType.TERTIARY,
                     RoadType.PRIMARY_LINK,
                     RoadType.SECONDARY_LINK,
-                    RoadType.TERTIARY_LINK
-            ),
+                    RoadType.TERTIARY_LINK),
             new RoadRestriction(
                     "foot",
                     RoadRestriction.Type.TAG_DOES_NOT_EQUAL,
-                    "no"
-            ),
+                    "no"),
             RoadRestriction.PUBLIC_ACCESS
     ),
     CAR(
@@ -43,11 +44,9 @@ public enum TransportType implements Serializable {
                     RoadType.PEDESTRIAN,
                     RoadType.FOOTWAY,
                     RoadType.STEPS,
-                    RoadType.PATH
-            ),
+                    RoadType.PATH),
             RoadRestriction.PUBLIC_ACCESS
     ),
-    // FIXME duplicating code
     BIKE(
             17,
             new RoadRestriction(
@@ -67,8 +66,7 @@ public enum TransportType implements Serializable {
                     RoadType.TERTIARY,
                     RoadType.PRIMARY_LINK,
                     RoadType.SECONDARY_LINK,
-                    RoadType.TERTIARY_LINK
-            ),
+                    RoadType.TERTIARY_LINK),
             RoadRestriction.PUBLIC_ACCESS
     );
 
@@ -80,7 +78,7 @@ public enum TransportType implements Serializable {
         this.restrictions = Arrays.asList(restrictions);
     }
 
-    public List<RoadRestriction> getRestrictions() {
+    public @NonNull List<RoadRestriction> getRestrictions() {
         return restrictions;
     }
 

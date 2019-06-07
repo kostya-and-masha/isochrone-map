@@ -1,39 +1,34 @@
 package ru.hse.isochronemap.mapstructure;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.Iterator;
 
+import androidx.annotation.NonNull;
+
 class OverpassRequestBuilder {
-    static String buildRequest(BoundingBox box,
-                               TransportType transportType,
-                               OverpassRequestType requestType) {
-        String result = null;
-        try {
-            StringBuilder builder = new StringBuilder();
-            builder.append(requestType.HEADING)
-                   .append(boundingBoxString(box)).append(";")
-                   .append("way");
-            for (RoadRestriction restriction : transportType.getRestrictions()) {
-                builder.append(restrictionString(restriction));
-            }
-            builder.append(";");
-            builder.append(requestType.ENDING);
-            result = builder.toString();
-            result = URLEncoder.encode(result, "UTF-8");
-        } catch (UnsupportedEncodingException ignored) {}
-        return result;
+    static @NonNull String buildRequest(@NonNull BoundingBox box,
+                                        @NonNull TransportType transportType,
+                                        @NonNull OverpassRequestType requestType) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(requestType.HEADING)
+               .append(boundingBoxString(box)).append(";")
+               .append("way");
+        for (RoadRestriction restriction : transportType.getRestrictions()) {
+            builder.append(restrictionString(restriction));
+        }
+        builder.append(";");
+        builder.append(requestType.ENDING);
+        return builder.toString();
     }
 
-    private static String boundingBoxString(BoundingBox box) {
-        return "[bbox:" +
-                Double.toString(box.minimum.latitudeDeg) + ","
-                + Double.toString(box.minimum.longitudeDeg) + ","
-                + Double.toString(box.maximum.latitudeDeg) + ","
-                + Double.toString(box.maximum.longitudeDeg) + "]";
+    private static @NonNull String boundingBoxString(@NonNull BoundingBox box) {
+        return "[bbox:"
+               + Double.toString(box.minimum.latitude) + ","
+               + Double.toString(box.minimum.longitude) + ","
+               + Double.toString(box.maximum.latitude) + ","
+               + Double.toString(box.maximum.longitude) + "]";
     }
 
-    private static String restrictionString(RoadRestriction restriction) {
+    private static @NonNull String restrictionString(@NonNull RoadRestriction restriction) {
         StringBuilder builder = new StringBuilder();
         builder.append("[\"").append(restriction.getTag()).append("\"")
                .append(restriction.getRestrictionType());

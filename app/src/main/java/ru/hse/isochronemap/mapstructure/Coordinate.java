@@ -5,13 +5,13 @@ import android.os.Parcelable;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import androidx.annotation.NonNull;
 
-/** Geographical coordinate. **/
+/** This class represents geographical coordinate. **/
 public class Coordinate implements Parcelable {
+    /** Creates Coordinate instance from {@link Parcel} **/
     public static final Parcelable.Creator<Coordinate> CREATOR =
             new Parcelable.Creator<Coordinate>() {
         @Override
@@ -25,11 +25,13 @@ public class Coordinate implements Parcelable {
         }
     };
 
-    public final double latitudeDeg;
-    public final double longitudeDeg;
+    /** Latitude in degrees. **/
+    public final double latitude;
+    /** Longitude in degrees. **/
+    public final double longitude;
 
-    private final double latitudeRad;
-    private final double longitudeRad;
+    private final double latitudeRadians;
+    private final double longitudeRadians;
 
     /**
      * Constructs geographical coordinate.
@@ -37,39 +39,44 @@ public class Coordinate implements Parcelable {
      * @param longitude longitude in degrees
      */
     public Coordinate(double latitude, double longitude) {
-        this.latitudeDeg = latitude;
-        this.longitudeDeg = longitude;
+        this.latitude = latitude;
+        this.longitude = longitude;
 
-        this.latitudeRad = latitudeDeg * DistanceUtils.DEGREES_TO_RADIANS;
-        this.longitudeRad = longitudeDeg * DistanceUtils.DEGREES_TO_RADIANS;
+        latitudeRadians = latitude * DistanceUtils.DEGREES_TO_RADIANS;
+        longitudeRadians = longitude * DistanceUtils.DEGREES_TO_RADIANS;
     }
 
-    /** Constructs geographical coordinate from {@link LatLng}. **/
+    /**
+     * Constructs geographical coordinate from {@link LatLng}.
+     * @param latLng {@link @LatLng} coordinate representation
+     **/
     public Coordinate(@NonNull LatLng latLng) {
         this(latLng.latitude, latLng.longitude);
     }
 
+    /** Constructs geographical coordinate from {@link Parcel}. **/
     private Coordinate(@NonNull Parcel in) {
         this(in.readDouble(), in.readDouble());
     }
 
     /** Converts coordinate to {@link LatLng}. **/
     public @NonNull LatLng toLatLng() {
-        return new LatLng(latitudeDeg, longitudeDeg);
+        return new LatLng(latitude, longitude);
     }
 
     /**
-     * Calculates distance from other coordinate.
+     * Calculates distance to other coordinate.
      * @return distance in kilometers
      */
-    public double distanceTo(@NotNull Coordinate other) {
+    public double distanceTo(@NonNull Coordinate other) {
         return DistanceUtils.distHaversineRAD(
-                latitudeRad, longitudeRad,
-                other.latitudeRad, other.longitudeRad
-        ) * DistanceUtils.EARTH_MEAN_RADIUS_KM;
+                latitudeRadians,
+                longitudeRadians,
+                other.latitudeRadians,
+                other.longitudeRadians) * DistanceUtils.EARTH_MEAN_RADIUS_KM;
     }
 
-    /** Equals method with precision. Does not obey all equals laws */
+    /** Equals method with precision. Does not obey all equals laws. **/
     public boolean equalsWithPrecision(Object o) {
         if (this == o) {
             return true;
@@ -78,18 +85,28 @@ public class Coordinate implements Parcelable {
             return false;
         }
         Coordinate that = (Coordinate) o;
-        return Math.abs(that.latitudeDeg - latitudeDeg) < 1e-8
-                && Math.abs(that.longitudeDeg - longitudeDeg) < 1e-8;
+        final double THRESHOLD = 1e-8;
+        return Math.abs(that.latitude - latitude) < THRESHOLD
+                && Math.abs(that.longitude - longitude) < THRESHOLD;
     }
 
+    /**
+     * Describes the kinds of special objects contained in this {@link Parcelable} instance
+     * (no special objects).
+     */
     @Override
     public int describeContents() {
         return 0;
     }
 
+    /**
+     * Saves Coordinate into {@link Parcel}.
+     * @param out parcel to write in
+     * @param flags ignored
+     */
     @Override
-    public void writeToParcel(Parcel out, int flags) {
-        out.writeDouble(latitudeDeg);
-        out.writeDouble(longitudeDeg);
+    public void writeToParcel(@NonNull Parcel out, int flags) {
+        out.writeDouble(latitude);
+        out.writeDouble(longitude);
     }
 }

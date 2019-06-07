@@ -3,8 +3,9 @@ package ru.hse.isochronemap.mapstructure;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.annotation.NonNull;
+
 class RoadRestriction {
-    // TODO extend restriction
     static final RoadRestriction PUBLIC_ACCESS = new RoadRestriction(
             "access",
             RoadRestriction.Type.TAG_DOES_NOT_MATCH,
@@ -12,16 +13,18 @@ class RoadRestriction {
             "private"
     );
 
-    private String tag;
-    private Type restrictionType;
-    private List<String> options = new ArrayList<>();
+    private final String tag;
+    private final Type restrictionType;
+    private final List<String> options = new ArrayList<>();
 
-    RoadRestriction(String tag) {
+    RoadRestriction(@NonNull String tag) {
         this.tag = tag;
         restrictionType = Type.TAG_EXISTS;
     }
 
-    RoadRestriction(String tag, Type restrictionType, Object... options) {
+    RoadRestriction(@NonNull String tag,
+                    @NonNull Type restrictionType,
+                    @NonNull Object... options) {
         this.tag = tag;
         this.restrictionType = restrictionType;
         for (Object option : options) {
@@ -48,14 +51,14 @@ class RoadRestriction {
         TAG_MATCHES("~"),
         TAG_DOES_NOT_MATCH("!~");
 
-        private String view;
+        private final String view;
 
-        Type(String view) {
+        Type(@NonNull String view) {
             this.view = view;
         }
 
         @Override
-        public String toString() {
+        public @NonNull String toString() {
             return view;
         }
     }
