@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -210,7 +211,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         if (map != null) {
+            resetPadding();
             outState.putParcelable(CAMERA_POSITION, map.getCameraPosition());
+            setPadding();
         }
         if (currentPosition != null) {
             outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
@@ -226,8 +229,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
-        //FIXME
-        map.setPadding(14, 180, 14, 0);
         map.setOnMapLongClickListener(position -> setCurrentPosition(new Coordinate(position)));
 
         if (initialCameraPosition != null) {
@@ -237,6 +238,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     START_POSITION, DEFAULT_ZOOM_LEVEL
             ));
         }
+
+        setPadding();
 
         if (initialMarkerPosition != null) {
             currentPosition = map.addMarker(new MarkerOptions().position(initialMarkerPosition));
@@ -331,6 +334,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         menu.getCurrentRequestType()
                 )
         );
+    }
+
+    private void setPadding() {
+        int marginTop = convertDpToPixels(80);
+        int marginSide = convertDpToPixels(5);
+        map.setPadding(marginSide, marginTop, marginSide, 0);
+    }
+
+    private void resetPadding() {
+        map.setPadding(0, 0, 0, 0);
+    }
+
+    public int convertDpToPixels(float dp) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
     private void setCurrentPosition(Coordinate position) {
