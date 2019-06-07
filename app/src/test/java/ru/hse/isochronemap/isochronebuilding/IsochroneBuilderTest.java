@@ -16,7 +16,7 @@ class IsochroneBuilderTest {
 
     @Test
     void getIsochronePolygonTriangle()
-            throws UnsupportedParameterException, NotEnoughNodesException {
+            throws NotEnoughNodesException {
         Coordinate startNodeCoordinate = new Coordinate(59.931039, 30.360980);
         Coordinate hullNode1Coordinate = new Coordinate(59.932321, 30.361683);
         Coordinate hullNode2Coordinate = new Coordinate(59.931434, 30.358003);

@@ -6,7 +6,7 @@ import java.util.List;
 
 /** Class represents list of available transport types. **/
 public enum TransportType implements Serializable {
-    FOOT(
+    FOOT(   5,
             new RoadRestriction(
                     "highway",
                     RoadRestriction.Type.TAG_MATCHES,
@@ -35,6 +35,7 @@ public enum TransportType implements Serializable {
             RoadRestriction.PUBLIC_ACCESS
     ),
     CAR(
+            35,
             new RoadRestriction("highway"),
             new RoadRestriction(
                     "highway",
@@ -48,6 +49,7 @@ public enum TransportType implements Serializable {
     ),
     // FIXME duplicating code
     BIKE(
+            17,
             new RoadRestriction(
                     "highway",
                     RoadRestriction.Type.TAG_MATCHES,
@@ -70,13 +72,19 @@ public enum TransportType implements Serializable {
             RoadRestriction.PUBLIC_ACCESS
     );
 
+    private final double averageSpeed; // in km/h
     private final List<RoadRestriction> restrictions;
 
-    TransportType(RoadRestriction ... restrictions) {
+    TransportType(double averageSpeed, RoadRestriction ... restrictions) {
+        this.averageSpeed = averageSpeed;
         this.restrictions = Arrays.asList(restrictions);
     }
 
     public List<RoadRestriction> getRestrictions() {
         return restrictions;
+    }
+
+    public double getAverageSpeed() {
+        return averageSpeed;
     }
 }

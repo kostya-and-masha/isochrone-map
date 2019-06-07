@@ -1,6 +1,6 @@
 package ru.hse.isochronemap.isochronebuilding;
 
-//TODO add javadoc
+/** Isochrone's polygon type */
 public enum IsochroneRequestType {
     CONVEX_HULL,
     HEXAGONAL_COVER

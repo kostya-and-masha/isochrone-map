@@ -19,7 +19,6 @@ import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.IsochronePolygon;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
 import ru.hse.isochronemap.isochronebuilding.NotEnoughNodesException;
-import ru.hse.isochronemap.isochronebuilding.UnsupportedParameterException;
 import ru.hse.isochronemap.location.OneTimeLocationProvider;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
@@ -543,8 +542,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         request.travelTime,
                         request.transportType
                 );
-            } catch (UnsupportedParameterException e) {
-                return new IsochroneResponse(e.getMessage());
             } catch (IOException e) {
                 return new IsochroneResponse("failed to download map");
             } catch (NotEnoughNodesException e) {
