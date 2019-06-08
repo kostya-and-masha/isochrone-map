@@ -255,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void buildIsochrone() {
-        map.removeCurrentPolygons();
+        map.removeIsochronePolygons();
         if (map.getMarkerPosition() == null) {
             Toast toast = Toast.makeText(
                     this,
