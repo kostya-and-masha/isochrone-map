@@ -24,7 +24,6 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import ru.hse.isochronemap.AuxiliaryFragment;
 import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;

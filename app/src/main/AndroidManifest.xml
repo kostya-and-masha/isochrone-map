@@ -35,7 +35,7 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name="ru.hse.isochronemap.MainActivity"
+            android:name="ru.hse.isochronemap.ui.MainActivity"
             android:windowSoftInputMode="stateUnchanged|adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

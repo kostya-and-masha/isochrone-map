@@ -1,17 +1,13 @@
-package ru.hse.isochronemap;
+package ru.hse.isochronemap.ui;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.model.PolygonOptions;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import androidx.fragment.app.Fragment;
-import ru.hse.isochronemap.geocoding.Location;
-import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.Consumer;
 
 public class AuxiliaryFragment extends Fragment {
