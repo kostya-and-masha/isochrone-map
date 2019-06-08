@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private AuxiliaryFragment auxiliaryFragment;
 
-    private MapWrapper map = new MapWrapper();
+    private MapManager map = new MapManager();
 
     private IsochroneMenu menu;
     private FloatingActionButton buildIsochroneButton;
@@ -256,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
 
     void buildIsochrone() {
         map.removeCurrentPolygons();
-        if (map.getCurrentPosition() == null) {
+        if (map.getMarkerPosition() == null) {
             Toast toast = Toast.makeText(
                     this,
                     "please choose location",
@@ -270,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
         map.updateMarkerTitle("");
         map.executeAsyncMapRequest(
                 new IsochroneRequest(
-                        map.getCurrentPosition(),
+                        map.getMarkerPosition(),
                         getTravelTime(),
                         menu.getCurrentTransport(),
                         menu.getCurrentRequestType()));
@@ -326,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
         hideProgressBar();
         hideBlackoutView();
         if (response.isSuccessful) {
-            map.setCurrentPolygons(response.getResult());
+            map.setIsochronePolygons(response.getResult());
             map.updateMarkerTitle(
                     Math.round(response.travelTime * 60)
                     + " min "

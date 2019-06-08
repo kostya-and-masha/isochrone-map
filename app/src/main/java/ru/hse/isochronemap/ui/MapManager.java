@@ -1,6 +1,5 @@
 package ru.hse.isochronemap.ui;
 
-import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -33,7 +32,7 @@ import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.IsochroneRequest;
 import ru.hse.isochronemap.util.IsochroneResponse;
 
-class MapWrapper implements OnMapReadyCallback {
+class MapManager implements OnMapReadyCallback {
     private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final int CAMERA_ANIMATION_TIME = 2000;
 
@@ -53,7 +52,7 @@ class MapWrapper implements OnMapReadyCallback {
 
     private GoogleMap map;
     private Marker currentPosition;
-    private List<Polygon> currentPolygons = new ArrayList<>();
+    private List<Polygon> isochronePolygons = new ArrayList<>();
     private List<Runnable> onMapReadyActions = new ArrayList<>();
 
     private CameraPosition savedCameraPosition;
@@ -81,7 +80,7 @@ class MapWrapper implements OnMapReadyCallback {
         }
     }
 
-    @Nullable Coordinate getCurrentPosition() {
+    @Nullable Coordinate getMarkerPosition() {
         if (currentPosition == null) {
             return null;
         }
@@ -89,7 +88,7 @@ class MapWrapper implements OnMapReadyCallback {
     }
 
     @Override
-    public void onMapReady(GoogleMap googleMap) {
+    public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
 
         map.setOnMapLongClickListener(position -> setCurrentPosition(new Coordinate(position)));
@@ -115,7 +114,7 @@ class MapWrapper implements OnMapReadyCallback {
 
         if (savedPolygonOptions != null) {
             for (PolygonOptions options : savedPolygonOptions) {
-                currentPolygons.add(map.addPolygon(options));
+                isochronePolygons.add(map.addPolygon(options));
             }
         } else {
             savedPolygonOptions = new ArrayList<>();
@@ -201,7 +200,7 @@ class MapWrapper implements OnMapReadyCallback {
         activity.buildIsochrone();
     }
 
-    void setCurrentPositionAndMoveCamera(Coordinate position) {
+    void setCurrentPositionAndMoveCamera(@NonNull Coordinate position) {
         setCurrentPosition(position);
         map.animateCamera(
                 CameraUpdateFactory.newLatLng(position.toLatLng()),
@@ -218,8 +217,8 @@ class MapWrapper implements OnMapReadyCallback {
         }
     }
 
-    void setCurrentPolygons(@NonNull List<IsochronePolygon> isochronePolygons) {
-        removeCurrentPolygons();
+    void setIsochronePolygons(@NonNull List<IsochronePolygon> isochronePolygons) {
+        removeIsochronePolygons();
 
         LatLngBox bounds = new LatLngBox();
         for (IsochronePolygon currentPolygon : isochronePolygons) {
@@ -242,7 +241,7 @@ class MapWrapper implements OnMapReadyCallback {
                 options.addHole(hole);
             }
             savedPolygonOptions.add(options);
-            currentPolygons.add(map.addPolygon(options));
+            this.isochronePolygons.add(map.addPolygon(options));
         }
 
         map.animateCamera(
@@ -251,15 +250,15 @@ class MapWrapper implements OnMapReadyCallback {
                 CAMERA_ANIMATION_TIME, null);
     }
 
-    void removeCurrentPolygons() {
-        for (Polygon polygon : currentPolygons) {
+    void removeIsochronePolygons() {
+        for (Polygon polygon : isochronePolygons) {
             polygon.remove();
         }
-        currentPolygons.clear();
+        isochronePolygons.clear();
         savedPolygonOptions.clear();
     }
 
-    void updateMarkerTitle(String title) {
+    void updateMarkerTitle(@NonNull String title) {
         currentPosition.setTitle(title);
         if (title.equals("")) {
             currentPosition.hideInfoWindow();
@@ -288,8 +287,8 @@ class MapWrapper implements OnMapReadyCallback {
         IsochroneRequest request;
         IsochroneResponse response;
 
-        private AsyncMapRequest(AuxiliaryFragment auxiliaryFragment,
-                                IsochroneRequest request) {
+        private AsyncMapRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
+                                @NonNull IsochroneRequest request) {
             super();
             this.auxiliaryFragment = auxiliaryFragment;
             this.request = request;
@@ -322,7 +321,6 @@ class MapWrapper implements OnMapReadyCallback {
                     activity -> activity.asyncMapRequestCallback(response));
         }
     }
-
 
     private static class LatLngBox {
         private double minLat = 1000;
