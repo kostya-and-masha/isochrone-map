@@ -2,30 +2,35 @@ package ru.hse.isochronemap;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.model.PolygonOptions;
 
 import java.util.ArrayList;
-import java.util.List;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import ru.hse.isochronemap.geocoding.Location;
-import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.Consumer;
 
+/**
+ * This fragment is retained during configuration changes and is used to
+ * deliver callbacks of asynchronous operations back to currently resumed activity
+ * or to store heavy objects (which could not be saved into Bundle due to their size).
+ */
 public class AuxiliaryFragment extends Fragment {
     private MainActivity mainActivity;
     private ArrayList<PolygonOptions> savedPolygons;
 
+    /** {@inheritDoc} */
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         if (context instanceof MainActivity) {
-            mainActivity = (MainActivity)context;
+            mainActivity = (MainActivity) context;
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,22 +39,25 @@ public class AuxiliaryFragment extends Fragment {
         setRetainInstance(true);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void onDetach() {
         super.onDetach();
         mainActivity = null;
     }
 
-    public ArrayList<PolygonOptions> getSavedPolygons() {
+    /** Returns previously saved GoogleMap polygons */
+    public @Nullable ArrayList<PolygonOptions> getSavedPolygons() {
         return savedPolygons;
     }
 
-
-    public void setSavedPolygons(ArrayList<PolygonOptions> savedPolygons) {
+    /** Saves GoogleMap polygons */
+    public void setSavedPolygons(@Nullable ArrayList<PolygonOptions> savedPolygons) {
         this.savedPolygons = savedPolygons;
     }
 
-    public void transferActionToMainActivity(Consumer<MainActivity> callback) {
+    /** Executes callback on currently working MainActivity */
+    public void transferActionToMainActivity(@NonNull Consumer<MainActivity> callback) {
         if (mainActivity != null) {
             callback.accept(mainActivity);
         }
