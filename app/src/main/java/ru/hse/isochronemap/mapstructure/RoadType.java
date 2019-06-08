@@ -1,7 +1,5 @@
 package ru.hse.isochronemap.mapstructure;
 
-import org.jetbrains.annotations.NotNull;
-
 import androidx.annotation.NonNull;
 
 enum RoadType {
@@ -29,7 +27,7 @@ enum RoadType {
     }
 
     @Override
-    public @NotNull String toString() {
+    public @NonNull String toString() {
         return stringName;
     }
 }

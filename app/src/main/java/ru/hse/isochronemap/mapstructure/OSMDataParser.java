@@ -2,8 +2,6 @@ package ru.hse.isochronemap.mapstructure;
 
 import com.jsoniter.JsonIterator;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -21,7 +19,7 @@ import gnu.trove.map.hash.TLongCharHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 
 class OSMDataParser {
-    static @NonNull MapData parseCSV(@NotNull byte[] osmData, @NotNull TransportType transportType)
+    static @NonNull MapData parseCSV(@NonNull byte[] osmData, @NonNull TransportType transportType)
             throws IOException {
         boolean isBiDirectional = transportType == TransportType.FOOT;
 
@@ -71,7 +69,7 @@ class OSMDataParser {
         return new MapData(nodesMap, waysMap);
     }
 
-    static TLongObjectMap<TLongList> parseJSON(@NotNull byte[] osmData) throws IOException {
+    static TLongObjectMap<TLongList> parseJSON(@NonNull byte[] osmData) throws IOException {
         TLongObjectMap<TLongList> ways = new TLongObjectHashMap<>();
 
         JsonIterator iterator = JsonIterator.parse(osmData);
