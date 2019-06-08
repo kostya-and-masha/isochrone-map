@@ -1,14 +1,25 @@
 package ru.hse.isochronemap.util;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 
+/** This class provides static method which parses geographic coordinate. */
 public class CoordinateParser {
     private static String LATITUDE_REGEXP =
             "^[+-]?(?:90(?:(?:\\.0{1,6})?)|(?:[0-9]|[1-8][0-9])(?:(?:\\.[0-9]{1,6})?))$";
     private static String LONGITUDE_REGEXP =
             "^[+-]?(?:180(?:(?:\\.0{1,6})?)|(?:[0-9]|[1-9][0-9]|1[0-7][0-9])(?:(?:\\.[0-9]{1,6})?))$";
 
-    public static Coordinate parseCoordinate(String input) {
+    /**
+     * Parses geographic coordinate.
+     *
+     * @param input parses latitude and longitude separated by whitespace only
+     *              or by comma followed by whitespace.
+     * @return Coordinate on success or null if input could not be parsed.
+     */
+    public static @Nullable
+    Coordinate parseCoordinate(@NonNull String input) {
         String[] parts = input.split("\\s+");
         if (parts.length != 2) {
             return null;
