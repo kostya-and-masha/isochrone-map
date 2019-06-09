@@ -18,6 +18,7 @@ import ru.hse.isochronemap.util.Consumer;
  * or to store heavy objects (which could not be saved into Bundle due to their size).
  */
 public class AuxiliaryFragment extends Fragment {
+    private boolean wasDeadBefore = true;
     private MainActivity mainActivity;
     private ArrayList<PolygonOptions> savedPolygons;
 
@@ -34,8 +35,6 @@ public class AuxiliaryFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Retain this fragment across configuration changes.
         setRetainInstance(true);
     }
 
@@ -46,18 +45,27 @@ public class AuxiliaryFragment extends Fragment {
         mainActivity = null;
     }
 
+    /** Returns whether this fragment died since last call to this method. */
+    boolean wasDead() {
+        if (wasDeadBefore) {
+            wasDeadBefore = false;
+            return true;
+        }
+        return false;
+    }
+
     /** Returns previously saved GoogleMap polygons */
-    public @Nullable ArrayList<PolygonOptions> getSavedPolygons() {
+    @Nullable ArrayList<PolygonOptions> getSavedPolygons() {
         return savedPolygons;
     }
 
     /** Saves GoogleMap polygons */
-    public void setSavedPolygons(@Nullable ArrayList<PolygonOptions> savedPolygons) {
+    void setSavedPolygons(@Nullable ArrayList<PolygonOptions> savedPolygons) {
         this.savedPolygons = savedPolygons;
     }
 
     /** Executes callback on currently working MainActivity */
-    public void transferActionToMainActivity(@NonNull Consumer<MainActivity> callback) {
+    void transferActionToMainActivity(@NonNull Consumer<MainActivity> callback) {
         if (mainActivity != null) {
             callback.accept(mainActivity);
         }

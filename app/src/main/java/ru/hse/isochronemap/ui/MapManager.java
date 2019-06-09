@@ -32,6 +32,7 @@ import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.IsochroneRequest;
 import ru.hse.isochronemap.util.IsochroneResponse;
 
+/** This class is used to manage GoogleMap. */
 class MapManager implements OnMapReadyCallback {
     private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final int CAMERA_ANIMATION_TIME = 2000;
