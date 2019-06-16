@@ -1,6 +1,7 @@
 package ru.hse.isochronemap.ui;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import com.google.android.gms.maps.model.PolygonOptions;
@@ -21,6 +22,7 @@ public class AuxiliaryFragment extends Fragment {
     private boolean wasDeadBefore = true;
     private MainActivity mainActivity;
     private ArrayList<PolygonOptions> savedPolygons;
+    private AsyncTask<?, ?, ?> currentAction;
 
     /** {@inheritDoc} */
     @Override
@@ -69,5 +71,20 @@ public class AuxiliaryFragment extends Fragment {
         if (mainActivity != null) {
             callback.accept(mainActivity);
         }
+    }
+
+    void setCurrentAction(@NonNull AsyncTask<?, ?, ?> currentAction) {
+        this.currentAction = currentAction;
+    }
+
+    void cancelCurrentAction() {
+        mainActivity.cancelCurrentAction();
+        if (currentAction != null) {
+            currentAction.cancel(true);
+        }
+    }
+
+    void updateActionMessage(@NonNull String message) {
+        mainActivity.updateActionMessage(message);
     }
 }

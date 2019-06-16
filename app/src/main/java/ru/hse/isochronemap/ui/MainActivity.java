@@ -319,6 +319,14 @@ public class MainActivity extends AppCompatActivity {
                                                         menu.getCurrentRequestType()));
     }
 
+    void updateActionMessage(@NonNull String message) {
+    }
+
+    void cancelCurrentAction() {
+        hideProgressBar();
+        hideBlackoutView();
+    }
+
     private double getTravelTime() {
         return menu.getCurrentSeekBarProgress() / 60.0;
     }
