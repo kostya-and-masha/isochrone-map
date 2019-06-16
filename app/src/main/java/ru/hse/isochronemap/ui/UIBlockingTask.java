@@ -14,12 +14,12 @@ abstract class UIBlockingTask extends AsyncTask<Void, String, Void> {
 
     @Override
     protected void onPreExecute() {
-        auxiliaryFragment.transferActionToMainActivity(MainActivity::startBlockingAction);
+        auxiliaryFragment.transferActionToMainActivity(MainActivity::showOnBackgroundActionUI);
     }
 
     @Override
     protected void onPostExecute(Void v) {
-        auxiliaryFragment.transferActionToMainActivity(MainActivity::endBlockingAction);
+        auxiliaryFragment.transferActionToMainActivity(MainActivity::hideOnBackgroundActionUI);
     }
 
     @Override
