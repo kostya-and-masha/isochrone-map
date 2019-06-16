@@ -367,7 +367,8 @@ public class IsochroneMenu extends Fragment {
                                                         .onFailureSearchResultsCallback(exception));
 
                     cachedLocationProvider.getApproximateLocation(
-                            position -> Geocoder.getLocations(
+                            position -> UIBlockingTaskExecutor.executeGeocodingRequest(
+                                    auxiliaryFragment,
                                     query,
                                     position,
                                     deliverToOnSuccessByAuxiliaryFragment,

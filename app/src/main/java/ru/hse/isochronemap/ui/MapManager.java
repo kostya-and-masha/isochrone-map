@@ -186,10 +186,6 @@ class MapManager implements OnMapReadyCallback {
         }
     }
 
-    void executeAsyncMapRequest(@NonNull IsochroneRequest request) {
-        new AsyncMapRequest(auxiliaryFragment, request).execute();
-    }
-
     void setCurrentPosition(@NonNull Coordinate position) {
         if (currentPosition == null) {
             currentPosition = map.addMarker(new MarkerOptions().position(position.toLatLng()));
@@ -281,46 +277,6 @@ class MapManager implements OnMapReadyCallback {
     private int convertDpToPixels(float dp) {
         DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
         return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-    }
-
-    private static class AsyncMapRequest extends AsyncTask<Void, Void, Void> {
-        AuxiliaryFragment auxiliaryFragment;
-        IsochroneRequest request;
-        IsochroneResponse response;
-
-        private AsyncMapRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
-                                @NonNull IsochroneRequest request) {
-            super();
-            this.auxiliaryFragment = auxiliaryFragment;
-            this.request = request;
-        }
-
-        @Override
-        protected Void doInBackground(Void ... v) {
-            try {
-                response =  new IsochroneResponse(
-                        IsochroneBuilder.getIsochronePolygons(
-                                request.coordinate,
-                                request.travelTime,
-                                request.transportType,
-                                request.isochroneType
-                                                             ),
-                        request.travelTime,
-                        request.transportType
-                );
-            } catch (IOException e) {
-                response = new IsochroneResponse("failed to download map");
-            } catch (NotEnoughNodesException e) {
-                response = new IsochroneResponse("cannot build isochrone in this area");
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void v) {
-            auxiliaryFragment.transferActionToMainActivity(
-                    activity -> activity.asyncMapRequestCallback(response));
-        }
     }
 
     private static class LatLngBox {

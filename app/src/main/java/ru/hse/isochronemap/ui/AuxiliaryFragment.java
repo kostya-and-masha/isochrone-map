@@ -22,7 +22,7 @@ public class AuxiliaryFragment extends Fragment {
     private boolean wasDeadBefore = true;
     private MainActivity mainActivity;
     private ArrayList<PolygonOptions> savedPolygons;
-    private AsyncTask<?, ?, ?> currentAction;
+    private UIBlockingTask currentAction;
 
     /** {@inheritDoc} */
     @Override
@@ -73,12 +73,11 @@ public class AuxiliaryFragment extends Fragment {
         }
     }
 
-    void setCurrentAction(@NonNull AsyncTask<?, ?, ?> currentAction) {
+    void setCurrentAction(@NonNull UIBlockingTask currentAction) {
         this.currentAction = currentAction;
     }
 
     void cancelCurrentAction() {
-        mainActivity.cancelCurrentAction();
         if (currentAction != null) {
             currentAction.cancel(true);
         }

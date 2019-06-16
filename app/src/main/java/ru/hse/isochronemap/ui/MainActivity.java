@@ -314,17 +314,30 @@ public class MainActivity extends AppCompatActivity {
         showBlackoutView();
 
         map.updateMarkerTitle("");
-        map.executeAsyncMapRequest(new IsochroneRequest(map.getMarkerPosition(), getTravelTime(),
-                                                        menu.getCurrentTransport(),
-                                                        menu.getCurrentRequestType()));
+        UIBlockingTaskExecutor.executeMapRequest(
+                auxiliaryFragment,
+                new IsochroneRequest(
+                        map.getMarkerPosition(),
+                        getTravelTime(),
+                        menu.getCurrentTransport(),
+                        menu.getCurrentRequestType()));
+    }
+
+    void startBlockingAction() {
+        showProgressBar();
+        showBlackoutView();
+    }
+
+    void endBlockingAction() {
+        hideProgressBar();
+        hideBlackoutView();
     }
 
     void updateActionMessage(@NonNull String message) {
     }
 
     void cancelCurrentAction() {
-        hideProgressBar();
-        hideBlackoutView();
+        auxiliaryFragment.cancelCurrentAction();
     }
 
     private double getTravelTime() {
