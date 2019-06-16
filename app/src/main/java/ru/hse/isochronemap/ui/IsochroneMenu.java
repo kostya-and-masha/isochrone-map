@@ -90,11 +90,9 @@ public class IsochroneMenu extends Fragment {
      * CachedLocationProvider and AuxiliaryFragment must be set after creation
      * (through specialized setters) in order for menu to work properly.
      */
-    public static @NonNull IsochroneMenu newInstance(
-            @NonNull TransportType transportType,
-            @NonNull IsochroneRequestType isochroneRequestType,
-            float seekBarProgress) {
-
+    static @NonNull IsochroneMenu newInstance(@NonNull TransportType transportType,
+                                              @NonNull IsochroneRequestType isochroneRequestType,
+                                              float seekBarProgress) {
         IsochroneMenu menu = new IsochroneMenu();
         Bundle arguments = new Bundle();
         arguments.putSerializable(TRANSPORT_TYPE, transportType);
@@ -167,22 +165,22 @@ public class IsochroneMenu extends Fragment {
     }
 
     /** Returns current chosen transport type. */
-    public @NonNull TransportType getCurrentTransport() {
+    @NonNull TransportType getCurrentTransport() {
         return currentTransport;
     }
 
     /** Returns current chosen isochrone type. */
-    public @NonNull IsochroneRequestType getCurrentRequestType() {
+    @NonNull IsochroneRequestType getCurrentRequestType() {
         return currentRequestType;
     }
 
     /** Returns current seek bar value. */
-    public float getCurrentSeekBarProgress() {
+    float getCurrentSeekBarProgress() {
         return seekBar.getProgressFloat();
     }
 
     /** Closes drop down menu. */
-    public boolean closeEverything() {
+    boolean closeEverything() {
         if (currentMode != Mode.CLOSED) {
             currentMode = Mode.CLOSED;
             updateModeUI(true);
@@ -196,7 +194,7 @@ public class IsochroneMenu extends Fragment {
      * even when fragment is recreated due to configuration changes. Must be set in order for menu
      * to work properly.
      */
-    public void setAuxiliaryFragment(@NonNull AuxiliaryFragment auxiliaryFragment) {
+    void setAuxiliaryFragment(@NonNull AuxiliaryFragment auxiliaryFragment) {
         this.auxiliaryFragment = auxiliaryFragment;
     }
 
@@ -204,28 +202,27 @@ public class IsochroneMenu extends Fragment {
      * Sets {@link CachedLocationProvider} which is used to obtain approximate location
      * (necessary for place searching). Must be set in order for menu to work properly.
      */
-    public void setCachedLocationProvider(@NonNull CachedLocationProvider provider) {
+    void setCachedLocationProvider(@NonNull CachedLocationProvider provider) {
         cachedLocationProvider = provider;
     }
 
     /** Sets listener which will be called if user chooses ConvexHull isochrone type. */
-    public void setOnConvexHullButtonClickListener(@Nullable View.OnClickListener callerListener) {
+    void setOnConvexHullButtonClickListener(@Nullable View.OnClickListener callerListener) {
         onConvexHullButtonClickListener = callerListener;
     }
 
     /** Sets listener which will be called if user chooses HexagonalCover isochrone type. */
-    public void setOnHexagonalCoverButtonClickListener(
-            @Nullable View.OnClickListener callerListener) {
+    void setOnHexagonalCoverButtonClickListener(@Nullable View.OnClickListener callerListener) {
         onHexagonalCoverButtonClickListener = callerListener;
     }
 
     /** {@see OnScreenBLockListener} */
-    public void setOnScreenBlockListener(@Nullable OnScreenBlockListener listener) {
+    void setOnScreenBlockListener(@Nullable OnScreenBlockListener listener) {
         onScreenBlockListener = listener;
     }
 
     /** {@see OnPlaceQueryListener} */
-    public void setOnPlaceQueryListener(@Nullable OnPlaceQueryListener listener) {
+    void setOnPlaceQueryListener(@Nullable OnPlaceQueryListener listener) {
         onPlaceQueryListener = listener;
     }
 
