@@ -35,6 +35,11 @@
         <item name="isb_track_progress_color">@color/colorDarkGrey</item>
     </style>
 
+    <style name="CancelButton" parent="Widget.AppCompat.Button">
+        <item name="backgroundTint">@color/colorLightGrey</item>
+        <item name="android:textColor">@color/colorDarkGrey</item>
+    </style>
+
     <style name="ImageButton" parent="Widget.AppCompat.ImageButton">
         <item name="android:tint">@color/colorPrimaryDark</item>
     </style>

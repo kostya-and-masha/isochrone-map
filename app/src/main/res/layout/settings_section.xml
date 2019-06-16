@@ -10,7 +10,7 @@
         android:id="@+id/up_space_for_settings"
         android:layout_width="match_parent"
         android:layout_height="@dimen/card_hidden_part"
-        app:layout_constraintBottom_toTopOf="parent" />
+        app:layout_constraintBottom_toTopOf="parent"/>
 
     <androidx.cardview.widget.CardView
         style="@style/CardStyle"
@@ -18,10 +18,10 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:clickable="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginStart="@dimen/ui_margin"
+        android:layout_marginEnd="@dimen/ui_margin"
         app:cardCornerRadius="3dp"
-        app:cardElevation="@dimen/ui_elevation"
+        app:cardElevation="@dimen/ui_elevation_base"
         app:layout_constraintTop_toTopOf="@id/up_space_for_settings"
         app:layout_constraintBottom_toBottomOf="@id/down_space_for_settings">
 

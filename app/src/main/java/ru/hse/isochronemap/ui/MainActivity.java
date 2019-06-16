@@ -1,13 +1,16 @@
 package ru.hse.isochronemap.ui;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.SupportMapFragment;
@@ -50,9 +53,11 @@ public class MainActivity extends AppCompatActivity {
     private CachedLocationProvider locationProvider;
     private boolean permissionsDenied;
 
+    private Button cancelButton;
     private FloatingActionButton buildIsochroneButton;
     private FloatingActionButton geopositionButton;
     private ProgressBar progressBar;
+    private TextView statusText;
     private View blackoutView;
 
     /** {@inheritDoc} */
@@ -70,9 +75,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_main);
+        cancelButton = findViewById(R.id.cancel_button);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geopositionButton = findViewById(R.id.geoposition_button);
         progressBar = findViewById(R.id.progress_bar);
+        statusText = findViewById(R.id.status_text);
         blackoutView = findViewById(R.id.main_blackout_view);
 
         sharedPreferences = getPreferences(Context.MODE_PRIVATE);
@@ -104,9 +111,11 @@ public class MainActivity extends AppCompatActivity {
         menu.setCachedLocationProvider(locationProvider);
         map.setCachedLocationProvider(locationProvider);
 
+        cancelButton.setOnClickListener(ignored -> cancelCurrentAction());
+
         geopositionButton.setOnClickListener(ignored -> {
-            showProgressBar();
-            showBlackoutView();
+            showOnBackgroundActionUI();
+
             menu.closeEverything();
 
             if (!locationProvider.hasPermissions()) {
@@ -173,8 +182,8 @@ public class MainActivity extends AppCompatActivity {
                         .transferActionToMainActivity(
                                 activity -> activity.gpsButtonCallback(result)));
             } else {
-                hideProgressBar();
-                hideBlackoutView();
+                hideOnBackgroundActionUI();
+
                 Toast.makeText(this, ASK_PERMISSIONS_MESSAGE, Toast.LENGTH_LONG).show();
             }
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
@@ -212,8 +221,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        hideProgressBar();
-        hideBlackoutView();
+        hideOnBackgroundActionUI();
+
         if (response.isSuccessful) {
             map.setIsochronePolygons(response.getResult());
             map.updateMarkerTitle(
@@ -279,9 +288,11 @@ public class MainActivity extends AppCompatActivity {
 
         menu.setOnScreenBlockListener(enable -> {
             if (enable) {
-                showProgressBar();
+                showProgressBarWithText();
+                showCancelButton(true);
             } else {
-                hideProgressBar();
+                hideProgressBarWithText();
+                hideCancelButton(true);
             }
         });
 
@@ -296,7 +307,8 @@ public class MainActivity extends AppCompatActivity {
         map.restoreInstanceState(savedInstanceState);
         auxiliaryFragment.setSavedPolygons(null);
         if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE)) {
-            showProgressBar();
+            showProgressBarWithText();
+            showCancelButton(false);
         }
         if (savedInstanceState.getBoolean(BLACKOUT_VIEW_STATE)) {
             showBlackoutView();
@@ -310,8 +322,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, CHOOSE_LOCATION_MESSAGE, Toast.LENGTH_LONG).show();
             return;
         }
-        showProgressBar();
-        showBlackoutView();
+        showOnBackgroundActionUI();
 
         map.updateMarkerTitle("");
         map.executeAsyncMapRequest(new IsochroneRequest(map.getMarkerPosition(), getTravelTime(),
@@ -319,12 +330,25 @@ public class MainActivity extends AppCompatActivity {
                                                         menu.getCurrentRequestType()));
     }
 
+    private void showOnBackgroundActionUI() {
+        showBlackoutView();
+        showProgressBarWithText();
+        showCancelButton(true);
+    }
+
+    private void hideOnBackgroundActionUI() {
+        hideBlackoutView();
+        hideProgressBarWithText();
+        hideCancelButton(true);
+    }
+
     void updateActionMessage(@NonNull String message) {
+        statusText.setText(message);
     }
 
     void cancelCurrentAction() {
-        hideProgressBar();
-        hideBlackoutView();
+        auxiliaryFragment.cancelCurrentAction();
+        hideOnBackgroundActionUI();
     }
 
     private double getTravelTime() {
@@ -339,12 +363,39 @@ public class MainActivity extends AppCompatActivity {
         blackoutView.setVisibility(View.GONE);
     }
 
-    private void showProgressBar() {
+    private void showProgressBarWithText() {
         progressBar.setVisibility(View.VISIBLE);
+        statusText.setVisibility(View.VISIBLE);
     }
 
-    private void hideProgressBar() {
+    private void hideProgressBarWithText() {
         progressBar.setVisibility(View.GONE);
+        statusText.setVisibility(View.GONE);
+    }
+
+    private void showCancelButton(boolean animate) {
+        cancelButton.setVisibility(View.VISIBLE);
+        if (animate && cancelButton.getTranslationY() == 0) {
+            hideCancelButton(false);
+        }
+        changeCancelButtonTranslationY(animate, 0);
+    }
+
+    private void hideCancelButton(boolean animate) {
+        float newTranslationY = getResources().getDimension(R.dimen.ui_margin)
+                                + cancelButton.getHeight();
+        changeCancelButtonTranslationY(animate, newTranslationY);
+    }
+
+    private void changeCancelButtonTranslationY(boolean animate, float translationY) {
+        if (!animate) {
+            cancelButton.setTranslationY(translationY);
+        } else {
+            ObjectAnimator animator =
+                    ObjectAnimator.ofFloat(cancelButton, "translationY", translationY);
+            animator.setDuration(200);
+            animator.start();
+        }
     }
 
     private static String transportTypeInSentence(@NonNull TransportType transportType) {

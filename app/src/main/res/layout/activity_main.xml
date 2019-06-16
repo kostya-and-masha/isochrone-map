@@ -19,11 +19,11 @@
         style="@style/BuildIsochroneButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="@dimen/ui_margin"
+        android:layout_marginBottom="@dimen/ui_margin"
         android:clickable="true"
         android:focusable="true"
-        app:elevation="@dimen/ui_elevation"
+        app:elevation="@dimen/ui_elevation_base"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_hexagonal_fill_120dp" />
@@ -33,11 +33,11 @@
         style="@style/GeoButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="@dimen/ui_margin"
+        android:layout_marginBottom="@dimen/ui_margin"
         android:clickable="true"
         android:focusable="true"
-        app:elevation="@dimen/ui_elevation"
+        app:elevation="@dimen/ui_elevation_base"
         app:layout_constraintBottom_toTopOf="@+id/build_isochrone_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_my_location_black_24dp" />
@@ -46,27 +46,59 @@
         android:id="@+id/menu_placeholder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="@dimen/ui_elevation"/>
+        android:elevation="@dimen/ui_elevation_base"/>
 
     <View
         android:id="@+id/main_blackout_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.7"
-        android:elevation="@dimen/ui_elevation_plus"
+        android:elevation="@dimen/ui_elevation_blackout"
         android:background="@color/colorDarkGrey"
         android:visibility="gone"/>
 
     <ProgressBar
         android:id="@+id/progress_bar"
-        android:elevation="@dimen/ui_elevation_plus"
+        android:elevation="@dimen/ui_elevation_above_blackout"
         android:indeterminateDrawable="@drawable/progress_bar_drawable"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:indeterminate="true"
         android:clickable="true"
         android:focusable="true"
-        android:visibility="gone"/>
+        android:visibility="invisible">
+    </ProgressBar>
+
+    <TextView
+        android:id="@+id/status_text"
+        android:textColor="@color/colorLightGrey"
+        android:elevation="@dimen/ui_elevation_above_blackout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="3dp"
+        android:elevation="@dimen/ui_elevation_above_blackout"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <Button
+            style="@style/CancelButton"
+            android:id="@+id/cancel_button"
+            app:cornerRadius="25dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_margin"
+            android:layout_marginBottom="@dimen/ui_margin"
+            android:visibility="invisible"
+            android:text="@string/cancel"/>
+    </FrameLayout>
 
     <TextView
         android:id="@+id/osm_watermark"

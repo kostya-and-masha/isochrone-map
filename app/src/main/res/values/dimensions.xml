@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="ui_elevation">5dp</dimen>
-    <dimen name="ui_elevation_plus">6dp</dimen>
+    <dimen name="ui_elevation_base">5dp</dimen>
+    <dimen name="ui_elevation_blackout">7dp</dimen>
+    <dimen name="ui_elevation_above_blackout">8dp</dimen>
     <dimen name="progress_circle_thickness">6dp</dimen>
     <dimen name="icons_size">48dp</dimen>
     <dimen name="card_hidden_part">6dp</dimen>
+    <dimen name="ui_margin">16dp</dimen>
 </resources>
