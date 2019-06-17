@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -24,7 +25,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
-import ru.hse.isochronemap.location.CachedLocationProvider;
+import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
 import ru.hse.isochronemap.util.IsochroneRequest;
@@ -50,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private AuxiliaryFragment auxiliaryFragment;
     private MapManager map = new MapManager();
     private IsochroneMenu menu;
-    private CachedLocationProvider locationProvider;
+    private IsochroneMapLocationManager locationManager;
     private boolean permissionsDenied;
 
     private Button cancelButton;
@@ -107,9 +108,9 @@ public class MainActivity extends AppCompatActivity {
             restoreInstanceState(savedInstanceState);
         }
 
-        locationProvider = new CachedLocationProvider(this);
-        menu.setCachedLocationProvider(locationProvider);
-        map.setCachedLocationProvider(locationProvider);
+        locationManager = new IsochroneMapLocationManager(this);
+        menu.setIsochroneMapLocationManager(locationManager);
+        map.setIsochroneMapLocationManager(locationManager);
 
         cancelButton.setOnClickListener(ignored -> cancelCurrentAction());
 
@@ -118,17 +119,24 @@ public class MainActivity extends AppCompatActivity {
 
             menu.closeEverything();
 
-            if (!locationProvider.hasPermissions()) {
+            if (!locationManager.hasPermissions()) {
                 ActivityCompat.requestPermissions(this, new String[]{
                         Manifest.permission.ACCESS_FINE_LOCATION
                 }, GEOPOSITION_REQUEST);
                 return;
             }
-            locationProvider.getPreciseLocation(result -> auxiliaryFragment
-                    .transferActionToMainActivity(activity -> activity.gpsButtonCallback(result)));
+            UIBlockingTaskExecutor.executeLocationRequest(
+                    auxiliaryFragment,
+                    locationManager,
+                    location -> auxiliaryFragment.transferActionToMainActivity(
+                            mainActivity -> mainActivity.gpsButtonCallback(location)
+                    ),
+                    // FIXME ????
+                    () -> {}
+            );
         });
 
-        if (!permissionsDenied && !locationProvider.hasPermissions()) {
+        if (!permissionsDenied && !locationManager.hasPermissions()) {
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION
             }, INITIAL_PERMISSIONS_REQUEST);
@@ -178,9 +186,15 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                locationProvider.getPreciseLocation(result -> auxiliaryFragment
-                        .transferActionToMainActivity(
-                                activity -> activity.gpsButtonCallback(result)));
+                UIBlockingTaskExecutor.executeLocationRequest(
+                        auxiliaryFragment,
+                        locationManager,
+                        location -> auxiliaryFragment.transferActionToMainActivity(
+                                mainActivity -> mainActivity.gpsButtonCallback(location)
+                        ),
+                        // FIXME ????
+                        () -> {}
+                );
             } else {
                 hideOnBackgroundActionUI();
 
@@ -189,9 +203,20 @@ public class MainActivity extends AppCompatActivity {
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (map.isReady()) {
-                    locationProvider.getPreciseLocation(result -> auxiliaryFragment
-                            .transferActionToMainActivity(
-                                    activity -> activity.map.initialMove(result)));
+                    // FIXME !!!!!!!!!!!!!!!!!!!!
+                    UIBlockingTaskExecutor.executeLocationRequest(
+                            auxiliaryFragment,
+                            locationManager,
+                            location -> auxiliaryFragment.transferActionToMainActivity(
+                                    mainActivity -> mainActivity.initLocationCallback(location)),
+                            () -> auxiliaryFragment.transferActionToMainActivity(
+                                    mainActivity -> {
+                                        Toast.makeText(mainActivity,
+                                                "failed to get current location",
+                                                Toast.LENGTH_LONG).show();
+                                    }
+                            )
+                    );
                 }
             } else {
                 Toast.makeText(this, ASK_PERMISSIONS_MESSAGE, Toast.LENGTH_LONG).show();

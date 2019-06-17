@@ -9,6 +9,7 @@ import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.NotEnoughNodesException;
+import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.MapStructureManager;
 import ru.hse.isochronemap.mapstructure.MapStructureRequest;
@@ -24,16 +25,36 @@ class UIBlockingTaskExecutor {
     }
 
     static void executeGeocodingRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
-                                 @NonNull String query,
-                                 @Nullable Coordinate currentLocation,
-                                 @NonNull Consumer<List<Location>> onSuccess,
-                                 @NonNull Consumer<Exception> onFailure) {
+                                        @NonNull String query,
+                                        @Nullable Coordinate currentLocation,
+                                        @NonNull Consumer<List<Location>> onSuccess,
+                                        @NonNull Runnable onFailure) {
         new GeocodingTask(
                 auxiliaryFragment,
                 query,
                 currentLocation,
                 onSuccess,
                 onFailure).execute();
+    }
+
+    static void executeLocationRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
+                                       @NonNull IsochroneMapLocationManager locationManager,
+                                       @NonNull Consumer<Coordinate> onSuccess,
+                                       @NonNull Runnable onFailure) {
+        new LocationTask(
+                auxiliaryFragment,
+                locationManager,
+                onSuccess,
+                onFailure).execute();
+    }
+
+    static void executeApproximateLocationRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
+                                                  @NonNull IsochroneMapLocationManager locationManager,
+                                                  @NonNull Consumer<Coordinate> callback) {
+        new ApproximateLocationTask(
+                auxiliaryFragment,
+                locationManager,
+                callback).execute();
     }
 
     private static class GetIsochroneTask extends UIBlockingTask {
@@ -90,16 +111,16 @@ class UIBlockingTaskExecutor {
         private String query;
         private Coordinate currentLocation;
         private Consumer<List<Location>> onSuccess;
-        private Consumer<Exception> onFailure;
+        private Runnable onFailure;
 
         private List<Location> result;
-        private Exception exception;
+        private boolean isSuccessful;
 
         private GeocodingTask(@NonNull AuxiliaryFragment auxiliaryFragment,
                               @NonNull String query,
                               @Nullable Coordinate currentLocation,
                               @NonNull Consumer<List<Location>> onSuccess,
-                              @NonNull Consumer<Exception> onFailure) {
+                              @NonNull Runnable onFailure) {
             super(auxiliaryFragment);
             this.query = query;
             this.currentLocation = currentLocation;
@@ -112,20 +133,88 @@ class UIBlockingTaskExecutor {
             try {
                 publishProgress("requesting geocoding results...");
                 result = Geocoder.getLocations(query, currentLocation);
-            } catch (IOException e) {
-                exception = e;
-            }
+                isSuccessful = true;
+            } catch (IOException ignored) {}
             return null;
         }
 
         @Override
         protected void onPostExecute(Void v) {
             super.onPostExecute(v);
-            if (exception != null) {
-                onFailure.accept(exception);
-            } else {
+            if (isSuccessful) {
                 onSuccess.accept(result);
+            } else {
+                onFailure.run();
             }
+        }
+    }
+
+    private static class LocationTask extends UIBlockingTask {
+        private IsochroneMapLocationManager locationManager;
+        private Coordinate location;
+        private boolean isSuccessful;
+        private Consumer<Coordinate> onSuccess;
+        private Runnable onFailure;
+
+        private LocationTask(@NonNull AuxiliaryFragment auxiliaryFragment,
+                             @NonNull IsochroneMapLocationManager locationManager,
+                             @NonNull Consumer<Coordinate> onSuccess,
+                             @NonNull Runnable onFailure) {
+            super(auxiliaryFragment);
+            this.locationManager = locationManager;
+            this.onSuccess = onSuccess;
+            this.onFailure = onFailure;
+        }
+
+        @Override
+        protected Void doInBackground(Void... v) {
+            try {
+                publishProgress("requesting location...");
+                location = locationManager.getPreciseLocationBlocking();
+                if (location != null) {
+                    isSuccessful = true;
+                }
+            } catch (InterruptedException ignored) {}
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            super.onPostExecute(v);
+            if (isSuccessful) {
+                onFailure.run();
+            } else {
+                onSuccess.accept(location);
+            }
+        }
+    }
+
+    private static class ApproximateLocationTask extends UIBlockingTask {
+        private IsochroneMapLocationManager locationManager;
+        private Coordinate location;
+        private Consumer<Coordinate> callback;
+
+        private ApproximateLocationTask(@NonNull AuxiliaryFragment auxiliaryFragment,
+                             @NonNull IsochroneMapLocationManager locationManager,
+                             @NonNull Consumer<Coordinate> callback) {
+            super(auxiliaryFragment);
+            this.locationManager = locationManager;
+            this.callback = callback;
+        }
+
+        @Override
+        protected Void doInBackground(Void... v) {
+            try {
+                publishProgress("requesting approximate location...");
+                location = locationManager.getApproximateLocation();
+            } catch (InterruptedException ignored) {}
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            super.onPostExecute(v);
+            callback.accept(location);
         }
     }
 }
