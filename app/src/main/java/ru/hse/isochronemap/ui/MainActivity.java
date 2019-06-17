@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int GEOLOCATION_REQUEST = 2;
     private static final String ASK_PERMISSIONS_MESSAGE = "give permissions please :(";
     private static final String CHOOSE_LOCATION_MESSAGE = "please choose location";
+    private static final int ANIMATION_DURATION = 200;
 
     private SharedPreferences sharedPreferences;
     private AuxiliaryFragment auxiliaryFragment;
@@ -426,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             ObjectAnimator animator =
                     ObjectAnimator.ofFloat(cancelButton, "translationY", translationY);
-            animator.setDuration(200);
+            animator.setDuration(ANIMATION_DURATION);
             animator.start();
         }
     }

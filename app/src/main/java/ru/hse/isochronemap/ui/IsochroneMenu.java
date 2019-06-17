@@ -49,6 +49,7 @@ public class IsochroneMenu extends Fragment {
     private static final float BLACKOUT_VIEW_ENABLED_ALPHA = (float) 0.7;
     private static final String NO_SEARCH_RESULTS_MESSAGE = "nothing was found";
     private static final String SEARCH_FAILED_MESSAGE = "could not get search results";
+    private static final int ANIMATION_DURATION = 200;
 
     private View mainLayout;
     private SearchView searchField;
@@ -618,8 +619,8 @@ public class IsochroneMenu extends Fragment {
             ObjectAnimator blackoutAnimation =
                     ObjectAnimator.ofFloat(blackoutView, "alpha", blackoutAlpha);
 
-            blackoutAnimation.setDuration(200);
-            cardAnimation.setDuration(200);
+            blackoutAnimation.setDuration(ANIMATION_DURATION);
+            cardAnimation.setDuration(ANIMATION_DURATION);
 
             AnimatorSet animatorSet = new AnimatorSet();
             animatorSet.play(cardAnimation);
