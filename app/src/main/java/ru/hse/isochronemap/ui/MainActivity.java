@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -38,12 +37,13 @@ public class MainActivity extends AppCompatActivity {
     private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
     private static final String BLACKOUT_VIEW_STATE = "BLACKOUT_VIEW_STATE";
     private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
+    private static final String STATUS_TEXT = "STATUS_TEXT";
     private static final String TRANSPORT_PREFERENCES_KEY = "currentTransport";
     private static final String REQUEST_TYPE_PREFERENCES_KEY = "currentRequestType";
     private static final String SEEK_BAR_PROGRESS_PREFERENCES_KEY = "seekBarProgress";
-    private static final int DEFAULT_SEEKBAR_VALUE = 10;
+    private static final int DEFAULT_SEEK_BAR_VALUE = 10;
     private static final int INITIAL_PERMISSIONS_REQUEST = 1;
-    private static final int GEOPOSITION_REQUEST = 2;
+    private static final int GEOLOCATION_REQUEST = 2;
     private static final String ASK_PERMISSIONS_MESSAGE = "give permissions please :(";
     private static final String CHOOSE_LOCATION_MESSAGE = "please choose location";
 
@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button cancelButton;
     private FloatingActionButton buildIsochroneButton;
-    private FloatingActionButton geopositionButton;
+    private FloatingActionButton geolocationButton;
     private ProgressBar progressBar;
     private TextView statusText;
     private View blackoutView;
@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         cancelButton = findViewById(R.id.cancel_button);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
-        geopositionButton = findViewById(R.id.geoposition_button);
+        geolocationButton = findViewById(R.id.geolocation_button);
         progressBar = findViewById(R.id.progress_bar);
         statusText = findViewById(R.id.status_text);
         blackoutView = findViewById(R.id.main_blackout_view);
@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
         cancelButton.setOnClickListener(ignored -> cancelCurrentAction());
 
-        geopositionButton.setOnClickListener(ignored -> {
+        geolocationButton.setOnClickListener(ignored -> {
             showOnBackgroundActionUI();
 
             menu.closeEverything();
@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
             if (!locationManager.hasPermissions()) {
                 ActivityCompat.requestPermissions(this, new String[]{
                         Manifest.permission.ACCESS_FINE_LOCATION
-                }, GEOPOSITION_REQUEST);
+                }, GEOLOCATION_REQUEST);
                 return;
             }
             UIBlockingTaskExecutor.executeLocationRequest(
@@ -150,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
         outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
         outState.putBoolean(BLACKOUT_VIEW_STATE, blackoutView.getVisibility() == View.VISIBLE);
         outState.putBoolean(PERMISSIONS_DENIED, permissionsDenied);
+        outState.putString(STATUS_TEXT, statusText.getText().toString());
         super.onSaveInstanceState(outState);
     }
 
@@ -184,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        if (requestCode == GEOPOSITION_REQUEST) {
+        if (requestCode == GEOLOCATION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 UIBlockingTaskExecutor.executeLocationRequest(
                         auxiliaryFragment,
@@ -288,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
                                             IsochroneRequestType.HEXAGONAL_COVER.name()));
         float seekBarProgress =
                 sharedPreferences.getFloat(SEEK_BAR_PROGRESS_PREFERENCES_KEY,
-                                           DEFAULT_SEEKBAR_VALUE);
+                                           DEFAULT_SEEK_BAR_VALUE);
 
         menu = (IsochroneMenu) fragmentManager.findFragmentByTag(MENU_FRAGMENT_TAG);
         if (menu == null) {
@@ -339,6 +340,7 @@ public class MainActivity extends AppCompatActivity {
             showBlackoutView();
         }
         permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED);
+        statusText.setText(savedInstanceState.getString(STATUS_TEXT));
     }
 
     void buildIsochrone() {
