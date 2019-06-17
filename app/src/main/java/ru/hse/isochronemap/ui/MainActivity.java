@@ -405,10 +405,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCancelButton(boolean animate) {
-        cancelButton.setVisibility(View.VISIBLE);
-        if (animate && cancelButton.getTranslationY() == 0) {
+        if (animate
+            && cancelButton.getVisibility() == View.INVISIBLE
+            && cancelButton.getTranslationY() == 0) {
             hideCancelButton(false);
         }
+        cancelButton.setVisibility(View.VISIBLE);
         changeCancelButtonTranslationY(animate, 0);
     }
 
