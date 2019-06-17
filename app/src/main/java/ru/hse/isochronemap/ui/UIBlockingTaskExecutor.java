@@ -182,9 +182,9 @@ class UIBlockingTaskExecutor {
         protected void onPostExecute(Void v) {
             super.onPostExecute(v);
             if (isSuccessful) {
-                onFailure.run();
-            } else {
                 onSuccess.accept(location);
+            } else {
+                onFailure.run();
             }
         }
     }
