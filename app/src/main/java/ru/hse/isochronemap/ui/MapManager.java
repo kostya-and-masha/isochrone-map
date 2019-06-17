@@ -186,12 +186,20 @@ class MapManager implements OnMapReadyCallback {
         }
     }
 
-    void setCurrentPosition(@NonNull Coordinate position) {
+    void setCurrentPosition(@Nullable Coordinate position) {
+        if (position == null) {
+            if (currentPosition != null) {
+                currentPosition.setVisible(false);
+            }
+            return;
+        }
+
         if (currentPosition == null) {
             currentPosition = map.addMarker(new MarkerOptions().position(position.toLatLng()));
         } else {
             currentPosition.setPosition(position.toLatLng());
         }
+        currentPosition.setVisible(true);
         currentPosition.setTitle("");
         currentPosition.hideInfoWindow();
         activity.buildIsochrone();

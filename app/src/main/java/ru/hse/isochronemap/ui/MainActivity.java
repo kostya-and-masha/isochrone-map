@@ -325,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
         showOnBackgroundActionUI();
 
         map.updateMarkerTitle("");
-        UIBlockingTaskExecutor.executeMapRequest(
+        UIBlockingTaskExecutor.executeIsochroneRequest(
                 auxiliaryFragment,
                 new IsochroneRequest(
                         map.getMarkerPosition(),

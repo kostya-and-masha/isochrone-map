@@ -1,7 +1,5 @@
 package ru.hse.isochronemap.ui;
 
-import android.os.AsyncTask;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -12,14 +10,17 @@ import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.NotEnoughNodesException;
 import ru.hse.isochronemap.mapstructure.Coordinate;
+import ru.hse.isochronemap.mapstructure.MapStructureManager;
+import ru.hse.isochronemap.mapstructure.MapStructureRequest;
+import ru.hse.isochronemap.mapstructure.Node;
 import ru.hse.isochronemap.util.Consumer;
 import ru.hse.isochronemap.util.IsochroneRequest;
 import ru.hse.isochronemap.util.IsochroneResponse;
 
 class UIBlockingTaskExecutor {
-    static void executeMapRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
-                           @NonNull IsochroneRequest request) {
-        new AsyncMapRequest(auxiliaryFragment, request).execute();
+    static void executeIsochroneRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
+                                        @NonNull IsochroneRequest request) {
+        new GetIsochroneTask(auxiliaryFragment, request).execute();
     }
 
     static void executeGeocodingRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
@@ -35,12 +36,12 @@ class UIBlockingTaskExecutor {
                 onFailure).execute();
     }
 
-    private static class AsyncMapRequest extends UIBlockingTask {
+    private static class GetIsochroneTask extends UIBlockingTask {
         IsochroneRequest request;
         IsochroneResponse response;
 
-        private AsyncMapRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
-                                @NonNull IsochroneRequest request) {
+        private GetIsochroneTask(@NonNull AuxiliaryFragment auxiliaryFragment,
+                                 @NonNull IsochroneRequest request) {
             super(auxiliaryFragment);
             this.request = request;
         }
@@ -48,13 +49,18 @@ class UIBlockingTaskExecutor {
         @Override
         protected Void doInBackground(Void ... v) {
             try {
-                response =  new IsochroneResponse(
+                MapStructureRequest structureRequest = new MapStructureRequest(request);
+
+                publishProgress("downloading map...");
+                Node startNode = MapStructureManager.getMapStructure(structureRequest);
+
+                publishProgress("building isochrone...");
+                response = new IsochroneResponse(
                         IsochroneBuilder.getIsochronePolygons(
-                                request.coordinate,
+                                startNode,
                                 request.travelTime,
                                 request.transportType,
-                                request.isochroneType
-                        ),
+                                request.isochroneType),
                         request.travelTime,
                         request.transportType
                 );
@@ -64,6 +70,12 @@ class UIBlockingTaskExecutor {
                 response = new IsochroneResponse("cannot build isochrone in this area");
             }
             return null;
+        }
+
+        @Override
+        protected void onCancelled() {
+            super.onCancelled();
+            /// ?????
         }
 
         @Override
@@ -98,6 +110,7 @@ class UIBlockingTaskExecutor {
         @Override
         protected Void doInBackground(Void... v) {
             try {
+                publishProgress("requesting geocoding results...");
                 result = Geocoder.getLocations(query, currentLocation);
             } catch (IOException e) {
                 exception = e;

@@ -24,7 +24,7 @@ abstract class UIBlockingTask extends AsyncTask<Void, String, Void> {
 
     @Override
     protected void onCancelled() {
-        onPostExecute(null);
+        auxiliaryFragment.transferActionToMainActivity(MainActivity::hideOnBackgroundActionUI);
     }
 
     @Override

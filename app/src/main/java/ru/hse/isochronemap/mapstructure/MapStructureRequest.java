@@ -1,6 +1,8 @@
 package ru.hse.isochronemap.mapstructure;
 
 import androidx.annotation.NonNull;
+import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
+import ru.hse.isochronemap.util.IsochroneRequest;
 
 /** This class represents parameters of map structure request. **/
 public class MapStructureRequest {
@@ -25,6 +27,13 @@ public class MapStructureRequest {
         this.unconditionalAccessDistance = unconditionalAccessDistance;
         this.maximumDistance = maximumDistance;
         this.transportType = transportType;
+    }
+
+    public MapStructureRequest(@NonNull IsochroneRequest request) {
+        this(request.coordinate,
+             IsochroneBuilder.UNCONDITIONAL_ACCESS_DISTANCE,
+             request.transportType.getAverageSpeed() * request.travelTime,
+             request.transportType);
     }
 
     @NonNull Coordinate getStartCoordinate() {
