@@ -27,7 +27,7 @@ import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.IsochronePolygon;
 import ru.hse.isochronemap.isochronebuilding.NotEnoughNodesException;
-import ru.hse.isochronemap.location.CachedLocationProvider;
+import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.IsochroneRequest;
 import ru.hse.isochronemap.util.IsochroneResponse;
@@ -49,7 +49,7 @@ class MapManager implements OnMapReadyCallback {
 
     private MainActivity activity;
     private AuxiliaryFragment auxiliaryFragment;
-    private CachedLocationProvider cachedLocationProvider;
+    private IsochroneMapLocationManager isochroneMapLocationManager;
 
     private GoogleMap map;
     private Marker currentPosition;
@@ -69,8 +69,8 @@ class MapManager implements OnMapReadyCallback {
         this.auxiliaryFragment = auxiliaryFragment;
     }
 
-    void setCachedLocationProvider(@NonNull CachedLocationProvider provider) {
-        cachedLocationProvider = provider;
+    void setIsochroneMapLocationManager(@NonNull IsochroneMapLocationManager provider) {
+        isochroneMapLocationManager = provider;
     }
 
     void addOnMapReadyAction(@NonNull Runnable action) {
@@ -100,8 +100,8 @@ class MapManager implements OnMapReadyCallback {
 
         if (savedCameraPosition != null) {
             map.moveCamera(CameraUpdateFactory.newCameraPosition(savedCameraPosition));
-        } else if (cachedLocationProvider.hasPermissions()) {
-            cachedLocationProvider.getPreciseLocation(
+        } else if (isochroneMapLocationManager.hasPermissions()) {
+            isochroneMapLocationManager.getPreciseLocationAsynchronously(
                     result -> auxiliaryFragment.transferActionToMainActivity(
                             activity -> activity.initLocationCallback(result)));
         }

@@ -28,7 +28,7 @@ import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
-import ru.hse.isochronemap.location.CachedLocationProvider;
+import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
 import ru.hse.isochronemap.searchhistory.SearchDatabase;
@@ -59,7 +59,7 @@ public class IsochroneMenu extends Fragment {
     private SearchResultsAdapter adapter = new SearchResultsAdapter();
     private String currentQuery = "";
     private SearchDatabase database;
-    private CachedLocationProvider cachedLocationProvider;
+    private IsochroneMapLocationManager isochroneMapLocationManager;
 
     private ConstraintLayout mainSettings;
     private ConstraintLayout additionalSettings;
@@ -87,7 +87,7 @@ public class IsochroneMenu extends Fragment {
 
     /**
      * Creates IsochroneMenu instance with specified initial preferences. Both
-     * CachedLocationProvider and AuxiliaryFragment must be set after creation
+     * IsochroneMapLocationManager and AuxiliaryFragment must be set after creation
      * (through specialized setters) in order for menu to work properly.
      */
     static @NonNull IsochroneMenu newInstance(@NonNull TransportType transportType,
@@ -199,11 +199,11 @@ public class IsochroneMenu extends Fragment {
     }
 
     /**
-     * Sets {@link CachedLocationProvider} which is used to obtain approximate location
+     * Sets {@link IsochroneMapLocationManager} which is used to obtain approximate location
      * (necessary for place searching). Must be set in order for menu to work properly.
      */
-    void setCachedLocationProvider(@NonNull CachedLocationProvider provider) {
-        cachedLocationProvider = provider;
+    void setIsochroneMapLocationManager(@NonNull IsochroneMapLocationManager provider) {
+        isochroneMapLocationManager = provider;
     }
 
     /** Sets listener which will be called if user chooses ConvexHull isochrone type. */
@@ -366,7 +366,7 @@ public class IsochroneMenu extends Fragment {
                                     activity -> activity.getMenu()
                                                         .onFailureSearchResultsCallback(exception));
 
-                    cachedLocationProvider.getApproximateLocation(
+                    isochroneMapLocationManager.getApproximateLocation(
                             position -> Geocoder.getLocations(
                                     query,
                                     position,

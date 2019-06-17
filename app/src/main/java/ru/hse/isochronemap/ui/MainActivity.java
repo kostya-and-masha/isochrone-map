@@ -24,7 +24,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
-import ru.hse.isochronemap.location.CachedLocationProvider;
+import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
 import ru.hse.isochronemap.util.IsochroneRequest;
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private AuxiliaryFragment auxiliaryFragment;
     private MapManager map = new MapManager();
     private IsochroneMenu menu;
-    private CachedLocationProvider locationProvider;
+    private IsochroneMapLocationManager locationProvider;
     private boolean permissionsDenied;
 
     private Button cancelButton;
@@ -107,9 +107,9 @@ public class MainActivity extends AppCompatActivity {
             restoreInstanceState(savedInstanceState);
         }
 
-        locationProvider = new CachedLocationProvider(this);
-        menu.setCachedLocationProvider(locationProvider);
-        map.setCachedLocationProvider(locationProvider);
+        locationProvider = new IsochroneMapLocationManager(this);
+        menu.setIsochroneMapLocationManager(locationProvider);
+        map.setIsochroneMapLocationManager(locationProvider);
 
         cancelButton.setOnClickListener(ignored -> cancelCurrentAction());
 
@@ -124,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
                 }, GEOPOSITION_REQUEST);
                 return;
             }
-            locationProvider.getPreciseLocation(result -> auxiliaryFragment
+            locationProvider.getPreciseLocationAsynchronously(result -> auxiliaryFragment
                     .transferActionToMainActivity(activity -> activity.gpsButtonCallback(result)));
         });
 
@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == GEOPOSITION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                locationProvider.getPreciseLocation(result -> auxiliaryFragment
+                locationProvider.getPreciseLocationAsynchronously(result -> auxiliaryFragment
                         .transferActionToMainActivity(
                                 activity -> activity.gpsButtonCallback(result)));
             } else {
@@ -189,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (map.isReady()) {
-                    locationProvider.getPreciseLocation(result -> auxiliaryFragment
+                    locationProvider.getPreciseLocationAsynchronously(result -> auxiliaryFragment
                             .transferActionToMainActivity(
                                     activity -> activity.map.initialMove(result)));
                 }
