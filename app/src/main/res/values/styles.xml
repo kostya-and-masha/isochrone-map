@@ -1,5 +1,4 @@
 <resources>
-
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Customize your theme here. -->
@@ -42,6 +41,11 @@
 
     <style name="ImageButton" parent="Widget.AppCompat.ImageButton">
         <item name="android:tint">@color/colorPrimaryDark</item>
+    </style>
+
+    <style name="LocationDialog" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="colorPrimary">@color/colorDarkGrey</item>
+        <item name="colorPrimaryDark">@color/colorDarkGrey</item>
     </style>
 
 </resources>

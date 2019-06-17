@@ -2,7 +2,7 @@ package ru.hse.isochronemap.location;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,6 +11,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -19,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.Consumer;
 
@@ -132,15 +134,15 @@ public class IsochroneMapLocationManager {
     }
 
     private void askUserToEnableGPS() {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.LocationDialog);
+
         builder.setMessage("Please enable GPS and try again.")
                .setCancelable(false)
                .setPositiveButton("Go to settings", (dialog, id) ->
                        context.startActivity(new Intent(android.provider.Settings
                                                                 .ACTION_LOCATION_SOURCE_SETTINGS)))
                .setNegativeButton("NO!!!", (dialog, id) -> dialog.cancel());
-        final AlertDialog alert = builder.create();
-        alert.show();
+        new Handler(Looper.getMainLooper()).post(() -> builder.create().show());
     }
     
     private void initializeCriteria() {
