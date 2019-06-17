@@ -10,6 +10,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
+import android.widget.Toast;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -24,30 +25,35 @@ import ru.hse.isochronemap.util.Consumer;
 /** Wraps LocationManager and provides methods to obtain current/last known location conveniently.*/
 public class IsochroneMapLocationManager {
     private static final String GPS_ALERT_FRAGMENT = "GPSAlertFragment";
+    private static final String AGPS_DISABLED_MESSAGE =
+            "A-GPS is disabled, may take some time to get current location";
     private final LocationManager locationManager;
     private final Criteria criteria = new Criteria();
-    private final Context context;
+    private final FragmentActivity fragmentActivity;
 
     /**
-     * Creates IsochroneMapLocationManager and tries to obtain approximate location (this could
+     * Creates IsochroneMapLocationManager and tries to obtain current location (this could
      * speed up next calls to approximate location method).
+     *
+     * @param fragmentActivity FragmentActivity is needed instead of Context in order to
+     *                         create AlertFragments which are retained across screen rotations.
      */
-    public IsochroneMapLocationManager(@NonNull final Context context) {
-        this.context = context;
-        locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+    public IsochroneMapLocationManager(@NonNull FragmentActivity fragmentActivity) {
+        this.fragmentActivity = fragmentActivity;
+        locationManager =
+                (LocationManager) fragmentActivity.getSystemService(Context.LOCATION_SERVICE);
         initializeCriteria();
 
-        // this method could run slowly right after a phone restart
-        // (happens once and then the method runs normally) therefore it is better
-        // to run it the first time in constructor rather than when the location is actually needed.
-        try {
-            getApproximateLocation();
-        } catch (InterruptedException ignored) {}
+        // speeds up getApproximateLocation in case the app is run right after phone restart
+        if (hasPermissions()) {
+            getPreciseLocationAsynchronously(null, Looper.getMainLooper());
+        }
     }
 
     /** Checks for ACCESS_FINE_LOCATION permissions. */
     public boolean hasPermissions() {
-        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        return ContextCompat.checkSelfPermission(fragmentActivity,
+                                                 Manifest.permission.ACCESS_FINE_LOCATION)
                == PackageManager.PERMISSION_GRANTED;
     }
 
@@ -82,7 +88,8 @@ public class IsochroneMapLocationManager {
         }
 
         // try get precise gps location
-        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             BlockingQueue<Coordinate> queue = new ArrayBlockingQueue<>(1);
             getPreciseLocationAsynchronously(queue::add, Looper.getMainLooper());
             return queue.take();
@@ -94,16 +101,25 @@ public class IsochroneMapLocationManager {
 
     /**
      * Blocks, tries to obtain current location and then returns it. Must not be invoked from main
-     * thread. Asks usert
+     * thread. Asks user to enable geolocation if both GPS and NETWORK providers are disabled.
      *
      * @return current GPS provider's location.
      * @throws InterruptedException if caller thread was interrupted while waiting for location.
      * @throws SecurityException if ACCESS_FINE_LOCATION permissions were not given.
      */
     public Coordinate getPreciseLocationBlocking() throws InterruptedException, SecurityException {
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        boolean gpsProviderEnabled =
+                locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        boolean networkProviderEnabled =
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+        if (!gpsProviderEnabled && !networkProviderEnabled) {
             askUserToEnableGPS();
             return null;
+        } else if (!networkProviderEnabled) {
+            fragmentActivity.runOnUiThread(
+                    () -> Toast.makeText(fragmentActivity, AGPS_DISABLED_MESSAGE, Toast.LENGTH_LONG)
+                               .show());
         }
 
         BlockingQueue<Coordinate> queue = new ArrayBlockingQueue<>(1);
@@ -132,7 +148,7 @@ public class IsochroneMapLocationManager {
     }
 
     private void askUserToEnableGPS() {
-        new EnableGPSDialogFragment().show(((FragmentActivity)context).getSupportFragmentManager(),
+        new EnableGPSDialogFragment().show(fragmentActivity.getSupportFragmentManager(),
                                            GPS_ALERT_FRAGMENT);
     }
     
