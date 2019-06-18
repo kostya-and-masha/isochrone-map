@@ -134,7 +134,7 @@ class MapManager implements OnMapReadyCallback {
         } else {
             outState.putParcelable(CAMERA_POSITION, savedCameraPosition);
         }
-        if (currentPosition != null) {
+        if (currentPosition != null && currentPosition.isVisible()) {
             outState.putParcelable(MARKER_POSITION, currentPosition.getPosition());
             outState.putString(MARKER_TITLE, currentPosition.getTitle());
         }
