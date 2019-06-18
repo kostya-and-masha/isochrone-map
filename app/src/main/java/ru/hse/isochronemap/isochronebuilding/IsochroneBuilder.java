@@ -178,7 +178,7 @@ public class IsochroneBuilder {
             try {
                 threads[i].join();
             } catch (InterruptedException e) {
-                return new ArrayList<>(polygons);
+                throw new RuntimeException();
             }
         }
 

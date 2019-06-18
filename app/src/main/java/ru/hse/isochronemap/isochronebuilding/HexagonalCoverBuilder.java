@@ -75,7 +75,8 @@ class HexagonalCoverBuilder {
         for (int i = 0; i < numberOfCores; i++) {
             try {
                 threads[i].join();
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException e) {
+                throw new RuntimeException();
             }
         }
 
