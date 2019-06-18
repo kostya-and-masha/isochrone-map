@@ -69,7 +69,7 @@ public class IsochroneMapLocationManager {
      */
     // Permissions are checked in a separate method therefore IntelliJ IDEA does not understand it.
     @SuppressLint("MissingPermission")
-    public Coordinate getApproximateLocation() throws InterruptedException {
+    public @Nullable Coordinate getApproximateLocation() throws InterruptedException {
         if (!hasPermissions()) {
             return null;
         }
@@ -103,11 +103,12 @@ public class IsochroneMapLocationManager {
      * Blocks, tries to obtain current location and then returns it. Must not be invoked from main
      * thread. Asks user to enable geolocation if both GPS and NETWORK providers are disabled.
      *
-     * @return current GPS provider's location.
+     * @return current location or null if location could not be obtained.
      * @throws InterruptedException if caller thread was interrupted while waiting for location.
      * @throws SecurityException if ACCESS_FINE_LOCATION permissions were not given.
      */
-    public Coordinate getPreciseLocationBlocking() throws InterruptedException, SecurityException {
+    public @Nullable Coordinate getPreciseLocationBlocking() throws InterruptedException,
+                                                                   SecurityException {
         boolean gpsProviderEnabled =
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean networkProviderEnabled =

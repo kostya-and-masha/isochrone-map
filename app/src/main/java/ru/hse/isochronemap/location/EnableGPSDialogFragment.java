@@ -4,13 +4,14 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 import ru.hse.isochronemap.R;
 
 public class EnableGPSDialogFragment extends DialogFragment {
     @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
+    public @NonNull Dialog onCreateDialog(Bundle savedInstanceState) {
         // disable inspection (this method is called after fragment has been attached to activity).
         assert getContext() != null;
 

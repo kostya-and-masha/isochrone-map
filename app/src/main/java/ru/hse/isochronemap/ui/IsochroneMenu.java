@@ -25,7 +25,6 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import ru.hse.isochronemap.R;
-import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
 import ru.hse.isochronemap.location.IsochroneMapLocationManager;
@@ -76,7 +75,6 @@ public class IsochroneMenu extends Fragment {
     private OnPlaceQueryListener onPlaceQueryListener;
     private View.OnClickListener onConvexHullButtonClickListener;
     private View.OnClickListener onHexagonalCoverButtonClickListener;
-    private OnScreenBlockListener onScreenBlockListener;
 
     private boolean isDrawn = false;
     private Mode currentMode = Mode.CLOSED;
@@ -217,11 +215,6 @@ public class IsochroneMenu extends Fragment {
         onHexagonalCoverButtonClickListener = callerListener;
     }
 
-    /** {@see OnScreenBLockListener} */
-    void setOnScreenBlockListener(@Nullable OnScreenBlockListener listener) {
-        onScreenBlockListener = listener;
-    }
-
     /** {@see OnPlaceQueryListener} */
     void setOnPlaceQueryListener(@Nullable OnPlaceQueryListener listener) {
         onPlaceQueryListener = listener;
@@ -265,6 +258,10 @@ public class IsochroneMenu extends Fragment {
         seekBar = mainLayout.findViewById(R.id.seekBar);
         blackoutView = mainLayout.findViewById(R.id.menu_blackout_view);
 
+        initializeButtonsListeners();
+    }
+
+    private void initializeButtonsListeners() {
         menuButton.setOnClickListener(view -> {
             if (currentMode == Mode.CLOSED) {
                 currentMode = Mode.MAIN_SETTING;
@@ -323,6 +320,8 @@ public class IsochroneMenu extends Fragment {
     private void initializeSearch(Bundle savedInstanceState) {
         searchField = mainLayout.findViewById(R.id.search_field);
         resultsRecycler = mainLayout.findViewById(R.id.results_list);
+        resultsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+        resultsRecycler.setAdapter(adapter);
 
         Consumer<String> hintsUpdater = (hint -> {
             List<String> list = database.getSearchQueries(hint);
@@ -342,45 +341,17 @@ public class IsochroneMenu extends Fragment {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 database.putSearchQuery(query);
-                Coordinate coordinate = CoordinateParser.parseCoordinate(query);
-
                 adapter.setHints(Collections.emptyList());
                 updateModeUI(true);
 
+                Coordinate coordinate = CoordinateParser.parseCoordinate(query);
                 if (coordinate != null) {
                     if (onPlaceQueryListener != null) {
                         onPlaceQueryListener.OnPlaceQuery(coordinate);
                     }
                     closeEverything();
                 } else {
-                    if (onScreenBlockListener != null) {
-                        onScreenBlockListener.block(true);
-                    }
-
-                    Consumer<List<Location>> deliverToOnSuccessByAuxiliaryFragment =
-                            list -> auxiliaryFragment.transferActionToMainActivity(
-                                    activity -> activity.getMenu()
-                                                        .onSuccessSearchResultsCallback(list));
-
-                    Runnable deliverToOnFailureByAuxiliaryFragment =
-                            () -> auxiliaryFragment.transferActionToMainActivity(
-                                    activity -> activity.getMenu()
-                                                        .onFailureSearchResultsCallback());
-
-                    UIBlockingTaskExecutor.executeApproximateLocationRequest(
-                            auxiliaryFragment,
-                            isochroneMapLocationManager,
-                            location -> {
-                                UIBlockingTaskExecutor.executeGeocodingRequest(
-                                        auxiliaryFragment,
-                                        query,
-                                        location,
-                                        deliverToOnSuccessByAuxiliaryFragment,
-                                        deliverToOnFailureByAuxiliaryFragment
-                                );
-                            }
-                    );
-
+                    submitPlaceName(query);
                 }
                 searchField.clearFocus();
                 return false;
@@ -405,9 +376,6 @@ public class IsochroneMenu extends Fragment {
                 }
             }
         });
-
-        resultsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
-        resultsRecycler.setAdapter(adapter);
 
         adapter.setOnResultClickListener(result -> {
             onPlaceQueryListener.OnPlaceQuery(result.coordinate);
@@ -438,11 +406,28 @@ public class IsochroneMenu extends Fragment {
         }
     }
 
+    private void submitPlaceName(String query) {
+        Consumer<List<Location>> deliverToOnSuccessByAuxiliaryFragment =
+                list -> auxiliaryFragment.transferActionToMainActivity(
+                        activity -> activity.getMenu().onSuccessSearchResultsCallback(list));
+
+        Runnable deliverToOnFailureByAuxiliaryFragment =
+                () -> auxiliaryFragment.transferActionToMainActivity(
+                        activity -> activity.getMenu().onFailureSearchResultsCallback());
+
+        UIBlockingTaskExecutor.executeApproximateLocationRequest(
+                auxiliaryFragment,
+                isochroneMapLocationManager,
+                location -> UIBlockingTaskExecutor.executeGeocodingRequest(
+                        auxiliaryFragment,
+                        query,
+                        location,
+                        deliverToOnSuccessByAuxiliaryFragment,
+                        deliverToOnFailureByAuxiliaryFragment));
+    }
+
     private void onSuccessSearchResultsCallback(@NonNull List<Location> list) {
         adapter.setResults(list);
-        if (onScreenBlockListener != null) {
-            onScreenBlockListener.block(false);
-        }
         if (list.size() == 0) {
             Toast.makeText(getContext(), NO_SEARCH_RESULTS_MESSAGE, Toast.LENGTH_LONG).show();
         }
@@ -451,9 +436,6 @@ public class IsochroneMenu extends Fragment {
 
     private void onFailureSearchResultsCallback() {
         Toast.makeText(getContext(), SEARCH_FAILED_MESSAGE, Toast.LENGTH_LONG).show();
-        if (onScreenBlockListener != null) {
-            onScreenBlockListener.block(false);
-        }
     }
 
     private void setUIUpdater() {
@@ -598,8 +580,8 @@ public class IsochroneMenu extends Fragment {
         return padding + itemCount * itemSize + padding;
     }
 
-    private void adjustCardHeightAndBlackout(boolean animate, float contentHeight,
-                                             boolean blackout) {
+    private void adjustCardHeightAndBlackout(boolean animate,
+                                             float contentHeight, boolean blackout) {
         CardView settingsCard = mainLayout.findViewById(R.id.settings_card);
         float translation = -settingsCard.getHeight() + contentHeight;
         if (translation > 0) translation = 0;
@@ -634,11 +616,6 @@ public class IsochroneMenu extends Fragment {
 
     private enum Mode {
         CLOSED, MAIN_SETTING, ADDITIONAL_SETTINGS, SEARCH
-    }
-
-    /** This listener is called when menu wants to disable or enable all UI interaction */
-    public interface OnScreenBlockListener {
-        void block(boolean enable);
     }
 
     /** This listener is called when user chooses place in search results. */
