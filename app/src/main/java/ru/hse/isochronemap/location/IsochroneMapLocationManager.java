@@ -25,7 +25,7 @@ import ru.hse.isochronemap.util.Consumer;
 
 /** Wraps LocationManager and provides methods to obtain current/last known location conveniently.*/
 public class IsochroneMapLocationManager {
-    public static final int APPROXIMATE_LOCATION_TIMEOUT = 2000;
+    public static final int APPROXIMATE_LOCATION_TIMEOUT = 4000;
     private static final String GPS_ALERT_FRAGMENT = "GPSAlertFragment";
     private static final String AGPS_DISABLED_MESSAGE =
             "A-GPS is disabled, may take some time to get current location";
