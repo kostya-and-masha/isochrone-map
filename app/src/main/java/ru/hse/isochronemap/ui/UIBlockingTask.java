@@ -9,12 +9,12 @@ abstract class UIBlockingTask extends AsyncTask<Void, String, Void> {
 
     UIBlockingTask(@NonNull AuxiliaryFragment auxiliaryFragment) {
         this.auxiliaryFragment = auxiliaryFragment;
-        auxiliaryFragment.setCurrentAction(this);
     }
 
     @Override
     protected void onPreExecute() {
         auxiliaryFragment.transferActionToMainActivity(MainActivity::showOnBackgroundActionUI);
+        auxiliaryFragment.setCurrentAction(this);
     }
 
     @Override
@@ -23,14 +23,8 @@ abstract class UIBlockingTask extends AsyncTask<Void, String, Void> {
     }
 
     @Override
-    protected void onCancelled() {
-        auxiliaryFragment.transferActionToMainActivity(MainActivity::hideOnBackgroundActionUI);
-    }
-
-    @Override
     protected void onProgressUpdate(String ... messages) {
         String message = messages[0];
-        auxiliaryFragment.transferActionToMainActivity(mainActivity ->
-                mainActivity.updateActionMessage(message));
+        auxiliaryFragment.updateActionMessage(message);
     }
 }

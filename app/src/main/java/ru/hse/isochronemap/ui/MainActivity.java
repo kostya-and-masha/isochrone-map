@@ -339,7 +339,6 @@ public class MainActivity extends AppCompatActivity {
             showToast(CHOOSE_LOCATION_MESSAGE);
             return;
         }
-        showOnBackgroundActionUI();
 
         map.updateMarkerTitle("");
         UIBlockingTaskExecutor.executeIsochroneRequest(
@@ -356,6 +355,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void showOnBackgroundActionUI() {
+        updateActionMessage("");
+
         showBlackoutView();
         showProgressBarWithText();
         showCancelButton(true);

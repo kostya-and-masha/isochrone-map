@@ -73,6 +73,10 @@ class UIBlockingTaskExecutor {
                 publishProgress("downloading map...");
                 Node startNode = MapStructureManager.getMapStructure(structureRequest);
 
+                if (isCancelled()) {
+                    return null;
+                }
+
                 publishProgress("building isochrone...");
                 response = new IsochroneResponse(
                         IsochroneBuilder.getIsochronePolygons(
@@ -89,12 +93,6 @@ class UIBlockingTaskExecutor {
                 response = new IsochroneResponse("cannot build isochrone in this area");
             }
             return null;
-        }
-
-        @Override
-        protected void onCancelled() {
-            super.onCancelled();
-            /// ?????
         }
 
         @Override

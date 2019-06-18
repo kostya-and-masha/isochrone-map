@@ -76,7 +76,7 @@ class MapManager implements OnMapReadyCallback {
     }
 
     @Nullable Coordinate getMarkerPosition() {
-        if (currentPosition == null) {
+        if (currentPosition == null || !currentPosition.isVisible()) {
             return null;
         }
         return new Coordinate(currentPosition.getPosition());
