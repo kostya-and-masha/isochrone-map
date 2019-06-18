@@ -1,11 +1,8 @@
 package ru.hse.isochronemap.ui;
 
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Looper;
 import android.util.DisplayMetrics;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -18,7 +15,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,13 +22,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import ru.hse.isochronemap.R;
-import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
 import ru.hse.isochronemap.isochronebuilding.IsochronePolygon;
-import ru.hse.isochronemap.isochronebuilding.NotEnoughNodesException;
 import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
-import ru.hse.isochronemap.util.IsochroneRequest;
-import ru.hse.isochronemap.util.IsochroneResponse;
 
 /** This class is used to manage GoogleMap. */
 class MapManager implements OnMapReadyCallback {
@@ -103,20 +95,11 @@ class MapManager implements OnMapReadyCallback {
         if (savedCameraPosition != null) {
             map.moveCamera(CameraUpdateFactory.newCameraPosition(savedCameraPosition));
         } else if (locationManager.hasPermissions()) {
-            // FIXME !!!!!!!!!!!!!!!!!!!!
-            UIBlockingTaskExecutor.executeLocationRequest(
+            UIBlockingTaskExecutor.executeApproximateLocationRequest(
                     auxiliaryFragment,
                     locationManager,
                     location -> auxiliaryFragment.transferActionToMainActivity(
-                            mainActivity -> mainActivity.initLocationCallback(location)),
-                    () -> auxiliaryFragment.transferActionToMainActivity(
-                            mainActivity -> {
-                                Toast.makeText(mainActivity,
-                                        "failed to get current location",
-                                        Toast.LENGTH_LONG).show();
-                            }
-                    )
-            );
+                            mainActivity -> mainActivity.initLocationCallback(location)));
         }
 
         setPadding();

@@ -39,13 +39,11 @@ class UIBlockingTaskExecutor {
 
     static void executeLocationRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
                                        @NonNull IsochroneMapLocationManager locationManager,
-                                       @NonNull Consumer<Coordinate> onSuccess,
-                                       @NonNull Runnable onFailure) {
+                                       @NonNull Consumer<Coordinate> callback) {
         new LocationTask(
                 auxiliaryFragment,
                 locationManager,
-                onSuccess,
-                onFailure).execute();
+                callback).execute();
     }
 
     static void executeApproximateLocationRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
@@ -153,17 +151,14 @@ class UIBlockingTaskExecutor {
         private IsochroneMapLocationManager locationManager;
         private Coordinate location;
         private boolean isSuccessful;
-        private Consumer<Coordinate> onSuccess;
-        private Runnable onFailure;
+        private Consumer<Coordinate> callback;
 
         private LocationTask(@NonNull AuxiliaryFragment auxiliaryFragment,
                              @NonNull IsochroneMapLocationManager locationManager,
-                             @NonNull Consumer<Coordinate> onSuccess,
-                             @NonNull Runnable onFailure) {
+                             @NonNull Consumer<Coordinate> callback) {
             super(auxiliaryFragment);
             this.locationManager = locationManager;
-            this.onSuccess = onSuccess;
-            this.onFailure = onFailure;
+            this.callback = callback;
         }
 
         @Override
@@ -182,9 +177,7 @@ class UIBlockingTaskExecutor {
         protected void onPostExecute(Void v) {
             super.onPostExecute(v);
             if (isSuccessful) {
-                onSuccess.accept(location);
-            } else {
-                onFailure.run();
+                callback.accept(location);
             }
         }
     }

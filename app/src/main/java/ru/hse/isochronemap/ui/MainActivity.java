@@ -19,6 +19,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.Objects;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
@@ -125,15 +126,7 @@ public class MainActivity extends AppCompatActivity {
                 }, GEOLOCATION_REQUEST);
                 return;
             }
-            UIBlockingTaskExecutor.executeLocationRequest(
-                    auxiliaryFragment,
-                    locationManager,
-                    location -> auxiliaryFragment.transferActionToMainActivity(
-                            mainActivity -> mainActivity.gpsButtonCallback(location)
-                    ),
-                    // FIXME ????
-                    () -> {}
-            );
+            moveToCurrentLocation();
         });
 
         if (!permissionsDenied && !locationManager.hasPermissions()) {
@@ -187,40 +180,23 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == GEOLOCATION_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                UIBlockingTaskExecutor.executeLocationRequest(
-                        auxiliaryFragment,
-                        locationManager,
-                        location -> auxiliaryFragment.transferActionToMainActivity(
-                                mainActivity -> mainActivity.gpsButtonCallback(location)
-                        ),
-                        // FIXME ????
-                        () -> {}
-                );
+                moveToCurrentLocation();
             } else {
                 hideOnBackgroundActionUI();
 
-                Toast.makeText(this, ASK_PERMISSIONS_MESSAGE, Toast.LENGTH_LONG).show();
+                showToast(ASK_PERMISSIONS_MESSAGE);
             }
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (map.isReady()) {
-                    // FIXME !!!!!!!!!!!!!!!!!!!!
-                    UIBlockingTaskExecutor.executeLocationRequest(
+                    UIBlockingTaskExecutor.executeApproximateLocationRequest(
                             auxiliaryFragment,
                             locationManager,
                             location -> auxiliaryFragment.transferActionToMainActivity(
-                                    mainActivity -> mainActivity.initLocationCallback(location)),
-                            () -> auxiliaryFragment.transferActionToMainActivity(
-                                    mainActivity -> {
-                                        Toast.makeText(mainActivity,
-                                                "failed to get current location",
-                                                Toast.LENGTH_LONG).show();
-                                    }
-                            )
-                    );
+                                    mainActivity -> mainActivity.initLocationCallback(location)));
                 }
             } else {
-                Toast.makeText(this, ASK_PERMISSIONS_MESSAGE, Toast.LENGTH_LONG).show();
+                showToast(ASK_PERMISSIONS_MESSAGE);
                 permissionsDenied = true;
             }
         }
@@ -255,13 +231,16 @@ public class MainActivity extends AppCompatActivity {
                     Math.round(response.travelTime * 60) + " min " + transportTypeInSentence(
                             Objects.requireNonNull(response.transportType)));
         } else {
-            Toast.makeText(MainActivity.this, response.getErrorMessage(), Toast.LENGTH_LONG)
-                 .show();
+            showToast(response.getErrorMessage());
         }
     }
 
     /** This method is used as a callback and invoked to set initial location. */
-    public void initLocationCallback(@NonNull Coordinate coordinate) {
+    public void initLocationCallback(@Nullable Coordinate coordinate) {
+        if (coordinate == null) {
+            showToast("cannot get current location :(");
+            return;
+        }
         if (map.isReady()) {
             map.initialMove(coordinate);
         } else {
@@ -343,10 +322,20 @@ public class MainActivity extends AppCompatActivity {
         statusText.setText(savedInstanceState.getString(STATUS_TEXT));
     }
 
+    private void moveToCurrentLocation() {
+        map.setCurrentPosition(null);
+        map.removeIsochronePolygons();
+        UIBlockingTaskExecutor.executeLocationRequest(
+                auxiliaryFragment,
+                locationManager,
+                location -> auxiliaryFragment.transferActionToMainActivity(
+                        mainActivity -> mainActivity.gpsButtonCallback(location)));
+    }
+
     void buildIsochrone() {
         map.removeIsochronePolygons();
         if (map.getMarkerPosition() == null) {
-            Toast.makeText(this, CHOOSE_LOCATION_MESSAGE, Toast.LENGTH_LONG).show();
+            showToast(CHOOSE_LOCATION_MESSAGE);
             return;
         }
         showOnBackgroundActionUI();
@@ -359,6 +348,10 @@ public class MainActivity extends AppCompatActivity {
                         getTravelTime(),
                         menu.getCurrentTransport(),
                         menu.getCurrentRequestType()));
+    }
+
+    void showToast(@NonNull String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
     void showOnBackgroundActionUI() {
