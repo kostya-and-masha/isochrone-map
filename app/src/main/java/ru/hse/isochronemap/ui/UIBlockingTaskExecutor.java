@@ -18,12 +18,26 @@ import ru.hse.isochronemap.util.Consumer;
 import ru.hse.isochronemap.util.IsochroneRequest;
 import ru.hse.isochronemap.util.IsochroneResponse;
 
+/** This class contains all blocking UI asynchronous tasks. **/
 class UIBlockingTaskExecutor {
+    /**
+     * Executes isochrone request.
+     * @param auxiliaryFragment used to deliver callbacks to living {@link MainActivity}.
+     * @param request request parameters.
+     */
     static void executeIsochroneRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
                                         @NonNull IsochroneRequest request) {
         new GetIsochroneTask(auxiliaryFragment, request).execute();
     }
 
+    /**
+     * Executes geocoding request.
+     * @param auxiliaryFragment used to deliver callbacks to living {@link MainActivity}.
+     * @param query place name.
+     * @param currentLocation approximate location used to increase priority of close places.
+     * @param onSuccess on success callback.
+     * @param onFailure on failure callback.
+     */
     static void executeGeocodingRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
                                         @NonNull String query,
                                         @Nullable Coordinate currentLocation,
@@ -37,6 +51,12 @@ class UIBlockingTaskExecutor {
                 onFailure).execute();
     }
 
+    /**
+     * Executes precise location request.
+     * @param auxiliaryFragment used to deliver callbacks to living {@link MainActivity}.
+     * @param locationManager provides location.
+     * @param callback on success callback.
+     */
     static void executeLocationRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
                                        @NonNull IsochroneMapLocationManager locationManager,
                                        @NonNull Consumer<Coordinate> callback) {
@@ -46,6 +66,12 @@ class UIBlockingTaskExecutor {
                 callback).execute();
     }
 
+    /**
+     * Executes approximate location request.
+     * @param auxiliaryFragment used to deliver callbacks to living {@link MainActivity}.
+     * @param locationManager provides location.
+     * @param callback callback that handles both success an failure.
+     */
     static void executeApproximateLocationRequest(@NonNull AuxiliaryFragment auxiliaryFragment,
                                                   @NonNull IsochroneMapLocationManager locationManager,
                                                   @NonNull Consumer<Coordinate> callback) {
