@@ -31,6 +31,9 @@ class MapManager implements OnMapReadyCallback {
     private static final float CLOSE_ZOOM_LEVEL = 14;
     private static final int CAMERA_ANIMATION_TIME = 2000;
 
+    private static final int MARGIN_TOP_DP = 80;
+    private static final int MARGIN_SIDE_DP = 5;
+
     private static final String CAMERA_POSITION = "CAMERA_POSITION";
     private static final String MARKER_POSITION = "MARKER_POSITION";
     private static final String MARKER_TITLE = "MARKER_TITLE";
@@ -269,8 +272,8 @@ class MapManager implements OnMapReadyCallback {
     }
 
     private void setPadding() {
-        int marginTop = convertDpToPixels(80);
-        int marginSide = convertDpToPixels(5);
+        int marginTop = convertDpToPixels(MARGIN_TOP_DP);
+        int marginSide = convertDpToPixels(MARGIN_SIDE_DP);
         map.setPadding(marginSide, marginTop, marginSide, 0);
     }
 
@@ -284,10 +287,10 @@ class MapManager implements OnMapReadyCallback {
     }
 
     private static class LatLngBox {
-        private double minLat = 1000;
-        private double minLng = 1000;
-        private double maxLat = -1000;
-        private double maxLng = -1000;
+        private double minLat = Double.MAX_VALUE;
+        private double minLng = Double.MAX_VALUE;
+        private double maxLat = Double.MIN_VALUE;
+        private double maxLng = Double.MIN_VALUE;
 
         private void add(LatLng latLng) {
             minLat = Math.min(minLat, latLng.latitude);

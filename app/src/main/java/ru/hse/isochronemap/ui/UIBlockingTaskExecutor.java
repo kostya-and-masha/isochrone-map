@@ -5,6 +5,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.geocoding.Geocoder;
 import ru.hse.isochronemap.geocoding.Location;
 import ru.hse.isochronemap.isochronebuilding.IsochroneBuilder;
@@ -96,14 +97,14 @@ class UIBlockingTaskExecutor {
             try {
                 MapStructureRequest structureRequest = new MapStructureRequest(request);
 
-                publishProgress("downloading map...");
+                publishProgress(auxiliaryFragment.getString(R.string.download_map_message));
                 Node startNode = MapStructureManager.getMapStructure(structureRequest);
 
                 if (isCancelled()) {
                     return null;
                 }
 
-                publishProgress("building isochrone...");
+                publishProgress(auxiliaryFragment.getString(R.string.build_isochrone_message));
                 response = new IsochroneResponse(
                         IsochroneBuilder.getIsochronePolygons(
                                 startNode,
@@ -114,9 +115,13 @@ class UIBlockingTaskExecutor {
                         request.transportType
                 );
             } catch (IOException e) {
-                response = new IsochroneResponse("failed to download map");
+                response = new IsochroneResponse(
+                        auxiliaryFragment.getString(R.string.download_map_error));
             } catch (NotEnoughNodesException e) {
-                response = new IsochroneResponse("cannot build isochrone in this area");
+                response = new IsochroneResponse(
+                        auxiliaryFragment.getString(R.string.build_isochrone_error));
+            } catch (InterruptedException ignored) {
+                // InterruptedException occurs if task was cancelled
             }
             return null;
         }
@@ -153,10 +158,12 @@ class UIBlockingTaskExecutor {
         @Override
         protected Void doInBackground(Void... v) {
             try {
-                publishProgress("requesting geocoding results...");
+                publishProgress(auxiliaryFragment.getString(R.string.geocoding_message));
                 result = Geocoder.getLocations(query, currentLocation);
                 isSuccessful = true;
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                isSuccessful = false;
+            }
             return null;
         }
 
@@ -188,12 +195,14 @@ class UIBlockingTaskExecutor {
         @Override
         protected Void doInBackground(Void... v) {
             try {
-                publishProgress("requesting location...");
+                publishProgress(auxiliaryFragment.getString(R.string.location_message));
                 location = locationManager.getPreciseLocationBlocking();
                 if (location != null) {
                     isSuccessful = true;
                 }
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+                // InterruptedException occurs if task was cancelled
+            }
             return null;
         }
 
@@ -222,9 +231,12 @@ class UIBlockingTaskExecutor {
         @Override
         protected Void doInBackground(Void... v) {
             try {
-                publishProgress("requesting approximate location...");
+                publishProgress(auxiliaryFragment.getString(
+                        R.string.approximate_location_message));
                 location = locationManager.getApproximateLocation();
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+                // InterruptedException occurs if task was cancelled
+            }
             return null;
         }
 
