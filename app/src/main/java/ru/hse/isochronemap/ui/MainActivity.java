@@ -28,26 +28,30 @@ import ru.hse.isochronemap.isochronebuilding.IsochroneRequestType;
 import ru.hse.isochronemap.location.IsochroneMapLocationManager;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.mapstructure.TransportType;
+import ru.hse.isochronemap.util.Constants;
 import ru.hse.isochronemap.util.IsochroneRequest;
 import ru.hse.isochronemap.util.IsochroneResponse;
 
 /** This is the main Activity of the application. */
 public class MainActivity extends AppCompatActivity {
+    // fragments' tags
     private static final String TASKS_FRAGMENT_TAG = "TASKS_FRAGMENT";
     private static final String MENU_FRAGMENT_TAG = "MENU_FRAGMENT";
-    private static final String PROGRESS_BAR_STATE = "PROGRESS_BAR_STATE";
-    private static final String BLACKOUT_VIEW_STATE = "BLACKOUT_VIEW_STATE";
-    private static final String PERMISSIONS_DENIED = "PERMISSIONS_DENIED";
-    private static final String STATUS_TEXT = "STATUS_TEXT";
+
+    // keys that are used to save state in a Bundle
+    private static final String PROGRESS_BAR_STATE_KEY = "PROGRESS_BAR_STATE";
+    private static final String BLACKOUT_VIEW_STATE_KEY = "BLACKOUT_VIEW_STATE";
+    private static final String PERMISSIONS_DENIED_KEY = "PERMISSIONS_DENIED";
+    private static final String STATUS_TEXT_KEY = "STATUS_TEXT";
+
+    // keys that are used to save current settings in SharedPreferences
     private static final String TRANSPORT_PREFERENCES_KEY = "currentTransport";
     private static final String REQUEST_TYPE_PREFERENCES_KEY = "currentRequestType";
     private static final String SEEK_BAR_PROGRESS_PREFERENCES_KEY = "seekBarProgress";
-    private static final int DEFAULT_SEEK_BAR_VALUE = 10;
+
+    // permissions request keys
     private static final int INITIAL_PERMISSIONS_REQUEST = 1;
     private static final int GEOLOCATION_REQUEST = 2;
-    private static final String ASK_PERMISSIONS_MESSAGE = "give permissions please :(";
-    private static final String CHOOSE_LOCATION_MESSAGE = "please choose location";
-    private static final int ANIMATION_DURATION = 200;
 
     private SharedPreferences sharedPreferences;
     private AuxiliaryFragment auxiliaryFragment;
@@ -109,10 +113,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         map.saveInstanceState(outState);
-        outState.putBoolean(PROGRESS_BAR_STATE, progressBar.getVisibility() == View.VISIBLE);
-        outState.putBoolean(BLACKOUT_VIEW_STATE, blackoutView.getVisibility() == View.VISIBLE);
-        outState.putBoolean(PERMISSIONS_DENIED, permissionsDenied);
-        outState.putString(STATUS_TEXT, statusText.getText().toString());
+        outState.putBoolean(PROGRESS_BAR_STATE_KEY, progressBar.getVisibility() == View.VISIBLE);
+        outState.putBoolean(BLACKOUT_VIEW_STATE_KEY, blackoutView.getVisibility() == View.VISIBLE);
+        outState.putBoolean(PERMISSIONS_DENIED_KEY, permissionsDenied);
+        outState.putString(STATUS_TEXT_KEY, statusText.getText().toString());
         super.onSaveInstanceState(outState);
     }
 
@@ -151,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 moveToCurrentLocation();
             } else {
-                showToast(ASK_PERMISSIONS_MESSAGE);
+                showToast(getString(R.string.give_permissions_toast));
             }
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -163,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
                                     mainActivity -> mainActivity.initLocationCallback(location)));
                 }
             } else {
-                showToast(ASK_PERMISSIONS_MESSAGE);
+                showToast(getString(R.string.give_permissions_toast));
                 permissionsDenied = true;
             }
         }
@@ -205,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
     /** This method is used as a callback and invoked to set initial location. */
     public void initLocationCallback(@Nullable Coordinate coordinate) {
         if (coordinate == null) {
-            showToast("cannot get current location :(");
+            showToast(getString(R.string.could_not_get_init_location_toast));
             return;
         }
         if (map.isReady()) {
@@ -245,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
                                             IsochroneRequestType.HEXAGONAL_COVER.name()));
         float seekBarProgress =
                 sharedPreferences.getFloat(SEEK_BAR_PROGRESS_PREFERENCES_KEY,
-                                           DEFAULT_SEEK_BAR_VALUE);
+                                           UIConstants.DEFAULT_SEEK_BAR_PROGRESS);
 
         menu = (IsochroneMenu) fragmentManager.findFragmentByTag(MENU_FRAGMENT_TAG);
         if (menu == null) {
@@ -300,15 +304,15 @@ public class MainActivity extends AppCompatActivity {
 
         map.restoreInstanceState(savedInstanceState);
         auxiliaryFragment.setSavedPolygons(null);
-        if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE)) {
+        if (savedInstanceState.getBoolean(PROGRESS_BAR_STATE_KEY)) {
             showProgressBarWithText();
             showCancelButton(false);
         }
-        if (savedInstanceState.getBoolean(BLACKOUT_VIEW_STATE)) {
+        if (savedInstanceState.getBoolean(BLACKOUT_VIEW_STATE_KEY)) {
             showBlackoutView();
         }
-        permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED);
-        statusText.setText(savedInstanceState.getString(STATUS_TEXT));
+        permissionsDenied = savedInstanceState.getBoolean(PERMISSIONS_DENIED_KEY);
+        statusText.setText(savedInstanceState.getString(STATUS_TEXT_KEY));
     }
 
     private void moveToCurrentLocation() {
@@ -324,7 +328,7 @@ public class MainActivity extends AppCompatActivity {
     void buildIsochrone() {
         map.removeIsochronePolygons();
         if (map.getMarkerPosition() == null) {
-            showToast(CHOOSE_LOCATION_MESSAGE);
+            showToast(getString(R.string.choose_location_toast));
             return;
         }
 
@@ -407,9 +411,10 @@ public class MainActivity extends AppCompatActivity {
         if (!animate) {
             cancelButton.setTranslationY(translationY);
         } else {
-            ObjectAnimator animator =
-                    ObjectAnimator.ofFloat(cancelButton, "translationY", translationY);
-            animator.setDuration(ANIMATION_DURATION);
+            ObjectAnimator animator = ObjectAnimator.ofFloat(cancelButton,
+                                                             UIConstants.TRANSLATION_Y_PROPERTY,
+                                                             translationY);
+            animator.setDuration(UIConstants.ANIMATION_DURATION);
             animator.start();
         }
     }

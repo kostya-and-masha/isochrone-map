@@ -36,19 +36,17 @@ import ru.hse.isochronemap.util.CoordinateParser;
 
 /** This fragment provides upper floating search/settings bar of the application. */
 public class IsochroneMenu extends Fragment {
-    private static final String MENU_MODE = "MENU_MODE";
-    private static final String DATABASE_NAME = "HINTS_DB";
-    private static final String SEARCH_FIELD_QUERY = "SEARCH_FIELD_QUERY";
-    private static final String ADAPTER_MODE = "ADAPTER_MODE";
-    private static final String ADAPTER_LIST = "ADAPTER_LIST";
-    private static final String TRANSPORT_TYPE = "TRANSPORT_TYPE";
-    private static final String ISOCHRONE_REQUEST_TYPE = "ISOCHRONE_REQUEST_TYPE";
-    private static final String SEEK_BAR_PROGRESS = "SEEK_BAR_PROGRESS";
-    private static final int DEFAULT_SEEK_BAR_PROGRESS = 10;
+    // keys that are used to save state in a Bundle.
+    private static final String MENU_MODE_KEY = "MENU_MODE";
+    private static final String DATABASE_NAME_KEY = "HINTS_DB";
+    private static final String SEARCH_FIELD_QUERY_KEY = "SEARCH_FIELD_QUERY";
+    private static final String ADAPTER_MODE_KEY = "ADAPTER_MODE";
+    private static final String ADAPTER_LIST_KEY = "ADAPTER_LIST";
+    private static final String TRANSPORT_TYPE_KEY = "TRANSPORT_TYPE";
+    private static final String ISOCHRONE_REQUEST_TYPE_KEY = "ISOCHRONE_REQUEST_TYPE";
+    private static final String SEEK_BAR_PROGRESS_KEY = "SEEK_BAR_PROGRESS";
+
     private static final float BLACKOUT_VIEW_ENABLED_ALPHA = (float) 0.7;
-    private static final String NO_SEARCH_RESULTS_MESSAGE = "nothing was found";
-    private static final String SEARCH_FAILED_MESSAGE = "could not get search results";
-    private static final int ANIMATION_DURATION = 200;
 
     private View mainLayout;
     private SearchView searchField;
@@ -94,9 +92,9 @@ public class IsochroneMenu extends Fragment {
                                               float seekBarProgress) {
         IsochroneMenu menu = new IsochroneMenu();
         Bundle arguments = new Bundle();
-        arguments.putSerializable(TRANSPORT_TYPE, transportType);
-        arguments.putSerializable(ISOCHRONE_REQUEST_TYPE, isochroneRequestType);
-        arguments.putFloat(SEEK_BAR_PROGRESS, seekBarProgress);
+        arguments.putSerializable(TRANSPORT_TYPE_KEY, transportType);
+        arguments.putSerializable(ISOCHRONE_REQUEST_TYPE_KEY, isochroneRequestType);
+        arguments.putFloat(SEEK_BAR_PROGRESS_KEY, seekBarProgress);
         menu.setArguments(arguments);
         return menu;
     }
@@ -108,16 +106,17 @@ public class IsochroneMenu extends Fragment {
         applyArguments();
 
         if (savedInstanceState != null) {
-            currentMode = (Mode) savedInstanceState.getSerializable(MENU_MODE);
-            currentTransport = (TransportType) savedInstanceState.getSerializable(TRANSPORT_TYPE);
+            currentMode = (Mode) savedInstanceState.getSerializable(MENU_MODE_KEY);
+            currentTransport = (TransportType) savedInstanceState.getSerializable(
+                    TRANSPORT_TYPE_KEY);
             currentRequestType = (IsochroneRequestType) savedInstanceState
-                    .getSerializable(ISOCHRONE_REQUEST_TYPE);
-            seekBarProgress = savedInstanceState.getFloat(SEEK_BAR_PROGRESS);
+                    .getSerializable(ISOCHRONE_REQUEST_TYPE_KEY);
+            seekBarProgress = savedInstanceState.getFloat(SEEK_BAR_PROGRESS_KEY);
         }
 
         // Will not happen because onCreate is called after onAttach
         assert getActivity() != null;
-        database = new SearchDatabase(getActivity(), DATABASE_NAME);
+        database = new SearchDatabase(getActivity(), DATABASE_NAME_KEY);
     }
 
     /** {@inheritDoc} */
@@ -141,19 +140,19 @@ public class IsochroneMenu extends Fragment {
     @Override
     public void onSaveInstanceState(@NonNull Bundle bundle) {
         super.onSaveInstanceState(bundle);
-        bundle.putSerializable(MENU_MODE, currentMode);
-        bundle.putSerializable(ADAPTER_MODE, adapter.getAdapterMode());
-        bundle.putString(SEARCH_FIELD_QUERY, searchField.getQuery().toString());
+        bundle.putSerializable(MENU_MODE_KEY, currentMode);
+        bundle.putSerializable(ADAPTER_MODE_KEY, adapter.getAdapterMode());
+        bundle.putString(SEARCH_FIELD_QUERY_KEY, searchField.getQuery().toString());
 
         if (adapter.getAdapterMode() == SearchResultsAdapter.AdapterMode.HINTS) {
-            bundle.putStringArrayList(ADAPTER_LIST, adapter.getHintsList());
+            bundle.putStringArrayList(ADAPTER_LIST_KEY, adapter.getHintsList());
         } else {
-            bundle.putParcelableArrayList(ADAPTER_LIST, adapter.getResultsList());
+            bundle.putParcelableArrayList(ADAPTER_LIST_KEY, adapter.getResultsList());
         }
 
-        bundle.putSerializable(TRANSPORT_TYPE, currentTransport);
-        bundle.putSerializable(ISOCHRONE_REQUEST_TYPE, currentRequestType);
-        bundle.putFloat(SEEK_BAR_PROGRESS, seekBar.getProgressFloat());
+        bundle.putSerializable(TRANSPORT_TYPE_KEY, currentTransport);
+        bundle.putSerializable(ISOCHRONE_REQUEST_TYPE_KEY, currentRequestType);
+        bundle.putFloat(SEEK_BAR_PROGRESS_KEY, seekBar.getProgressFloat());
     }
 
     /** {@inheritDoc} */
@@ -225,18 +224,19 @@ public class IsochroneMenu extends Fragment {
             return;
         }
 
-        currentTransport = (TransportType) getArguments().getSerializable(TRANSPORT_TYPE);
+        currentTransport = (TransportType) getArguments().getSerializable(TRANSPORT_TYPE_KEY);
         if (currentTransport == null) {
             currentTransport = TransportType.FOOT;
         }
 
         currentRequestType =
-                (IsochroneRequestType) getArguments().getSerializable(ISOCHRONE_REQUEST_TYPE);
+                (IsochroneRequestType) getArguments().getSerializable(ISOCHRONE_REQUEST_TYPE_KEY);
         if (currentRequestType == null) {
             currentRequestType = IsochroneRequestType.HEXAGONAL_COVER;
         }
 
-        seekBarProgress = getArguments().getFloat(SEEK_BAR_PROGRESS, DEFAULT_SEEK_BAR_PROGRESS);
+        seekBarProgress = getArguments().getFloat(SEEK_BAR_PROGRESS_KEY,
+                                                  UIConstants.DEFAULT_SEEK_BAR_PROGRESS);
     }
 
     private void initialize(@Nullable Bundle savedInstanceState) {
@@ -393,15 +393,16 @@ public class IsochroneMenu extends Fragment {
 
     private void restoreAdapterAndQuery(@NonNull Bundle savedInstanceState) {
         SearchResultsAdapter.AdapterMode mode =
-                (SearchResultsAdapter.AdapterMode) savedInstanceState.getSerializable(ADAPTER_MODE);
+                (SearchResultsAdapter.AdapterMode) savedInstanceState.getSerializable(
+                        ADAPTER_MODE_KEY);
 
-        currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY);
+        currentQuery = savedInstanceState.getString(SEARCH_FIELD_QUERY_KEY);
 
         if (mode == SearchResultsAdapter.AdapterMode.HINTS) {
-            List<String> content = savedInstanceState.getStringArrayList(ADAPTER_LIST);
+            List<String> content = savedInstanceState.getStringArrayList(ADAPTER_LIST_KEY);
             adapter.setHints(content);
         } else {
-            List<Location> content = savedInstanceState.getParcelableArrayList(ADAPTER_LIST);
+            List<Location> content = savedInstanceState.getParcelableArrayList(ADAPTER_LIST_KEY);
             adapter.setResults(content);
         }
     }
@@ -427,15 +428,23 @@ public class IsochroneMenu extends Fragment {
     }
 
     private void onSuccessSearchResultsCallback(@NonNull List<Location> list) {
+        // disable inspection (this method is called after fragment has been attached to activity).
+        assert getContext() != null;
+
         adapter.setResults(list);
         if (list.size() == 0) {
-            Toast.makeText(getContext(), NO_SEARCH_RESULTS_MESSAGE, Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), getContext().getString(R.string.no_search_results_toast),
+                           Toast.LENGTH_LONG).show();
         }
         updateModeUI(true);
     }
 
     private void onFailureSearchResultsCallback() {
-        Toast.makeText(getContext(), SEARCH_FAILED_MESSAGE, Toast.LENGTH_LONG).show();
+        // disable inspection (this method is called after fragment has been attached to activity).
+        assert getContext() != null;
+
+        Toast.makeText(getContext(), getContext().getString(R.string.search_failed_toast),
+                       Toast.LENGTH_LONG).show();
     }
 
     private void setUIUpdater() {
@@ -459,19 +468,19 @@ public class IsochroneMenu extends Fragment {
                 (seekBarProgress != null ? seekBarProgress : seekBar.getProgressFloat());
         seekBarProgress = null;
 
-        TransportTypeSeekBarSettings settings;
+        UIConstants.TransportTypeSeekBarSettings settings;
         switch (currentTransport) {
             case FOOT:
                 transportButton = walkingButton;
-                settings = TransportTypeSeekBarSettings.FOOT;
+                settings = UIConstants.TransportTypeSeekBarSettings.FOOT;
                 break;
             case BIKE:
                 transportButton = bikeButton;
-                settings = TransportTypeSeekBarSettings.BIKE;
+                settings = UIConstants.TransportTypeSeekBarSettings.BIKE;
                 break;
             case CAR:
                 transportButton = carButton;
-                settings = TransportTypeSeekBarSettings.CAR;
+                settings = UIConstants.TransportTypeSeekBarSettings.CAR;
                 break;
             default:
                 throw new RuntimeException();
@@ -596,13 +605,13 @@ public class IsochroneMenu extends Fragment {
         }
 
         if (animate) {
-            ObjectAnimator cardAnimation =
-                    ObjectAnimator.ofFloat(settingsCard, "translationY", translation);
+            ObjectAnimator cardAnimation = ObjectAnimator.ofFloat(
+                    settingsCard, UIConstants.TRANSLATION_Y_PROPERTY, translation);
             ObjectAnimator blackoutAnimation =
-                    ObjectAnimator.ofFloat(blackoutView, "alpha", blackoutAlpha);
+                    ObjectAnimator.ofFloat(blackoutView, UIConstants.ALPHA_PROPERTY, blackoutAlpha);
 
-            blackoutAnimation.setDuration(ANIMATION_DURATION);
-            cardAnimation.setDuration(ANIMATION_DURATION);
+            blackoutAnimation.setDuration(UIConstants.ANIMATION_DURATION);
+            cardAnimation.setDuration(UIConstants.ANIMATION_DURATION);
 
             AnimatorSet animatorSet = new AnimatorSet();
             animatorSet.play(cardAnimation);

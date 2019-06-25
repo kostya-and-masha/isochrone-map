@@ -31,4 +31,9 @@
     <string name="enable_gps_dialog_positive_text">Go to settings</string>
     <string name="enable_gps_dialog_negative_text">NO!!!</string>
     <string name="a_gps_disabled_toast">A-GPS is disabled, may take some time to get current location</string>
+    <string name="no_search_results_toast">nothing was found</string>
+    <string name="search_failed_toast">could not get search results</string>
+    <string name="give_permissions_toast">give permissions please :(</string>
+    <string name="could_not_get_init_location_toast">cannot get current location :(</string>
+    <string name="choose_location_toast">please choose location</string>
 </resources>
