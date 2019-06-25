@@ -47,7 +47,7 @@ public class IsochroneBuilder {
             double time,
             @NonNull TransportType transportType,
             @NonNull IsochroneRequestType requestType)
-            throws IOException, NotEnoughNodesException {
+            throws IOException, NotEnoughNodesException, InterruptedException {
 
         double maxDistance = time * transportType.getAverageSpeed();
         MapStructureRequest request =
