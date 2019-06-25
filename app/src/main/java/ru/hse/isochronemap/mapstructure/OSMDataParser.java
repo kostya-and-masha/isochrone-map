@@ -19,6 +19,13 @@ import gnu.trove.map.hash.TLongCharHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 
 class OSMDataParser {
+    private static final int TYPE_CODE = 0;
+    private static final int ID_CODE = 1;
+    private static final int LATITUDE_CODE = 2;
+    private static final int LONGITUDE_CODE = 3;
+    private static final int HIGHWAY_CODE = 4;
+    private static final int ONEWAY_CODE = 5;
+
     static @NonNull MapData parseCSV(@NonNull byte[] osmData, @NonNull TransportType transportType)
             throws IOException {
         boolean isBiDirectional = transportType == TransportType.FOOT;
@@ -34,22 +41,21 @@ class OSMDataParser {
                 csvReader.parse(new InputStreamReader(new ByteArrayInputStream(osmData)));
         CsvRow row;
         while ((row = csvParser.nextRow()) != null) {
-            // 0 - type, 1 - id, 2 - lat, 3 - lon, 4 - highway, 5 - oneway
-            String type = row.getField(0);
-            long id = Long.parseLong(row.getField(1));
-            String highway = row.getField(4);
+            String type = row.getField(TYPE_CODE);
+            long id = Long.parseLong(row.getField(ID_CODE));
+            String highwayType = row.getField(HIGHWAY_CODE);
 
             if (type.equals("node")) {
-                double latitude = Double.parseDouble(row.getField(2));
-                double longitude = Double.parseDouble(row.getField(3));
+                double latitude = Double.parseDouble(row.getField(LATITUDE_CODE));
+                double longitude = Double.parseDouble(row.getField(LONGITUDE_CODE));
 
                 Coordinate coordinate = new Coordinate(latitude, longitude);
                 boolean isCrossing =
-                        highway.equals("crossing") || highway.equals("traffic_signals");
+                        highwayType.equals("crossing") || highwayType.equals("traffic_signals");
                 Node node = new Node(coordinate, isCrossing);
                 nodesMap.put(id, node);
             } else if (type.equals("way")) {
-                String oneway = row.getField(5);
+                String oneway = row.getField(ONEWAY_CODE);
                 boolean forward = isBiDirectional;
                 boolean backward = isBiDirectional;
                 if (!isBiDirectional) {

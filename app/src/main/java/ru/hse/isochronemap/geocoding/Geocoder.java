@@ -1,10 +1,10 @@
 package ru.hse.isochronemap.geocoding;
 
-import android.os.AsyncTask;
+import android.util.Log;
 
 import ru.hse.isochronemap.mapstructure.BoundingBox;
 import ru.hse.isochronemap.mapstructure.Coordinate;
-import ru.hse.isochronemap.util.Consumer;
+
 import com.google.android.gms.common.util.IOUtils;
 import com.jsoniter.JsonIterator;
 
@@ -20,11 +20,14 @@ import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import ru.hse.isochronemap.util.Constants;
 
 /** This class translates address into geo coordinates. **/
 public class Geocoder {
     private static final String NOMINATIM = "https://nominatim.openstreetmap.org/search";
     private static final double SEARCH_RADIUS = 60;
+    private static final String URI_ERROR_MESSAGE =
+            "Unexpected error occurred while constructing geocoding request URL.";
 
     /**
      * Suggests locations matching with given query.
@@ -52,6 +55,9 @@ public class Geocoder {
             connection.disconnect();
             return parseNominatimOutput(data);
         } catch (URISyntaxException e) {
+            // This exception should never be thrown here.
+            // If it was thrown, then something is deeply wrong with URIBuilder.
+            Log.e(Constants.APP_TAG, URI_ERROR_MESSAGE, e);
             throw new RuntimeException(e);
         }
     }

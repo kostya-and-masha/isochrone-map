@@ -18,4 +18,13 @@
     <string name="convex_hull_button_border">convex hull button border</string>
     <string name="OSM_contribution">© OpenStreetMap contributors</string>
     <string name="cancel">cancel</string>
+
+    <string name="download_map_message">downloading map…</string>
+    <string name="build_isochrone_message">building isochrone…</string>
+    <string name="geocoding_message">requesting geocoding results…</string>
+    <string name="location_message">requesting location…</string>
+    <string name="approximate_location_message">requesting approximate location…</string>
+
+    <string name="download_map_error">failed to download map</string>
+    <string name="build_isochrone_error">cannot build isochrone in this area</string>
 </resources>
