@@ -142,14 +142,8 @@ public class IsochroneMapLocationManager {
      *
      * @throws SecurityException if ACCESS_FINE_LOCATION permissions were not given.
      */
-    // Permissions are checked in a separate method therefore IntelliJ IDEA does not understand it.
-    @SuppressLint("MissingPermission")
     public void getPreciseLocationAsynchronously(@Nullable Consumer<Coordinate> callback,
-                                                 @Nullable Looper looper) throws SecurityException{
-        if (!hasPermissions()) {
-            throw new SecurityException();
-        }
-
+                                                 @Nullable Looper looper) throws SecurityException {
         locationManager.requestSingleUpdate(criteria, new CachedLocationListener(callback), looper);
     }
 
