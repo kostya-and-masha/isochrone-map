@@ -50,7 +50,6 @@ class ConvexHullBuilder {
     static boolean isRightTurn(Coordinate p1, Coordinate p2, Coordinate p3) {
         // x1y2 - y1x2
         return !((p2.longitude - p1.longitude) * (p3.latitude - p1.latitude)
-                 - (p2.latitude - p1.latitude) * (p3.longitude
-                                                  - p1.longitude) > 0);
+                 - (p2.latitude - p1.latitude) * (p3.longitude - p1.longitude) > 0);
     }
 }
