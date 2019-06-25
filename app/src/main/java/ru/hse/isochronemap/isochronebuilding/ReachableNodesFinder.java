@@ -28,7 +28,7 @@ class ReachableNodesFinder {
      */
     static @NonNull List<Node> getReachableNodes(@NonNull Node startNode, double time,
                                                  @NonNull TransportType transportType) {
-        Double speed = transportType.getAverageSpeed();
+        double speed = transportType.getAverageSpeed();
 
         HashMap<Node, Double> nodesReachTime = new HashMap<>();
 
