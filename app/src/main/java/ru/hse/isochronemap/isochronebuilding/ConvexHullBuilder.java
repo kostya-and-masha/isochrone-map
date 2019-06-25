@@ -21,9 +21,9 @@ class ConvexHullBuilder {
         List<Coordinate> bottomHull = buildConvexHullGraham(coordinates);
         Collections.reverse(coordinates);
         List<Coordinate> topHull = buildConvexHullGraham(coordinates);
-        for (int i = 1; i < bottomHull.size() - 1; ++i) {
-            topHull.add(bottomHull.get(i));
-        }
+
+        // merging topHull and bottomHull into one convex hull
+        topHull.addAll(bottomHull.subList(1, bottomHull.size() - 1));
 
         return topHull;
     }
