@@ -1,5 +1,7 @@
 package ru.hse.isochronemap.mapstructure;
 
+import android.util.Log;
+
 import com.google.android.gms.common.util.IOUtils;
 
 import org.apache.http.client.utils.URIBuilder;
@@ -19,15 +21,18 @@ import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TLongCharHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
+import ru.hse.isochronemap.util.Constants;
 
 /** This class downloads map structure information and transforms it into graph. **/
 public class MapStructureManager {
     private static final String OVERPASS_API_INTERPRETER =
             "https://overpass.kumi.systems/api/interpreter";
-    private static final int verticalCountWays;
-    private static final int horizontalCountWays;
-    private static final int verticalCountMapData;
-    private static final int horizontalCountMapData;
+    private static final String URI_ERROR_MESSAGE =
+            "Unexpected error occurred while constructing map structure request URL.";
+    private static final int VERTICAL_COUNT_WAYS;
+    private static final int HORIZONTAL_COUNT_WAYS;
+    private static final int VERTICAL_COUNT_MAP_DATA;
+    private static final int HORIZONTAL_COUNT_MAP_DATA;
 
     static {
         final TIntObjectMap<int[]> splitParameters = new TIntObjectHashMap<>();
@@ -45,10 +50,10 @@ public class MapStructureManager {
         } else {
             values = splitParameters.get(10);
         }
-        verticalCountWays = values[0];
-        horizontalCountWays = values[1];
-        verticalCountMapData = values[2];
-        horizontalCountMapData = values[3];
+        VERTICAL_COUNT_WAYS = values[0];
+        HORIZONTAL_COUNT_WAYS = values[1];
+        VERTICAL_COUNT_MAP_DATA = values[2];
+        HORIZONTAL_COUNT_MAP_DATA = values[3];
     }
 
     /**
@@ -56,15 +61,17 @@ public class MapStructureManager {
      * @param request map request parameters
      * @return start node
      * @throws IOException if failed to connect to server.
+     * @throws InterruptedException if thread was interrupted while waiting.
      */
-    public static @NonNull Node getMapStructure(MapStructureRequest request) throws IOException {
+    public static @NonNull Node getMapStructure(MapStructureRequest request)
+            throws IOException, InterruptedException {
         BoundingBox box = new BoundingBox(
                 request.getStartCoordinate(),
                 request.getMaximumDistance());
         List<BoundingBox> boxesForWays = splitBoundingBox(
-                box, verticalCountWays, horizontalCountWays);
+                box, VERTICAL_COUNT_WAYS, HORIZONTAL_COUNT_WAYS);
         List<BoundingBox> boxesForMapData = splitBoundingBox(
-                box, verticalCountMapData, horizontalCountMapData);
+                box, VERTICAL_COUNT_MAP_DATA, HORIZONTAL_COUNT_MAP_DATA);
 
         List<GetMapDataTask> mapDataTasks = new ArrayList<>();
         List<Thread> mapDataThreads = new ArrayList<>();
@@ -90,44 +97,40 @@ public class MapStructureManager {
             waysThreads.add(thread);
         }
 
-        try {
-            TLongObjectMap<Node> nodesMap = new TLongObjectHashMap<>();
-            TLongCharMap waysMap = new TLongCharHashMap();
-            for (int i = 0; i < mapDataThreads.size(); i++) {
-                mapDataThreads.get(i).join();
-                GetMapDataTask task = mapDataTasks.get(i);
-                if (!task.isSuccessful) {
-                    throw new IOException();
-                }
-                nodesMap.putAll(task.mapData.nodesMap);
-                waysMap.putAll(task.mapData.waysMap);
+        TLongObjectMap<Node> nodesMap = new TLongObjectHashMap<>();
+        TLongCharMap waysMap = new TLongCharHashMap();
+        for (int i = 0; i < mapDataThreads.size(); i++) {
+            mapDataThreads.get(i).join();
+            GetMapDataTask task = mapDataTasks.get(i);
+            if (!task.isSuccessful) {
+                throw new IOException();
             }
-
-            TLongObjectMap<TLongList> ways = new TLongObjectHashMap<>();
-            for (int i = 0; i < waysThreads.size(); i++) {
-                waysThreads.get(i).join();
-                GetWaysTask task = waysTasks.get(i);
-                if (!task.isSuccessful) {
-                    throw new IOException();
-                }
-                ways.putAll(task.ways);
-            }
-            OSMDataParser.connectNodes(new MapData(nodesMap, waysMap), ways);
-
-            double unconditionalAccessDistance = request.getUnconditionalAccessDistance();
-            Coordinate startCoordinate = request.getStartCoordinate();
-            Node startNode = new Node(startCoordinate, false);
-            for (Object o : nodesMap.values()) {
-                Node node = (Node) o;
-                double distance = startCoordinate.distanceTo(node.coordinate);
-                if (distance < unconditionalAccessDistance) {
-                    startNode.addEdge(new Edge(distance, node));
-                }
-            }
-            return startNode;
-        } catch (InterruptedException e) {
-            throw new RuntimeException();
+            nodesMap.putAll(task.mapData.nodesMap);
+            waysMap.putAll(task.mapData.waysMap);
         }
+
+        TLongObjectMap<TLongList> ways = new TLongObjectHashMap<>();
+        for (int i = 0; i < waysThreads.size(); i++) {
+            waysThreads.get(i).join();
+            GetWaysTask task = waysTasks.get(i);
+            if (!task.isSuccessful) {
+                throw new IOException();
+            }
+            ways.putAll(task.ways);
+        }
+        OSMDataParser.connectNodes(new MapData(nodesMap, waysMap), ways);
+
+        double unconditionalAccessDistance = request.getUnconditionalAccessDistance();
+        Coordinate startCoordinate = request.getStartCoordinate();
+        Node startNode = new Node(startCoordinate, false);
+        for (Object o : nodesMap.values()) {
+            Node node = (Node) o;
+            double distance = startCoordinate.distanceTo(node.coordinate);
+            if (distance < unconditionalAccessDistance) {
+                startNode.addEdge(new Edge(distance, node));
+            }
+        }
+        return startNode;
     }
 
     private static byte[] downloadMap(BoundingBox box,
@@ -145,6 +148,9 @@ public class MapStructureManager {
             connection.disconnect();
             return result;
         } catch (URISyntaxException e) {
+            // This exception should never be thrown here.
+            // If it was thrown, then something is deeply wrong with URIBuilder.
+            Log.e(Constants.APP_TAG, URI_ERROR_MESSAGE, e);
             throw new RuntimeException(e);
         }
     }
