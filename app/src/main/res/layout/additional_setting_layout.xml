@@ -57,7 +57,7 @@
         app:layout_constraintStart_toStartOf="@id/convex_hull_button"
         app:srcCompat="@drawable/ic_convex_hull_border_120dp"
         tools:layout_editor_absoluteY="2dp"
-        android:contentDescription="@string/convex_hull_button_botder" />
+        android:contentDescription="@string/convex_hull_button_border" />
 
     <ImageView
         android:id="@+id/hexagonal_cover_border"
