@@ -29,6 +29,7 @@ public class MapStructureRequest {
         this.transportType = transportType;
     }
 
+    /** Constructs map structure request from isochrone request. **/
     public MapStructureRequest(@NonNull IsochroneRequest request) {
         this(request.coordinate,
              IsochroneBuilder.UNCONDITIONAL_ACCESS_DISTANCE,
