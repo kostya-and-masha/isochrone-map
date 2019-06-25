@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_main);
+
         cancelButton = findViewById(R.id.cancel_button);
         buildIsochroneButton = findViewById(R.id.build_isochrone_button);
         geolocationButton = findViewById(R.id.geolocation_button);
@@ -86,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         blackoutView = findViewById(R.id.main_blackout_view);
 
         sharedPreferences = getPreferences(Context.MODE_PRIVATE);
-        map.restoreCameraPosition(sharedPreferences);
+        locationManager = new IsochroneMapLocationManager(this);
 
         initializeAuxiliaryFragment();
         if (auxiliaryFragment.wasDead()) {
@@ -94,47 +95,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         initializeMenu();
-
-        SupportMapFragment mapFragment = (SupportMapFragment) Objects
-                .requireNonNull(getSupportFragmentManager().findFragmentById(R.id.map));
-        map.setActivity(this);
-        map.setAuxiliaryFragment(auxiliaryFragment);
-        mapFragment.getMapAsync(map);
-
-        buildIsochroneButton.setOnClickListener(ignored -> {
-            menu.closeEverything();
-            buildIsochrone();
-        });
+        initializeMap();
+        initializeButtonsListeners();
 
         if (savedInstanceState != null) {
             restoreInstanceState(savedInstanceState);
         }
 
-        locationManager = new IsochroneMapLocationManager(this);
-        menu.setIsochroneMapLocationManager(locationManager);
-        map.setIsochroneMapLocationManager(locationManager);
-
-        cancelButton.setOnClickListener(ignored -> cancelCurrentAction());
-
-        geolocationButton.setOnClickListener(ignored -> {
-            showOnBackgroundActionUI();
-
-            menu.closeEverything();
-
-            if (!locationManager.hasPermissions()) {
-                ActivityCompat.requestPermissions(this, new String[]{
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                }, GEOLOCATION_REQUEST);
-                return;
-            }
-            moveToCurrentLocation();
-        });
-
-        if (!permissionsDenied && !locationManager.hasPermissions()) {
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION
-            }, INITIAL_PERMISSIONS_REQUEST);
-        }
+        requestPermissionsInitiallyIfNeeded();
     }
 
     /** {@inheritDoc} */
@@ -183,8 +151,6 @@ public class MainActivity extends AppCompatActivity {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 moveToCurrentLocation();
             } else {
-                hideOnBackgroundActionUI();
-
                 showToast(ASK_PERMISSIONS_MESSAGE);
             }
         } else if (requestCode == INITIAL_PERMISSIONS_REQUEST) {
@@ -259,6 +225,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void initializeMap() {
+        map.restoreCameraPosition(sharedPreferences);
+        SupportMapFragment mapFragment = (SupportMapFragment) Objects
+                .requireNonNull(getSupportFragmentManager().findFragmentById(R.id.map));
+        map.setActivity(this);
+        map.setAuxiliaryFragment(auxiliaryFragment);
+        map.setIsochroneMapLocationManager(locationManager);
+        mapFragment.getMapAsync(map);
+    }
+
     private void initializeMenu() {
         FragmentManager fragmentManager = getSupportFragmentManager();
 
@@ -291,18 +267,30 @@ public class MainActivity extends AppCompatActivity {
                 .setImageResource(R.drawable.ic_convex_hull_button_24dp));
 
         menu.setOnPlaceQueryListener(position -> map.setCurrentPositionAndMoveCamera(position));
-
-        menu.setOnScreenBlockListener(enable -> {
-            if (enable) {
-                showProgressBarWithText();
-                showCancelButton(true);
-            } else {
-                hideProgressBarWithText();
-                hideCancelButton(true);
-            }
-        });
-
         menu.setAuxiliaryFragment(auxiliaryFragment);
+        menu.setIsochroneMapLocationManager(locationManager);
+    }
+
+    private void initializeButtonsListeners() {
+        buildIsochroneButton.setOnClickListener(ignored -> buildIsochrone());
+        cancelButton.setOnClickListener(ignored -> cancelCurrentAction());
+        geolocationButton.setOnClickListener(ignored -> {
+            if (!locationManager.hasPermissions()) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                }, GEOLOCATION_REQUEST);
+                return;
+            }
+            moveToCurrentLocation();
+        });
+    }
+
+    private void requestPermissionsInitiallyIfNeeded() {
+        if (!permissionsDenied && !locationManager.hasPermissions()) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION
+            }, INITIAL_PERMISSIONS_REQUEST);
+        }
     }
 
     // onRestoreInstanceState does not fit

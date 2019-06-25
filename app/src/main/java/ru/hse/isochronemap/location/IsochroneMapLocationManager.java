@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,6 +25,7 @@ import ru.hse.isochronemap.util.Consumer;
 
 /** Wraps LocationManager and provides methods to obtain current/last known location conveniently.*/
 public class IsochroneMapLocationManager {
+    public static final int APPROXIMATE_LOCATION_TIMEOUT = 4000;
     private static final String GPS_ALERT_FRAGMENT = "GPSAlertFragment";
     private static final String AGPS_DISABLED_MESSAGE =
             "A-GPS is disabled, may take some time to get current location";
@@ -60,16 +62,17 @@ public class IsochroneMapLocationManager {
     /**
      * Tries to immediately return last known location.
      * If there is no last known location for GPS ans NETWORK providers
-     * then blocks, tries to obtain precise location and returns it.
-     * If precise location could not be obtained (app does not have
-     * necessary permissions or geolocation is disabled) then immediately returns null.
+     * then blocks for APPROXIMATE_LOCATION_TIMEOUT milliseconds,
+     * tries to obtain precise location and returns it.
+     * If precise location could not be obtained (waiting time elapses / app does not have
+     * necessary permissions / geolocation is disabled) then returns null.
      *
      * @throws InterruptedException if caller thread was interrupted
      *                              while waiting for current location.
      */
     // Permissions are checked in a separate method therefore IntelliJ IDEA does not understand it.
     @SuppressLint("MissingPermission")
-    public Coordinate getApproximateLocation() throws InterruptedException {
+    public @Nullable Coordinate getApproximateLocation() throws InterruptedException {
         if (!hasPermissions()) {
             return null;
         }
@@ -92,7 +95,7 @@ public class IsochroneMapLocationManager {
             || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             BlockingQueue<Coordinate> queue = new ArrayBlockingQueue<>(1);
             getPreciseLocationAsynchronously(queue::add, Looper.getMainLooper());
-            return queue.take();
+            return queue.poll(APPROXIMATE_LOCATION_TIMEOUT, TimeUnit.MILLISECONDS);
         }
 
         // return null if nothing succeeded
@@ -103,11 +106,12 @@ public class IsochroneMapLocationManager {
      * Blocks, tries to obtain current location and then returns it. Must not be invoked from main
      * thread. Asks user to enable geolocation if both GPS and NETWORK providers are disabled.
      *
-     * @return current GPS provider's location.
+     * @return current location or null if location could not be obtained.
      * @throws InterruptedException if caller thread was interrupted while waiting for location.
      * @throws SecurityException if ACCESS_FINE_LOCATION permissions were not given.
      */
-    public Coordinate getPreciseLocationBlocking() throws InterruptedException, SecurityException {
+    public @Nullable Coordinate getPreciseLocationBlocking() throws InterruptedException,
+                                                                   SecurityException {
         boolean gpsProviderEnabled =
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean networkProviderEnabled =

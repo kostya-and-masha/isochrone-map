@@ -1,7 +1,6 @@
 package ru.hse.isochronemap.ui;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Bundle;
 
 import com.google.android.gms.maps.model.PolygonOptions;
