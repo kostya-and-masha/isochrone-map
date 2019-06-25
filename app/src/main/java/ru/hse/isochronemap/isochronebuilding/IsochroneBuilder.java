@@ -42,13 +42,15 @@ public class IsochroneBuilder {
      * @return Resulting polygons.
      * @throws IOException             if error during OSM map downloading occurred.
      * @throws NotEnoughNodesException if no reachable OSM nodes were found nearby.
+     * @throws InterruptedException if the thread is interrupted either before or during
+     *                              its multithreaded actions.
      */
     public static @NonNull List<IsochronePolygon> getIsochronePolygons(
             @NonNull Coordinate startCoordinate,
             double time,
             @NonNull TransportType transportType,
             @NonNull IsochroneRequestType requestType)
-            throws IOException, NotEnoughNodesException {
+            throws IOException, NotEnoughNodesException, InterruptedException {
 
         double maxDistance = time * transportType.getAverageSpeed();
         MapStructureRequest request =
@@ -67,13 +69,15 @@ public class IsochroneBuilder {
      * @param requestType   Convex Hull or Hexagonal cover.
      * @return Resulting polygons.
      * @throws NotEnoughNodesException if no reachable OSM nodes were found nearby.
+     * @throws InterruptedException if the thread is interrupted either before or during
+     *                              its multithreaded actions.
      */
     public static List<IsochronePolygon> getIsochronePolygons(
             @NonNull Node startNode,
             double time,
             @NonNull TransportType transportType,
             @NonNull IsochroneRequestType requestType)
-            throws NotEnoughNodesException{
+            throws NotEnoughNodesException, InterruptedException {
 
         List<Node> reachableNodes =
                 ReachableNodesFinder.getReachableNodes(startNode, time, transportType);
@@ -135,7 +139,9 @@ public class IsochroneBuilder {
     }
 
     private static @NonNull List<IsochronePolygon> turnHexagonsToPolygons(
-            @NonNull Collection<Hexagon> hexagons, double ignoredHolesArea) {
+            @NonNull Collection<Hexagon> hexagons, double ignoredHolesArea)
+            throws InterruptedException {
+
         List<Polygon> polygons = new ArrayList<>();
         for (Hexagon hexagon : hexagons) {
             polygons.add(hexagon.toJTSPolygon());
@@ -157,7 +163,7 @@ public class IsochroneBuilder {
     }
 
     private static @NonNull List<Geometry> getGeometriesConcurrently(
-            @NonNull List<Polygon> polygons) {
+            @NonNull List<Polygon> polygons) throws InterruptedException {
         int numberOfCores = Runtime.getRuntime().availableProcessors();
         Thread[] threads = new Thread[numberOfCores];
         Geometry[] geometries = new Geometry[numberOfCores];
@@ -176,11 +182,7 @@ public class IsochroneBuilder {
         }
 
         for (int i = 0; i < numberOfCores; ++i) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException();
-            }
+            threads[i].join();
         }
 
         return Arrays.asList(geometries);

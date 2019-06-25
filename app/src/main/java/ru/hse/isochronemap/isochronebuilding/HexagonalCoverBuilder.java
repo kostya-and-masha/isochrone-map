@@ -38,8 +38,12 @@ class HexagonalCoverBuilder {
      *
      * @param coordinates points to cover.
      * @return list of resulting hexagons.
+     * @throws InterruptedException if the thread is interrupted either before or during
+     *                              its multithreaded actions.
      */
-    @NonNull List<Hexagon> getHexagonalCover(@NonNull List<Coordinate> coordinates) {
+    @NonNull List<Hexagon> getHexagonalCover(@NonNull List<Coordinate> coordinates)
+            throws InterruptedException {
+
         int numberOfCores = Runtime.getRuntime().availableProcessors();
         List<List<Coordinate>> resultingHexagonCenters = new ArrayList<>(numberOfCores);
 
@@ -73,11 +77,7 @@ class HexagonalCoverBuilder {
         }
 
         for (int i = 0; i < numberOfCores; i++) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException();
-            }
+            threads[i].join();
         }
 
         List<Coordinate> mergedCenters = new ArrayList<>();
