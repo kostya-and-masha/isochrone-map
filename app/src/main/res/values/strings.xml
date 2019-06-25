@@ -27,4 +27,8 @@
 
     <string name="download_map_error">failed to download map</string>
     <string name="build_isochrone_error">cannot build isochrone in this area</string>
+    <string name="enable_gps_dialog_message">Please enable GPS and try again.</string>
+    <string name="enable_gps_dialog_positive_text">Go to settings</string>
+    <string name="enable_gps_dialog_negative_text">NO!!!</string>
+    <string name="a_gps_disabled_toast">A-GPS is disabled, may take some time to get current location</string>
 </resources>
