@@ -156,13 +156,6 @@ public class IsochroneMenu extends Fragment {
         bundle.putFloat(SEEK_BAR_PROGRESS, seekBar.getProgressFloat());
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        database.close();
-    }
-
     /** Returns current chosen transport type. */
     @NonNull TransportType getCurrentTransport() {
         return currentTransport;

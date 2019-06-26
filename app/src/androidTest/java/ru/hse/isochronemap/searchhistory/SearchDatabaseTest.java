@@ -65,7 +65,5 @@ public class SearchDatabaseTest {
                 ),
                 database.getSearchQueries("")
         );
-
-        database.close();
     }
 }
