@@ -20,15 +20,15 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
+import ru.hse.isochronemap.R;
 import ru.hse.isochronemap.mapstructure.Coordinate;
 import ru.hse.isochronemap.util.Consumer;
 
 /** Wraps LocationManager and provides methods to obtain current/last known location conveniently.*/
 public class IsochroneMapLocationManager {
     public static final int APPROXIMATE_LOCATION_TIMEOUT = 4000;
-    private static final String GPS_ALERT_FRAGMENT = "GPSAlertFragment";
-    private static final String AGPS_DISABLED_MESSAGE =
-            "A-GPS is disabled, may take some time to get current location";
+
+    private static final String GPS_ALERT_FRAGMENT_TAG = "GPSAlertFragment";
     private final LocationManager locationManager;
     private final Criteria criteria = new Criteria();
     private final FragmentActivity fragmentActivity;
@@ -111,7 +111,7 @@ public class IsochroneMapLocationManager {
      * @throws SecurityException if ACCESS_FINE_LOCATION permissions were not given.
      */
     public @Nullable Coordinate getPreciseLocationBlocking() throws InterruptedException,
-                                                                   SecurityException {
+                                                                    SecurityException {
         boolean gpsProviderEnabled =
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean networkProviderEnabled =
@@ -122,7 +122,9 @@ public class IsochroneMapLocationManager {
             return null;
         } else if (!networkProviderEnabled) {
             fragmentActivity.runOnUiThread(
-                    () -> Toast.makeText(fragmentActivity, AGPS_DISABLED_MESSAGE, Toast.LENGTH_LONG)
+                    () -> Toast.makeText(fragmentActivity,
+                                         fragmentActivity.getString(R.string.a_gps_disabled_toast),
+                                         Toast.LENGTH_LONG)
                                .show());
         }
 
@@ -140,20 +142,14 @@ public class IsochroneMapLocationManager {
      *
      * @throws SecurityException if ACCESS_FINE_LOCATION permissions were not given.
      */
-    // Permissions are checked in a separate method therefore IntelliJ IDEA does not understand it.
-    @SuppressLint("MissingPermission")
     public void getPreciseLocationAsynchronously(@Nullable Consumer<Coordinate> callback,
-                                                 @Nullable Looper looper) throws SecurityException{
-        if (!hasPermissions()) {
-            throw new SecurityException();
-        }
-
+                                                 @Nullable Looper looper) throws SecurityException {
         locationManager.requestSingleUpdate(criteria, new CachedLocationListener(callback), looper);
     }
 
     private void askUserToEnableGPS() {
         new EnableGPSDialogFragment().show(fragmentActivity.getSupportFragmentManager(),
-                                           GPS_ALERT_FRAGMENT);
+                                           GPS_ALERT_FRAGMENT_TAG);
     }
     
     private void initializeCriteria() {

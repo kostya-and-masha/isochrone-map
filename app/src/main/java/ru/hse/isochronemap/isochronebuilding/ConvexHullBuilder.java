@@ -21,9 +21,9 @@ class ConvexHullBuilder {
         List<Coordinate> bottomHull = buildConvexHullGraham(coordinates);
         Collections.reverse(coordinates);
         List<Coordinate> topHull = buildConvexHullGraham(coordinates);
-        for (int i = 1; i < bottomHull.size() - 1; ++i) {
-            topHull.add(bottomHull.get(i));
-        }
+
+        // merging topHull and bottomHull into one convex hull
+        topHull.addAll(bottomHull.subList(1, bottomHull.size() - 1));
 
         return topHull;
     }
@@ -50,7 +50,6 @@ class ConvexHullBuilder {
     static boolean isRightTurn(Coordinate p1, Coordinate p2, Coordinate p3) {
         // x1y2 - y1x2
         return !((p2.longitude - p1.longitude) * (p3.latitude - p1.latitude)
-                 - (p2.latitude - p1.latitude) * (p3.longitude
-                                                  - p1.longitude) > 0);
+                 - (p2.latitude - p1.latitude) * (p3.longitude - p1.longitude) > 0);
     }
 }

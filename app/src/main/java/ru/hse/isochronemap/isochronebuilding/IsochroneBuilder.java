@@ -24,11 +24,12 @@ import ru.hse.isochronemap.mapstructure.TransportType;
 
 /** This class contains methods for building isochrones. */
 public class IsochroneBuilder {
-    static final double EXPECTED_CROSSROADS_WAITING = 0.005;
-
-    private static final double HEXAGON_RADIUS = 0.05; // 50 meters
-    private static final double IGNORED_HOLES_AREA_MULTIPLIER = 1.2;
     public static final double UNCONDITIONAL_ACCESS_DISTANCE = 0.1;
+
+    static final double EXPECTED_CROSSROADS_WAITING = 0.005;
+    static final double HEXAGON_RADIUS = 0.05; // 50 meters
+
+    private static final double IGNORED_HOLES_AREA_MULTIPLIER = 1.2;
 
     /**
      * Builds polygon which represents reachable area. This method calls {@link MapStructureManager}
@@ -41,6 +42,8 @@ public class IsochroneBuilder {
      * @return Resulting polygons.
      * @throws IOException             if error during OSM map downloading occurred.
      * @throws NotEnoughNodesException if no reachable OSM nodes were found nearby.
+     * @throws InterruptedException if the thread is interrupted either before or during
+     *                              its multithreaded actions.
      */
     public static @NonNull List<IsochronePolygon> getIsochronePolygons(
             @NonNull Coordinate startCoordinate,
@@ -66,13 +69,15 @@ public class IsochroneBuilder {
      * @param requestType   Convex Hull or Hexagonal cover.
      * @return Resulting polygons.
      * @throws NotEnoughNodesException if no reachable OSM nodes were found nearby.
+     * @throws InterruptedException if the thread is interrupted either before or during
+     *                              its multithreaded actions.
      */
     public static List<IsochronePolygon> getIsochronePolygons(
             @NonNull Node startNode,
             double time,
             @NonNull TransportType transportType,
             @NonNull IsochroneRequestType requestType)
-            throws NotEnoughNodesException{
+            throws NotEnoughNodesException, InterruptedException {
 
         List<Node> reachableNodes =
                 ReachableNodesFinder.getReachableNodes(startNode, time, transportType);
@@ -134,7 +139,9 @@ public class IsochroneBuilder {
     }
 
     private static @NonNull List<IsochronePolygon> turnHexagonsToPolygons(
-            @NonNull Collection<Hexagon> hexagons, double ignoredHolesArea) {
+            @NonNull Collection<Hexagon> hexagons, double ignoredHolesArea)
+            throws InterruptedException {
+
         List<Polygon> polygons = new ArrayList<>();
         for (Hexagon hexagon : hexagons) {
             polygons.add(hexagon.toJTSPolygon());
@@ -156,7 +163,7 @@ public class IsochroneBuilder {
     }
 
     private static @NonNull List<Geometry> getGeometriesConcurrently(
-            @NonNull List<Polygon> polygons) {
+            @NonNull List<Polygon> polygons) throws InterruptedException {
         int numberOfCores = Runtime.getRuntime().availableProcessors();
         Thread[] threads = new Thread[numberOfCores];
         Geometry[] geometries = new Geometry[numberOfCores];
@@ -175,11 +182,7 @@ public class IsochroneBuilder {
         }
 
         for (int i = 0; i < numberOfCores; ++i) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException();
-            }
+            threads[i].join();
         }
 
         return Arrays.asList(geometries);

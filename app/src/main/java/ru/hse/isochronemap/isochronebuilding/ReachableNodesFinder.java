@@ -28,7 +28,7 @@ class ReachableNodesFinder {
      */
     static @NonNull List<Node> getReachableNodes(@NonNull Node startNode, double time,
                                                  @NonNull TransportType transportType) {
-        Double speed = transportType.getAverageSpeed();
+        double speed = transportType.getAverageSpeed();
 
         HashMap<Node, Double> nodesReachTime = new HashMap<>();
 
@@ -42,6 +42,7 @@ class ReachableNodesFinder {
             if (comparisonResult == 0) {
                 Integer o1NodeIndex = nodesIndex.get(o1.node);
                 Integer o2NodeIndex = nodesIndex.get(o2.node);
+                // disable inspection (nodesIndex never stores null)
                 assert o1NodeIndex != null && o2NodeIndex != null;
                 return Integer.compare(o1NodeIndex, o2NodeIndex);
             }

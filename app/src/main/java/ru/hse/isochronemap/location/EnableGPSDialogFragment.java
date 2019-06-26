@@ -19,11 +19,12 @@ public class EnableGPSDialogFragment extends DialogFragment {
         Intent openSettingsIntent =
                 new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
 
-        builder.setMessage("Please enable GPS and try again.")
+        builder.setMessage(getString(R.string.enable_gps_dialog_message))
                .setCancelable(false)
-               .setPositiveButton("Go to settings",
+               .setPositiveButton(getString(R.string.enable_gps_dialog_positive_text),
                                   (dialog, id) -> getContext().startActivity(openSettingsIntent))
-               .setNegativeButton("NO!!!", (dialog, id) -> dialog.cancel());
+               .setNegativeButton(getString(R.string.enable_gps_dialog_negative_text),
+                                  (dialog, id) -> dialog.cancel());
         return builder.create();
     }
 }

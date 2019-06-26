@@ -39,7 +39,7 @@ class Hexagon {
     /** Converts hexagon to JTS Polygon */
     @NonNull Polygon toJTSPolygon() {
         GeometryFactory geometryFactory = new GeometryFactory();
-        org.locationtech.jts.geom.Coordinate coordinatesJTS[] =
+        org.locationtech.jts.geom.Coordinate[] coordinatesJTS =
                 new org.locationtech.jts.geom.Coordinate[7];
         for (int i = 0; i < 7; i++) {
             coordinatesJTS[i] =

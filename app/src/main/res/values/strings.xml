@@ -13,7 +13,6 @@
     <string name="set_isochrone_type">SET ISOCHRONE TYPE</string>
     <string name="settings_button">settings_button</string>
     <string name="hexagonal_cover_button_border">hexagonal cover button border</string>
-    <string name="convex_hull_button_botder">convex hull button botder</string>
     <string name="hexagonal_cover_button">hexagonal cover button</string>
     <string name="convex_hull_button_border">convex hull button border</string>
     <string name="OSM_contribution">© OpenStreetMap contributors</string>
@@ -27,4 +26,14 @@
 
     <string name="download_map_error">failed to download map</string>
     <string name="build_isochrone_error">cannot build isochrone in this area</string>
+
+    <string name="enable_gps_dialog_message">Please enable GPS and try again.</string>
+    <string name="enable_gps_dialog_positive_text">Go to settings</string>
+    <string name="enable_gps_dialog_negative_text">NO!!!</string>
+    <string name="a_gps_disabled_toast">A-GPS is disabled, may take some time to get current location</string>
+    <string name="no_search_results_toast">nothing was found</string>
+    <string name="search_failed_toast">could not get search results</string>
+    <string name="give_permissions_toast">give permissions please :(</string>
+    <string name="could_not_get_init_location_toast">cannot get current location :(</string>
+    <string name="choose_location_toast">please choose location</string>
 </resources>
