@@ -20,7 +20,7 @@ public class CoordinateParser {
      */
     public static @Nullable
     Coordinate parseCoordinate(@NonNull String input) {
-        String[] parts = input.split("\\s+");
+        String[] parts = input.trim().split("\\s+");
         if (parts.length != 2) {
             return null;
         }
