@@ -96,7 +96,9 @@ class HexagonalCoverBuilder {
                                                               + c2.latitude)));
         Collections.sort(hexagonCenters, comparator);
 
-        hexagons.add(getOneHexagonFromCenter(hexagonCenters.get(0)));
+        if (hexagonCenters.size() > 0) {
+            hexagons.add(getOneHexagonFromCenter(hexagonCenters.get(0)));
+        }
         for (int i = 1; i < hexagonCenters.size(); i++) {
             Coordinate currentCoordinate = hexagonCenters.get(i);
             Coordinate previousCoordinate = hexagonCenters.get(i - 1);
@@ -169,11 +171,11 @@ class HexagonalCoverBuilder {
         return new double[]{leftValue, leftValue + step};
     }
 
-    static private double latitudeFromKm(double km) {
+    static double latitudeFromKm(double km) {
         return km / KM_IN_ONE_LATITUDE_DEGREE;
     }
 
-    static private double longitudeFromKm(double km, double latitude) {
+    static double longitudeFromKm(double km, double latitude) {
         return km / (KM_IN_ONE_LATITUDE_DEGREE
                      * Math.cos(latitude * DistanceUtils.DEGREES_TO_RADIANS));
     }

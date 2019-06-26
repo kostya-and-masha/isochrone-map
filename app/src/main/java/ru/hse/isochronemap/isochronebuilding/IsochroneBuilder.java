@@ -27,8 +27,8 @@ public class IsochroneBuilder {
     public static final double UNCONDITIONAL_ACCESS_DISTANCE = 0.1;
 
     static final double EXPECTED_CROSSROADS_WAITING = 0.005;
+    static final double HEXAGON_RADIUS = 0.05; // 50 meters
 
-    private static final double HEXAGON_RADIUS = 0.05; // 50 meters
     private static final double IGNORED_HOLES_AREA_MULTIPLIER = 1.2;
 
     /**
