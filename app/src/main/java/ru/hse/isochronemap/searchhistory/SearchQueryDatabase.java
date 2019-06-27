@@ -12,8 +12,7 @@ abstract class SearchQueryDatabase extends RoomDatabase {
 
     static final Migration MIGRATION_1_2 = new Migration(1, 2) {
         @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // There's nothing else to do here
-            // Since we didn't alter the table
+            // Scheme is the same
         }
     };
 }
