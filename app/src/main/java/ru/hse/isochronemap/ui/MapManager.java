@@ -287,10 +287,10 @@ class MapManager implements OnMapReadyCallback {
     }
 
     private static class LatLngBox {
-        private double minLat = Double.MAX_VALUE;
-        private double minLng = Double.MAX_VALUE;
-        private double maxLat = Double.MIN_VALUE;
-        private double maxLng = Double.MIN_VALUE;
+        private double minLat = Double.POSITIVE_INFINITY;
+        private double minLng = Double.POSITIVE_INFINITY;
+        private double maxLat = Double.NEGATIVE_INFINITY;
+        private double maxLng = Double.NEGATIVE_INFINITY;
 
         private void add(LatLng latLng) {
             minLat = Math.min(minLat, latLng.latitude);
